@@ -2,16 +2,17 @@ Nieoficjalna aplikacja dla uczniów Zespołu Szkół Elektronicznych w Bydgoszcz
 
 <b>Funkcje</b>
 <ul>
-<li>Plan lekcji dnia i tygodnia, z naniesionymi zastępstwami; po lekcjach od razu następny dzień</li>
+<li>Plan lekcji dnia i tygodnia z naniesionymi zastępstwami; trwająca lekcja z czasem do dzwonka</li>
 <li>Grupy zajęciowe: widzisz tylko swoje lekcje (języki, zajęcia praktyczne, WF, religia)</li>
 <li>Zastępstwa dla Twojej klasy i grupy, z rozpoznawaniem zwolnień z lekcji</li>
-<li>Przypomnienia przed lekcją i ciche godziny</li>
-<li>Własne nazwy i kolory przedmiotów, kolor akcentu aplikacji</li>
-<li>Ogłoszenia szkoły, także starsze z archiwum, z wyszukiwaniem</li>
-<li>Strona główna z najbliższą lekcją, przerwą i zastępstwami</li>
+<li>Powiadomienia o nowych zastępstwach (dzień, lekcja, przedmiot i nauczyciel) i ogłoszeniach, ciche godziny</li>
+<li>Notatki do przyszłych lekcji z przypomnieniem dzień wcześniej albo przed lekcją</li>
+<li>Przypomnienia przed lekcją z numerem sali</li>
+<li>Ogłoszenia szkoły czytane w aplikacji, ze zdjęciami, wyszukiwaniem i ulubionymi dostępnymi offline</li>
+<li>Strona główna z trwającą lub najbliższą lekcją, przerwą i zastępstwami</li>
 <li>Widżety: Następna lekcja, Plan dnia, Zastępstwa oraz kafelek w szybkich ustawieniach</li>
-<li>Powiadomienia o nowych zastępstwach i ogłoszeniach</li>
-<li>Jasny i ciemny motyw, opcjonalnie kolory z tapety</li>
+<li>Odjazdy ze szkoły: najbliższe połączenia komunikacji miejskiej do wybranego przystanku, bez GPS (opcjonalne)</li>
+<li>Własne nazwy i kolory przedmiotów, jasny i ciemny motyw, kolor akcentu, kolory z tapety, wybór ikony</li>
 </ul>
 
 Aplikacja nie jest powiązana ze szkołą ani z firmą VULCAN. Inspirowana aplikacją Atom (iOS) Kacpra Górki. Wolne oprogramowanie na licencji GNU GPL v3 lub nowszej.

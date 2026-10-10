@@ -2,14 +2,17 @@ Unofficial app for students of the Zespół Szkół Elektronicznych (school of e
 
 <b>Features</b>
 <ul>
-<li>Daily and weekly timetable with substitutions applied</li>
+<li>Daily and weekly timetable with substitutions applied; the current lesson shows the time left</li>
 <li>Class groups: only the lessons you attend (languages, workshops, PE, religion)</li>
-<li>Substitutions for your class and group</li>
-<li>School news, including older posts from the archive, with search</li>
-<li>Home screen with the next lesson, breaks and substitutions</li>
+<li>Substitutions for your class and group, including cancelled lessons</li>
+<li>Notifications about new substitutions (day, lesson, subject and teacher) and news, quiet hours</li>
+<li>Notes for upcoming lessons with a reminder the day before or before the lesson</li>
+<li>Lesson reminders with the room number</li>
+<li>School news read in the app, with photos, search and favourites available offline</li>
+<li>Home screen with the current or next lesson, breaks and substitutions</li>
 <li>Widgets: Next lesson, Day plan, Substitutions, plus a quick settings tile</li>
-<li>Notifications about new substitutions and news</li>
-<li>Light and dark theme, optional wallpaper colors</li>
+<li>Departures from school: next public transport connections to a chosen stop, without GPS (optional)</li>
+<li>Custom subject names and colours, light and dark theme, accent colour, wallpaper colours, app icon choice</li>
 </ul>
 
-The app's interface is in Polish. Not affiliated with the school or VULCAN. Inspired by Atom (iOS) by Kacper Górka. Free software under GNU GPL v3.
+The app's interface is in Polish. Not affiliated with the school or VULCAN. Inspired by Atom (iOS) by Kacper Górka. Free software under GNU GPL v3 or later.
