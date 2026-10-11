@@ -79,7 +79,12 @@ class TimetableRepositoryImpl @Inject constructor(
                 // Strona szkoły publikuje tylko AKTUALNY plan - nigdy nie zapisujemy go w minionych
                 // tygodniach. Dawniej sync tygodnia przewiniętego wstecz (albo odświeżenie na nim)
                 // wpisywał bieżący szablon jako plan sprzed miesięcy. Najwcześniej bieżący tydzień.
-                val monday = maxOf(anchorDate, LocalDate.now()).with(JavaDayOfWeek.MONDAY)
+                // Zawsze od bieżącego tygodnia, także przy odświeżeniu przyszłego: dawniej zapis
+                // zaczynał się od oglądanego tygodnia, a koordynator i tak oznaczał plan jako świeży,
+                // więc dzisiejszy dzień (widżety, przypomnienia) zostawał ze starą salą na kilka godzin.
+                val monday = LocalDate.now().with(JavaDayOfWeek.MONDAY)
+                val anchorMonday = maxOf(anchorDate, LocalDate.now()).with(JavaDayOfWeek.MONDAY)
+                val weeks = maxOf(WEEKS_AHEAD.toLong(), java.time.temporal.ChronoUnit.WEEKS.between(monday, anchorMonday) + 1)
                 val dto = source.fetchTimetable(classId)
                 // Zmieniony układ strony: zapisany plan zostaje, ale sync kończy się błędem,
                 // żeby użytkownik dostał komunikat zamiast cichego braku aktualizacji.
@@ -97,8 +102,8 @@ class TimetableRepositoryImpl @Inject constructor(
                 // zapis na WEEKS_AHEAD tygodni (pokrywa 21-dniowy zakres Startu).
                 val lessons = mutableListOf<pl.zse.bydgoszcz.elektron.data.local.LessonEntity>()
                 val groups = mutableListOf<pl.zse.bydgoszcz.elektron.data.local.LessonGroupEntity>()
-                for (w in 0 until WEEKS_AHEAD) {
-                    val (l, g) = TimetableMapper.toEntities(dto, monday.plusWeeks(w.toLong()))
+                for (w in 0 until weeks) {
+                    val (l, g) = TimetableMapper.toEntities(dto, monday.plusWeeks(w))
                     lessons += l
                     groups += g
                 }
@@ -107,7 +112,7 @@ class TimetableRepositoryImpl @Inject constructor(
                 if (lessons.isEmpty() && dto.lessons.any { it.groups.isNotEmpty() || it.note != null }) {
                     throw SchoolPageChangedException("plan lekcji")
                 }
-                val toDay = monday.plusWeeks(WEEKS_AHEAD.toLong()).minusDays(1).toEpochDay()
+                val toDay = monday.plusWeeks(weeks).minusDays(1).toEpochDay()
                 // Nowy plan opublikowany z wyprzedzeniem ("Obowiązuje od: 06.10" w piątek):
                 // dni przed tą datą zachowują dotychczasowy plan, a bez niego (pierwsze uruchomienie,
                 // wyczyszczone dane) zostają bez planu. Dawniej wtedy wypełniał je nowy plan - uczeń

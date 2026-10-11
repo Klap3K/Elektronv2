@@ -334,17 +334,24 @@ class SyncCoordinator @Inject constructor(
             withContext(NonCancellable) {
                 val initialDone = allowed && notificationsRepo.isInitialSyncDone() && notificationsRepo.isSeenStoreReady()
                 val seenSubs = notificationsRepo.getSeenSubstitutionIds()
+                val seenFingerprints = notificationsRepo.getSeenSubstitutionFingerprints()
                 val seenAnns = notificationsRepo.getSeenAnnouncementIds()
                 val currentSubs = substitutionsRepo.getAllFrom(LocalDate.now().minusDays(1))
                 val currentAnns = announcementsRepo.getAll()
                 if (initialDone) {
-                    if (classId != null) substitutionNotifier.notifyFresh(currentSubs.filter { it.id !in seenSubs })
+                    // Nowe zastępstwa i te, w których szkoła zmieniła same uwagi (np. "za ostatnią lekcję") -
+                    // poprawka zastępuje poprzednie powiadomienie tej lekcji (ten sam znacznik).
+                    val fresh = currentSubs.filter { it.id !in seenSubs } +
+                        pl.zse.bydgoszcz.elektron.domain.model.SubstitutionNotice.changedNotes(currentSubs, seenSubs, seenFingerprints)
+                    if (classId != null) substitutionNotifier.notifyFresh(fresh)
                     val freshAnns = currentAnns.filter { it.id !in seenAnns }
                     if (settings.notificationsAnnouncements.first() && freshAnns.isNotEmpty()) {
                         freshAnns.take(5).forEach { sink.postAnnouncement(it) }
                     }
                 }
                 notificationsRepo.setSeenSubstitutionIds(currentSubs.map { it.id }.toSet())
+                notificationsRepo.setSeenSubstitutionFingerprints(
+                    currentSubs.map(pl.zse.bydgoszcz.elektron.domain.model.SubstitutionNotice::fingerprint).toSet())
                 notificationsRepo.setSeenAnnouncementIds(currentAnns.map { it.id }.toSet())
                 // Punkt odniesienia gotowy dopiero, gdy zastępstwa naprawdę się pobrały - inaczej
                 // następna udana synchronizacja powiadomiłaby o wszystkich zastępstwach naraz.

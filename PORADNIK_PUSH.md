@@ -96,14 +96,14 @@ Token trzymaj tylko w cron-job.org. Gdy wygaśnie, wygeneruj nowy i podmień nag
 
 ## Krok 7. Budowanie aplikacji
 
-Z `app/google-services.json` z kroku 1, w katalogu repozytorium aplikacji (wymagany JDK 17):
+Z `app/google-services.json` z kroku 1, w katalogu repozytorium aplikacji (wymagany JDK 17 lub nowszy):
 
 ```bash
 ./gradlew :app:assembleGmsDebug
 ```
 
-Jeśli domyślna Java w systemie jest inna, wskaż JDK 17 przez `JAVA_HOME`, np.
-`JAVA_HOME=/ścieżka/do/jdk-17 ./gradlew :app:assembleGmsDebug`.
+Jeśli domyślna Java w systemie jest starsza, wskaż nowszy JDK przez `JAVA_HOME`, np.
+`JAVA_HOME=/ścieżka/do/jdk-21 ./gradlew :app:assembleGmsDebug`.
 
 Wydanie: `:app:assembleGmsRelease` (wymaga też `keystore.properties`, patrz README).
 Wariant F-Droid: `:app:assembleFossDebug`, bez `google-services.json`.

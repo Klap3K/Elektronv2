@@ -37,8 +37,8 @@ android {
         applicationId = "pl.zse.bydgoszcz.elektron"
         minSdk = 26
         targetSdk = 35
-        versionCode = 35
-        versionName = "1.0.0"
+        versionCode = 36
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -118,7 +118,9 @@ android {
 }
 
 kotlin {
-    jvmToolchain(17)
+    // Cel JVM wprost zamiast jvmToolchain(17): build działa z każdym JDK 17+ (F-Droid buduje na JDK 21),
+    // a kod nadal jest kompilowany pod Javę 17 - tak jak compileOptions wyżej.
+    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 }
 
 ksp {

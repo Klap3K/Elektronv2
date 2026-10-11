@@ -61,6 +61,12 @@ class NotificationsRepositoryImpl @Inject constructor(
     override suspend fun setSeenAnnouncementIds(ids: Set<String>) = withContext(Dispatchers.IO) {
         syncStateDao.upsert(SyncStateEntity(KEY_SEEN_ANNS, Instant.now().epochSecond, "ok", encodeIds(ids)))
     }
+    override suspend fun getSeenSubstitutionFingerprints(): Set<String> = withContext(Dispatchers.IO) {
+        decodeIds(syncStateDao.get(KEY_SEEN_SUB_FINGERPRINTS)?.message)
+    }
+    override suspend fun setSeenSubstitutionFingerprints(fingerprints: Set<String>) = withContext(Dispatchers.IO) {
+        syncStateDao.upsert(SyncStateEntity(KEY_SEEN_SUB_FINGERPRINTS, Instant.now().epochSecond, "ok", encodeIds(fingerprints)))
+    }
     override suspend fun isSeenStoreReady(): Boolean = withContext(Dispatchers.IO) {
         syncStateDao.get(KEY_SEEN_STORE_READY) != null
     }
@@ -148,6 +154,7 @@ class NotificationsRepositoryImpl @Inject constructor(
     companion object {
         private const val KEY_SEEN_SUBS = "seen_substitution_ids_v2"
         private const val KEY_SEEN_ANNS = "seen_announcement_ids_v2"
+        private const val KEY_SEEN_SUB_FINGERPRINTS = "seen_substitution_fingerprints"
         private const val KEY_SEEN_STORE_READY = "seen_store_v2_ready"
         private const val ID_SEPARATOR = "\n"
         private const val KEY_INIT_DONE = "initial_sync_done"

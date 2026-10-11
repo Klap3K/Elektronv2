@@ -78,6 +78,24 @@ class TimetableRepositoryImplTest {
     }
 
     @Test
+    fun refreshingFutureWeekAlsoUpdatesCurrentWeek() = runTest {
+        // Koordynator po udanym pobraniu uznaje plan klasy za świeży. Dawniej odświeżenie
+        // przyszłego tygodnia zapisywało plan od tamtego tygodnia, a bieżący zostawał stary.
+        repoWithPlan("stary", null).syncTimetable("o3", monday)
+        repoWithPlan("nowy", null).syncTimetable("o3", monday.plusWeeks(2))
+        assertEquals("nowy", subjectOn(monday))
+        assertEquals("nowy", subjectOn(monday.plusWeeks(2)))
+    }
+
+    @Test
+    fun farFutureAnchorIsCoveredTogetherWithCurrentWeeks() = runTest {
+        val far = monday.plusWeeks(6)
+        repo.syncTimetable("o3", far)
+        assertTrue(repo.hasLessons("o3", monday, monday.plusDays(4)))
+        assertTrue(repo.hasLessons("o3", far, far.plusDays(4)))
+    }
+
+    @Test
     fun refreshOnPastWeekKeepsItsSavedPlan() = runTest {
         // Zapisany wcześniej plan minionego tygodnia (z tamtego czasu) zostaje nietknięty.
         repoWithPlan("stary", null).syncTimetable("o3", monday)

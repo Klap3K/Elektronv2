@@ -74,7 +74,7 @@ class LessonReminderScheduler @Inject constructor(
                 timetableRepo.getLessonsOnce(classId, today, today.plusDays(7)),
                 settings.groupSelections(classId).first()
             )
-            LessonReminders.next(lessons, now, reminderSettings)
+            LessonReminders.next(lessons, now, reminderSettings, handled = handledKey())
         }
 
         if (reminder == null) {
@@ -124,11 +124,22 @@ class LessonReminderScheduler @Inject constructor(
             LocalDateTime.of(lesson.date, lesson.timeTo))
     }
 
+    /** Alarm przypomnienia przyszedł (pokazany albo już nieaktualny) - nie ustawiamy go ponownie. */
+    fun markHandled(number: Int, start: LocalDateTime) {
+        prefs().edit().putString(KEY_HANDLED, LessonReminders.key(number, start)).apply()
+    }
+
+    private fun handledKey(): String? = prefs().getString(KEY_HANDLED, null)
+
+    private fun prefs() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
     private fun baseIntent() = Intent(context, LessonReminderReceiver::class.java)
 
     companion object {
         private const val TAG = "LessonReminders"
         private const val REQUEST_CODE = 4101
+        private const val PREFS = "lesson_reminders"
+        private const val KEY_HANDLED = "handled"
         const val EXTRA_CLASS = "reminder_class"
         const val EXTRA_NUMBER = "reminder_number"
         const val EXTRA_ID = "reminder_id"

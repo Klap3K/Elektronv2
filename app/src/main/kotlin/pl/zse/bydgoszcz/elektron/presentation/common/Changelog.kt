@@ -5,6 +5,12 @@ object Changelog {
     data class Entry(val versionCode: Int, val versionName: String, val items: List<String>)
 
     val entries: List<Entry> = listOf(
+        Entry(36, "1.0.1", listOf(
+            "Zmiana samych uwag w zastępstwie (np. „za ostatnią lekcję”) aktualizuje powiadomienie",
+            "Wczytanie starszych ogłoszeń nie wywołuje już powiadomień o dawnych wpisach",
+            "Odświeżenie planu na przyszłym tygodniu aktualizuje też bieżący tydzień, widżety i przypomnienia",
+            "Spóźnione przypomnienie o lekcji nie znika po synchronizacji w tle"
+        )),
         Entry(35, "1.0.0", listOf(
             "Pierwsza stabilna wersja eLektrona",
             "Zastępstwa za lekcje, na które nie chodzisz, nie trafiają na stronę główną ani do powiadomień",

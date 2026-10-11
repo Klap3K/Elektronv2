@@ -49,10 +49,12 @@ class LessonReminderReceiver : BroadcastReceiver() {
         if (startMs > 0) {
             val zone = ZoneId.systemDefault()
             val start = LocalDateTime.ofInstant(Instant.ofEpochMilli(startMs), zone)
+            val number = intent.getIntExtra(LessonReminderScheduler.EXTRA_NUMBER, -1)
             val delivery = ep.scheduler().delivery(
-                intent.getStringExtra(LessonReminderScheduler.EXTRA_CLASS),
-                intent.getIntExtra(LessonReminderScheduler.EXTRA_NUMBER, -1), start, now
+                intent.getStringExtra(LessonReminderScheduler.EXTRA_CLASS), number, start, now
             )
+            // Przed przeliczeniem: spóźniony alarm zostaje w kolejce tylko do chwili, gdy przyjdzie.
+            ep.scheduler().markHandled(number, start)
             if (delivery != null) ep.notifications().postReminder(
                 id = delivery.id, title = delivery.title, body = delivery.body,
                 timeoutMs = (delivery.end.atZone(zone).toInstant().toEpochMilli() - System.currentTimeMillis()).coerceAtLeast(60_000L)

@@ -57,4 +57,23 @@ object SubstitutionNotice {
      */
     fun tag(sub: Substitution): String =
         "sub:${sub.date.toEpochDay()}|${sub.lessonNumber}|${sub.classShortName.trim().uppercase(PL)}|${sub.groupNumber ?: 0}"
+
+    /**
+     * ID zastępstwa + skrót uwag. Pozostałe pola (sala, zastępca, nauczyciel) są już w ID, które
+     * zostaje bez zmian - liczy je tak samo watcher pushy.
+     */
+    fun fingerprint(sub: Substitution): String =
+        "${sub.id}$FINGERPRINT_SEPARATOR${(sub.notes ?: "").trim().hashCode().toUInt().toString(16)}"
+
+    /**
+     * Zastępstwa już widziane, w których zmieniły się same uwagi. Bez zapisanego odcisku dla
+     * danego ID (pierwsza synchronizacja po aktualizacji, zastępstwo z pusha) - nic: najpierw
+     * zapisujemy odcisk, inaczej aktualizacja aplikacji powiadomiłaby o wszystkich naraz.
+     */
+    fun changedNotes(current: List<Substitution>, seenIds: Set<String>, seenFingerprints: Set<String>): List<Substitution> {
+        val withFingerprint = seenFingerprints.mapTo(HashSet()) { it.substringBefore(FINGERPRINT_SEPARATOR) }
+        return current.filter { it.id in seenIds && it.id in withFingerprint && fingerprint(it) !in seenFingerprints }
+    }
+
+    private const val FINGERPRINT_SEPARATOR = '\u0001'
 }

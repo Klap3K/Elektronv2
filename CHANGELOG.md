@@ -4,6 +4,15 @@ Wszystkie istotne zmiany w eLektronie. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
+## [1.0.1] - niewydane (36)
+
+- Powiadomienia o zastępstwach: zmiana samych uwag (np. „za ostatnią lekcję”) przy tej samej lekcji, sali i zastępcy aktualizuje powiadomienie. Identyfikator zastępstwa się nie zmienia (zgodność z watcherem push), dochodzi odcisk treści uwag; pierwsza synchronizacja po aktualizacji tylko go zapisuje.
+- Ogłoszenia wczytane z archiwum („Pokaż więcej”) od razu trafiają do widzianych - następna synchronizacja nie powiadamia o artykułach sprzed miesięcy.
+- Odświeżenie planu na przyszłym tygodniu zapisuje plan także od bieżącego tygodnia: dzisiejszy dzień, widżety i przypomnienia nie zostają ze starą salą, choć plan był oznaczony jako świeży.
+- Przypomnienie o lekcji, którego niedokładny alarm się spóźnia, zostaje w kolejce do chwili dostarczenia (najpóźniej 5 min po początku lekcji) - synchronizacja w tle nie zastępuje go następnym.
+- Build: cel JVM ustawiony wprost zamiast `jvmToolchain(17)` - projekt buduje się z JDK 17 i nowszym (F-Droid używa JDK 21); CI buduje na JDK 21.
+- README: informacja o podpisach wydań z F-Droid i z GitHuba.
+
 ## [1.0.0] - 2026-10-10 (35)
 
 Pierwsza stabilna wersja eLektrona.

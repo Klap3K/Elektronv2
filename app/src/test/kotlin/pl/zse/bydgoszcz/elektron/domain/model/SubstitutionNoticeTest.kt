@@ -51,4 +51,21 @@ class SubstitutionNoticeTest {
         assertNotEquals(SubstitutionNotice.tag(first), SubstitutionNotice.tag(first.copy(groupNumber = 1)))
         assertNotEquals(SubstitutionNotice.tag(first), SubstitutionNotice.tag(first.copy(lessonNumber = 4)))
     }
+
+    @Test
+    fun notesOnlyChangeIsDetectedOnceAFingerprintExists() {
+        val seen = sub("Kowalski", "211", notes = null)
+        val changed = seen.copy(notes = "za ostatnią lekcję")
+        val ids = setOf(seen.id)
+        // Odcisk z poprzedniej synchronizacji: zmiana samych uwag = poprawka do powiadomienia.
+        assertEquals(listOf(changed), SubstitutionNotice.changedNotes(listOf(changed), ids, setOf(SubstitutionNotice.fingerprint(seen))))
+        // Bez zmian - nic.
+        assertTrue(SubstitutionNotice.changedNotes(listOf(seen), ids, setOf(SubstitutionNotice.fingerprint(seen))).isEmpty())
+        // Pierwsza synchronizacja po aktualizacji (brak odcisków) - bez lawiny powiadomień.
+        assertTrue(SubstitutionNotice.changedNotes(listOf(changed), ids, emptySet()).isEmpty())
+        // Nowe zastępstwo nie jest "zmienione" (powiadamia o nim zwykła ścieżka nowych ID).
+        assertTrue(SubstitutionNotice.changedNotes(listOf(changed), emptySet(), setOf(SubstitutionNotice.fingerprint(seen))).isEmpty())
+        assertEquals(seen.id, changed.id)
+        assertNotEquals(SubstitutionNotice.fingerprint(seen), SubstitutionNotice.fingerprint(changed))
+    }
 }

@@ -20,6 +20,7 @@ class FakeSettings(
 ) : SettingsRepository {
     val classIdFlow = MutableStateFlow(classId)
     val notifySubs = MutableStateFlow(true)
+    val notifyAnns = MutableStateFlow(false)
     val reminderFlow = MutableStateFlow(reminders)
     val groupSelectionsFlow = MutableStateFlow<Map<String, String>>(emptyMap())
 
@@ -31,7 +32,7 @@ class FakeSettings(
     override suspend fun setDynamicColor(enabled: Boolean) {}
     override val notificationsSubstitutions: Flow<Boolean> = notifySubs
     override suspend fun setNotificationsSubstitutions(enabled: Boolean) { notifySubs.value = enabled }
-    override val notificationsAnnouncements: Flow<Boolean> = flowOf(false)
+    override val notificationsAnnouncements: Flow<Boolean> = notifyAnns
     override suspend fun setNotificationsAnnouncements(enabled: Boolean) {}
     override val showNextLesson: Flow<Boolean> = flowOf(true)
     override suspend fun setShowNextLesson(enabled: Boolean) {}

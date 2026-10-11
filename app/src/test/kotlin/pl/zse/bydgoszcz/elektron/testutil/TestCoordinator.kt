@@ -28,8 +28,9 @@ class TestCoordinator(
     val timetableRepo = TimetableRepositoryImpl(timetableSource, db.schoolClassDao(), db.teacherDao(), db.roomDao(),
         db.lessonDao(), db.lessonGroupDao(), db.substitutionDao(), db)
     val substitutionsRepo = SubstitutionsRepositoryImpl(substitutionsSource, db.substitutionDao(), db)
-    val announcementsRepo = AnnouncementsRepositoryImpl(announcementsSource, db.announcementDao(), db)
     val notificationsRepo = NotificationsRepositoryImpl(db.notificationDao(), db.syncStateDao())
+    val announcementsRepo = AnnouncementsRepositoryImpl(announcementsSource, db.announcementDao(), db,
+        pl.zse.bydgoszcz.elektron.data.repository.FavoriteAnnouncementsStore(null), notificationsRepo)
     val coordinator = SyncCoordinator(
         settings, timetableRepo, substitutionsRepo, announcementsRepo, notificationsRepo,
         SubstitutionNotifier(settings, timetableRepo, notificationsRepo, sink), sink,

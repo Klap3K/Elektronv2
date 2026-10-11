@@ -23,6 +23,7 @@ import pl.zse.bydgoszcz.elektron.data.remote.sources.AnnouncementsSource
 import pl.zse.bydgoszcz.elektron.domain.model.Announcement
 import pl.zse.bydgoszcz.elektron.domain.model.AnnouncementSource
 import pl.zse.bydgoszcz.elektron.domain.repository.AnnouncementsRepository
+import pl.zse.bydgoszcz.elektron.domain.repository.NotificationsRepository
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,7 +33,9 @@ class AnnouncementsRepositoryImpl @Inject constructor(
     private val source: AnnouncementsSource,
     private val dao: AnnouncementDao,
     private val db: AppDatabase,
-    private val favoritesStore: FavoriteAnnouncementsStore
+    private val favoritesStore: FavoriteAnnouncementsStore,
+    /** Zbiór "widzianych" ogłoszeń - wpisy z archiwum trafiają do niego od razu (null w części testów). */
+    private val notifications: NotificationsRepository? = null
 ) : AnnouncementsRepository {
     internal constructor(source: AnnouncementsSource, dao: AnnouncementDao, db: AppDatabase) :
         this(source, dao, db, FavoriteAnnouncementsStore(null))
@@ -252,14 +255,26 @@ class AnnouncementsRepositoryImpl @Inject constructor(
                                 source = AnnouncementSource.RSS_NEWS.name
                             )
                         }
-                        added = db.withTransaction {
-                            // RSS/push may have saved the same article while dates were downloading.
-                            // Preserve its bookmark and offline content rather than replacing it.
-                            val existing = dao.existingUrls(entities.map { it.url }).toSet()
-                            val missing = entities.filter { it.url !in existing }.distinctBy { it.id }
-                            dao.upsertAll(missing)
-                            missing.size
+                        val insert: suspend () -> List<AnnouncementEntity> = {
+                            db.withTransaction {
+                                // RSS/push may have saved the same article while dates were downloading.
+                                // Preserve its bookmark and offline content rather than replacing it.
+                                val existing = dao.existingUrls(entities.map { it.url }).toSet()
+                                val missing = entities.filter { it.url !in existing }.distinctBy { it.id }
+                                dao.upsertAll(missing)
+                                missing
+                            }
                         }
+                        // Stare wpisy z archiwum od razu jako "widziane", pod tą samą blokadą co
+                        // powiadomienia: dawniej następna synchronizacja (nawet samych zastępstw)
+                        // uznawała je za nowe i powiadamiała o artykułach sprzed miesięcy.
+                        val seen = notifications
+                        val inserted = if (seen == null) insert() else seen.withNotifyLock {
+                            val rows = insert()
+                            if (rows.isNotEmpty()) seen.setSeenAnnouncementIds(seen.getSeenAnnouncementIds() + rows.map { it.id })
+                            rows
+                        }
+                        added = inserted.size
                     }
                     page++
                 }

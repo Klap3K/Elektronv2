@@ -19,6 +19,14 @@ interface NotificationsRepository {
     suspend fun setSeenAnnouncementIds(ids: Set<String>)
 
     /**
+     * Odciski treści widzianych zastępstw ([pl.zse.bydgoszcz.elektron.domain.model.SubstitutionNotice.fingerprint]).
+     * ID zastępstwa nie obejmuje uwag (zgodność z watcherem push), więc zmiana samych uwag
+     * jest wykrywana po odcisku.
+     */
+    suspend fun getSeenSubstitutionFingerprints(): Set<String> = emptySet()
+    suspend fun setSeenSubstitutionFingerprints(fingerprints: Set<String>) {}
+
+    /**
      * true po pierwszym przebiegu SyncWorkera w formacie v2 zbioru "widzianych" ID.
      * Dopóki false, worker tylko zapisuje stan i nie powiadamia — migracja ze starego
      * (zepsutego) formatu nie może skończyć się lawiną powiadomień.

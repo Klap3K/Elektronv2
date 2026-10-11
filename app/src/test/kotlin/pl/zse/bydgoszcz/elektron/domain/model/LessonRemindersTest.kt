@@ -29,8 +29,8 @@ class LessonRemindersTest {
     @Test fun firstLessonOnly() {
         val s = ReminderSettings(ReminderMode.FIRST, 10)
         assertEquals(at(mon, "07:50"), LessonReminders.next(lessons, at(mon, "06:00"), s)!!.at)
-        // Po pierwszej lekcji poniedziałku - następne jest przed pierwszą lekcją wtorku.
-        val r = LessonReminders.next(lessons, at(mon, "07:55"), s)!!
+        // Po przypomnieniu o pierwszej lekcji poniedziałku - następne jest przed pierwszą lekcją wtorku.
+        val r = LessonReminders.next(lessons, at(mon, "07:55"), s, handled = LessonReminders.key(1, at(mon, "08:00")))!!
         assertEquals(at(tue, "08:40"), r.at)
         assertEquals("$tue-2", r.lesson.id)
     }
@@ -38,12 +38,26 @@ class LessonRemindersTest {
     @Test fun everyLessonMovesToBreakStart() {
         val s = ReminderSettings(ReminderMode.EVERY, 10)
         // Przerwa 5 min: przypomnienie o 2. lekcji na początku przerwy, nie w trakcie 1. lekcji.
-        val r2 = LessonReminders.next(lessons, at(mon, "08:00"), s)!!
+        val r2 = LessonReminders.next(lessons, at(mon, "08:00"), s, handled = LessonReminders.key(1, at(mon, "08:00")))!!
         assertEquals("$mon-2", r2.lesson.id)
         assertEquals(at(mon, "08:45"), r2.at)
         // Przerwa 15 min: normalnie 10 min przed.
-        val r3 = LessonReminders.next(lessons, at(mon, "08:46"), s)!!
+        val r3 = LessonReminders.next(lessons, at(mon, "08:46"), s, handled = LessonReminders.key(2, at(mon, "08:50")))!!
         assertEquals(at(mon, "09:40"), r3.at)
+    }
+
+    @Test fun overdueReminderStaysQueuedUntilHandled() {
+        // Niedokładny alarm na 07:50 jeszcze nie przyszedł, a o 07:51 kończy się synchronizacja:
+        // przeliczenie nie może go zastąpić przypomnieniem na wtorek.
+        val s = ReminderSettings(ReminderMode.FIRST, 10)
+        val pending = LessonReminders.next(lessons, at(mon, "07:51"), s)!!
+        assertEquals("$mon-1", pending.lesson.id)
+        assertEquals(at(mon, "07:50"), pending.at)
+        // Po obsłużeniu alarmu - następne przypomnienie.
+        val after = LessonReminders.next(lessons, at(mon, "07:51"), s, handled = LessonReminders.key(pending))!!
+        assertEquals("$tue-2", after.lesson.id)
+        // Po oknie dostarczenia (5 min po początku lekcji) spóźnione przypomnienie przepada.
+        assertEquals("$tue-2", LessonReminders.next(lessons, at(mon, "08:06"), s)!!.lesson.id)
     }
 
     @Test fun nothingAfterLastLesson() {

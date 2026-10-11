@@ -105,6 +105,10 @@ bez odinstalowywania - zachowasz ustawienia, notatki i ulubione. W wydaniu z Git
 aktualizacje można sprawdzić również w aplikacji, w **Ustawieniach → Aktualizacje**
 (domyślnie tylko wersje stabilne; kanał „Beta” obejmuje też wersje testowe).
 
+Wydania w F-Droid są budowane i podpisywane przez F-Droid, a wydania z GitHuba moim kluczem.
+Nie da się zainstalować jednej wersji na drugą - przy zmianie źródła trzeba odinstalować
+aplikację, co usuwa ustawienia, notatki i ulubione.
+
 ## Powiadomienia
 
 Android może opóźniać pracę aplikacji w tle. Jeśli powiadomienia nie przychodzą,
@@ -135,7 +139,7 @@ lub napisz na [kontakt.elektron@pm.me](mailto:kontakt.elektron@pm.me).
 ## Dla osób rozwijających projekt
 
 Kotlin, Jetpack Compose, Material 3, Hilt, Room, DataStore, WorkManager, Glance,
-OkHttp, Jsoup i osmdroid. Wymagania: JDK 17 i Android SDK; minSdk 26.
+OkHttp, Jsoup i osmdroid. Wymagania: JDK 17 lub nowszy i Android SDK; minSdk 26.
 
 | Wariant | Zawartość |
 |---|---|
