@@ -31,8 +31,15 @@ class SubstitutionsRepositoryImpl @Inject constructor(
             val page = source.fetchPage()
             // Zajęcia łączone (wpis bez klasy) - klasa i grupa z zapisanego planu; bez dopasowania pomijane.
             var classlessFailed = false
-            val joined = if (page.classless.isEmpty()) emptyList() else runCatchingCancellable { resolveClassless(page.classless) }
-                .onFailure { classlessFailed = true; Log.w(TAG, "Nie udało się przypisać zastępstw bez klasy", it) }.getOrDefault(emptyList())
+            // Dni wpisów bez klasy, dla których nie ma zapisanego planu (np. plan jeszcze się nie pobrał po
+            // wyczyszczeniu danych) - nie da się ich przypisać, więc te dni traktujemy jak niekompletne.
+            // Dawniej wpisy po prostu znikały, a po pobraniu planu wracały jako "nowe" zastępstwa.
+            var classlessNoPlan: Set<Long> = emptySet()
+            val joined = if (page.classless.isEmpty()) emptyList() else runCatchingCancellable {
+                val (resolved, noPlan) = resolveClassless(page.classless)
+                classlessNoPlan = noPlan
+                resolved
+            }.onFailure { classlessFailed = true; Log.w(TAG, "Nie udało się przypisać zastępstw bez klasy", it) }.getOrDefault(emptyList())
             val entities = (page.items + joined).mapNotNull(SubstitutionMapper::toEntity)
             // Dni pokazane na stronie (z nagłówków "Zastępstwa w dniu" - także dni bez wpisów).
             val pageDays = (page.dates.mapNotNull { runCatching { LocalDate.parse(it, PL_DATE) }.getOrNull() }
@@ -52,7 +59,7 @@ class SubstitutionsRepositoryImpl @Inject constructor(
             // Nieudane przypisanie wpisów bez klasy (np. błąd odczytu planu): ich dni jak niekompletne -
             // wcześniej przypisane zastępstwa zajęć łączonych nie znikają (i nie wracają jako "nowe").
             val incompleteDays = (page.incompleteDates + if (classlessFailed) page.classless.map { it.dateRaw } else emptyList())
-                .mapNotNull { runCatching { LocalDate.parse(it, PL_DATE) }.getOrNull()?.toEpochDay() }.toSet()
+                .mapNotNull { runCatching { LocalDate.parse(it, PL_DATE) }.getOrNull()?.toEpochDay() }.toSet() + classlessNoPlan
             if (incompleteDays.isNotEmpty()) {
                 Log.w(TAG, "Niekompletnie odczytane dni ${page.incompleteDates} - zostawiam dotychczasowe wpisy")
             }
@@ -85,14 +92,17 @@ class SubstitutionsRepositoryImpl @Inject constructor(
     }
 
     /** Wpisy bez klasy dopasowane do lekcji zapisanego planu (ten sam dzień, numer i nauczyciel grupy). */
+    /** Wynik: przypisane wpisy i dni bez zapisanego planu albo listy nauczycieli (nie dało się ich ocenić). */
     private suspend fun resolveClassless(entries: List<pl.zse.bydgoszcz.elektron.data.remote.dto.SubstitutionDto>):
-        List<pl.zse.bydgoszcz.elektron.data.remote.dto.SubstitutionDto> {
+        Pair<List<pl.zse.bydgoszcz.elektron.data.remote.dto.SubstitutionDto>, Set<Long>> {
         val days = entries.mapNotNull { runCatching { LocalDate.parse(it.dateRaw, PL_DATE) }.getOrNull()?.toEpochDay() }
-        if (days.isEmpty()) return emptyList()
+        if (days.isEmpty()) return emptyList<pl.zse.bydgoszcz.elektron.data.remote.dto.SubstitutionDto>() to emptySet()
         val lessonDao = db.lessonDao()
         val lessons = lessonDao.classIds().flatMap { lessonDao.getForRange(it, days.min(), days.max()) }
-        if (lessons.isEmpty()) return emptyList()
         val teachers = db.teacherDao().getAll().associate { it.code to it.fullName }
+        val daysWithPlan = lessons.mapTo(HashSet()) { it.dateEpochDay }
+        val noPlan = if (teachers.isEmpty()) days.toSet() else days.filterTo(HashSet()) { it !in daysWithPlan }
+        if (lessons.isEmpty()) return emptyList<pl.zse.bydgoszcz.elektron.data.remote.dto.SubstitutionDto>() to noPlan
         val groups = db.lessonGroupDao().getForLessons(lessons.map { it.id }).groupBy { it.lessonId }
         val slots = lessons.flatMap { lesson ->
             val dateRaw = LocalDate.ofEpochDay(lesson.dateEpochDay).format(PL_DATE)
@@ -103,7 +113,7 @@ class SubstitutionsRepositoryImpl @Inject constructor(
             }
         }
         return pl.zse.bydgoszcz.elektron.data.mapper.ClasslessSubstitutions.resolve(entries, slots, teachers.values)
-            .also { Log.i(TAG, "Zastępstwa bez klasy: ${entries.size}, przypisane: ${it.size}") }
+            .also { Log.i(TAG, "Zastępstwa bez klasy: ${entries.size}, przypisane: ${it.size}") } to noPlan
     }
 
     /** Ta sama lekcja tego samego nieobecnego nauczyciela - jeden wpis na stronie szkoły. */

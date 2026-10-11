@@ -13,7 +13,10 @@ object Changelog {
             "Widżet Plan dnia: dotknij „za Tobą”, aby zobaczyć wcześniejsze lekcje",
             "Odjazdy: kolejne połączenia pojawiają się płynnie po „Pokaż więcej”",
             "Strona główna: przy zastępstwie najpierw informacja od szkoły (np. „Zajęcia w auli”), pod nią nauczyciel",
-            "Plan tygodniowy pokazuje treść zastępstwa zamiast samej strzałki"
+            "Plan tygodniowy pokazuje treść zastępstwa zamiast samej strzałki",
+            "Powiadomienia o zastępstwach działają także, gdy części wpisów na stronie szkoły nie da się odczytać",
+            "Widżety pomijają lekcje, z których klasa jest zwolniona",
+            "Dwa zastępstwa tej samej lekcji nie zastępują się w powiadomieniach"
         )),
         Entry(35, "1.0.0", listOf(
             "Pierwsza stabilna wersja eLektrona",

@@ -1,5 +1,6 @@
 package pl.zse.bydgoszcz.elektron.domain.sync
 
+import pl.zse.bydgoszcz.elektron.domain.model.IncompleteSchoolDataException
 import androidx.room.withTransaction
 import android.util.Log
 import kotlinx.coroutines.CancellationException
@@ -229,8 +230,10 @@ class SyncCoordinator @Inject constructor(
             // pobierany przy każdym przebiegu (co 15 min, także w nocy). Plan i zastępstwa po
             // błędzie nadal są ponawiane od razu.
             val announcements = source == SyncOutcome.ANNOUNCEMENTS
+            // Niepełna strona zastępstw (kilka nieczytelnych wierszy) to pobrane dane z ostrzeżeniem,
+            // a nie awaria: zwykły odstęp, zamiast pobierania co 15 min także w nocy.
             val reference = if (announcements) last?.lastSyncEpochSeconds
-                else last?.takeIf { it.status == "ok" }?.lastSyncEpochSeconds
+                else last?.takeIf { it.status == "ok" || IncompleteSchoolDataException.isWarning(it.message) }?.lastSyncEpochSeconds
             // Nigdy nie pobrane - od razu (także ogłoszenia, dopóki nie było nieudanej próby).
             val neverLoaded = source != SyncOutcome.SIDEBAR && source !in loaded && !(announcements && last?.status == "error")
             !request.background || neverLoaded || BackgroundSyncPolicy.isDue(source, reference, now, time)
@@ -261,6 +264,12 @@ class SyncCoordinator @Inject constructor(
                 if (SyncOutcome.ANNOUNCEMENTS in sources) launch { announcementsRepo.syncAll().record(SyncOutcome.ANNOUNCEMENTS) }
             }
             val outcome = SyncOutcome(ok.toSet(), failed.toMap())
+            // Zastępstwa zapisane mimo kilku nieczytelnych wierszy (repozytorium zgłasza to wyjątkiem
+            // po zapisie): dla powiadomień, "sprawdzono" i stanu pobrania to udane pobranie.
+            // Dawniej taka strona blokowała powiadomienia o zastępstwach (także z pusha).
+            val subsWritten = SyncOutcome.SUBSTITUTIONS in outcome.succeeded ||
+                outcome.failures[SyncOutcome.SUBSTITUTIONS] is IncompleteSchoolDataException
+            val written = if (subsWritten) outcome.succeeded + SyncOutcome.SUBSTITUTIONS else outcome.succeeded
             if (SyncOutcome.TIMETABLE in outcome.succeeded && classId != null) {
                 pl.zse.bydgoszcz.elektron.domain.util.runCatchingCancellable { dropStaleGroupChoices(classId) }
                     .onFailure { Log.w(TAG, "Nie udało się sprawdzić wyborów grup", it) }
@@ -271,6 +280,10 @@ class SyncCoordinator @Inject constructor(
                 db.syncStateDao().upsert(pl.zse.bydgoszcz.elektron.data.local.SyncStateEntity(
                     "${sourceKey(source)}_success", now, "ok", null))
             }
+            if (subsWritten && SyncOutcome.SUBSTITUTIONS !in outcome.succeeded) {
+                db.syncStateDao().upsert(pl.zse.bydgoszcz.elektron.data.local.SyncStateEntity(
+                    "${sourceKey(SyncOutcome.SUBSTITUTIONS)}_success", now, "ok", null))
+            }
             for (source in outcome.failures.keys) {
                 val previous = db.syncStateDao().get(sourceKey(source))
                 if (previous?.status == "ok" && db.syncStateDao().get("${sourceKey(source)}_success") == null)
@@ -279,7 +292,7 @@ class SyncCoordinator @Inject constructor(
                     sourceKey(source), now, "error", SyncOutcome.errorMessage(mapOf(source to outcome.failures.getValue(source))) ?: pl.zse.bydgoszcz.elektron.domain.model.SyncErrors.userMessage(outcome.failures.getValue(source))))
             }
             for (key in listOf(SyncOutcome.TIMETABLE, SyncOutcome.SUBSTITUTIONS, SyncOutcome.ANNOUNCEMENTS)) {
-                if (key in outcome.succeeded) notificationsRepo.markLoaded(key)
+                if (key in written) notificationsRepo.markLoaded(key)
             }
             // Komunikat tylko gdy praca dotyczyła planu albo zastępstw - odświeżenie samych
             // ogłoszeń nie kasuje komunikatu o niedziałającym planie.
@@ -291,9 +304,9 @@ class SyncCoordinator @Inject constructor(
                 }.distinct()
                 notificationsRepo.setLastSyncError(unresolved.takeIf { it.isNotEmpty() }?.joinToString("\n") ?: outcome.userError())
             }
-            if (SyncOutcome.freshDataLoaded(outcome.succeeded)) notificationsRepo.setLastSyncAt(Instant.now())
-            if (SyncOutcome.SUBSTITUTIONS in outcome.succeeded || SyncOutcome.ANNOUNCEMENTS in outcome.succeeded) {
-                notifyNew(classId, notify, substitutionsLoaded = SyncOutcome.SUBSTITUTIONS in outcome.succeeded)
+            if (SyncOutcome.freshDataLoaded(written)) notificationsRepo.setLastSyncAt(Instant.now())
+            if (subsWritten || SyncOutcome.ANNOUNCEMENTS in outcome.succeeded) {
+                notifyNew(classId, notify, substitutionsLoaded = subsWritten)
             }
             return outcome
         } finally {

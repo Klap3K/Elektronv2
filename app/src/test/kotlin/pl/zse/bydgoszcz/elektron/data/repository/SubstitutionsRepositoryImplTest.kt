@@ -209,6 +209,23 @@ class SubstitutionsRepositoryImplTest {
         assertEquals("Dariusz Czyżewski", saved.originalTeacher)
     }
 
+    @Test
+    fun joinedLessonIsKeptWhenThePlanIsMissing() = runTest {
+        // Plan wyczyszczony (np. reset danych, plan jeszcze się nie pobrał): zapisany wcześniej wpis
+        // zajęć łączonych zostaje, zamiast zniknąć i wrócić później jako "nowe" zastępstwo.
+        val d = today.plusDays(1)
+        val saved = SubstitutionDto(d.format(fmt), "Dariusz Czyżewski", 3, "1D", 2, "Zajęcia Świetlicowe", null, null)
+        source.items = listOf(saved)
+        assertTrue(repo.syncAll().isSuccess)
+        val joined = saved.copy(classShortName = "", groupNumber = null, subject = "Wychowanie fizyczne")
+        val pageSource = object : SubstitutionsSource {
+            override suspend fun fetchSubstitutions() = emptyList<SubstitutionDto>()
+            override suspend fun fetchPage() = SubstitutionsPage(setOf(d.format(fmt)), emptyList(), classless = listOf(joined))
+        }
+        assertTrue(SubstitutionsRepositoryImpl(pageSource, db.substitutionDao(), db).syncAll().isSuccess)
+        assertEquals(listOf("1D"), repo.getAllFrom(d).map { it.classShortName })
+    }
+
     private fun watchWrites(table: String) {
         val sql = db.openHelper.writableDatabase
         sql.execSQL("CREATE TABLE IF NOT EXISTS audit_writes (value INTEGER)")

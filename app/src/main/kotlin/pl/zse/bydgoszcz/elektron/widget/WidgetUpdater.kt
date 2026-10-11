@@ -71,7 +71,9 @@ class WidgetUpdater @Inject constructor(
             tickMutex.lock()
             try {
                 val now = AppClock.now()
-                val delay = Duration.between(now, at).plusSeconds(5).coerceIn(Duration.ofMinutes(1), Duration.ofDays(1))
+                // Strefa czasowa: przy zmianie czasu (DST) różnica lokalnych godzin nie jest prawdziwym odstępem.
+                val zone = java.time.ZoneId.systemDefault()
+                val delay = Duration.between(now.atZone(zone), at.atZone(zone)).plusSeconds(5).coerceIn(Duration.ofMinutes(1), Duration.ofDays(1))
                 val planned = System.currentTimeMillis() + delay.toMillis()
                 val wm = WorkManager.getInstance(context)
                 val earlier = wm.getWorkInfosForUniqueWork(WORK_TICK).get().any { info ->

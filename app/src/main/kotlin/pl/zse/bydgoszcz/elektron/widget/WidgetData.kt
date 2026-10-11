@@ -196,15 +196,19 @@ object WidgetDataLoader {
         val className = lessons.firstOrNull()?.className
 
         // Dzień do pokazania: dziś, jeśli zostały jeszcze lekcje; inaczej najbliższy dzień z lekcjami.
+        // Lekcje, z których klasa jest zwolniona ("Uczniowie zwolnieni do domu", "przychodzą później"),
+        // nie są "trwającą" ani "następną" lekcją - jak w planie, przypomnieniach i ekranie startowym.
+        // Zostają na liście Planu dnia, żeby było widać informację szkoły.
+        val takesPlace = SubstitutionDisplay::takesPlace
         val byDay = lessons.groupBy { it.date }.toSortedMap()
-        val todayRemaining = byDay[today].orEmpty().any { it.timeTo > now }
-        val day = if (todayRemaining) today else byDay.keys.firstOrNull { it > today }
+        val todayRemaining = byDay[today].orEmpty().any { takesPlace(it) && it.timeTo > now }
+        val day = if (todayRemaining) today else byDay.entries.firstOrNull { (d, l) -> d > today && l.any(takesPlace) }?.key
             ?: return WidgetState.NoLessons(className)
 
         val dayLessons = byDay.getValue(day).sortedBy { it.number }
         val notesByKey = notes.associateBy { it.key }
         val isToday = day == today
-        val focusIndex = if (isToday) dayLessons.indexOfFirst { it.timeTo > now }.coerceAtLeast(0) else 0
+        val focusIndex = dayLessons.indexOfFirst { takesPlace(it) && (!isToday || it.timeTo > now) }.coerceAtLeast(0)
         val focusLesson = dayLessons[focusIndex]
         val focusIsNow = isToday && now >= focusLesson.timeFrom
 
@@ -219,8 +223,9 @@ object WidgetDataLoader {
         // Dawniej co 5 min przez całą godzinę przed każdą zmianą - także przed północą
         // i 30 min przed odliczaniem, budząc telefon bez zmiany na ekranie.
         // Przerwa tylko przy krótkiej luce (LessonClock) - okienko to nie przerwa.
-        val breakFrom = if (isToday && !focusIsNow && focusIndex > 0)
-            dayLessons[focusIndex - 1].timeTo.takeIf {
+        val previous = dayLessons.subList(0, focusIndex).lastOrNull(takesPlace)
+        val breakFrom = if (isToday && !focusIsNow && previous != null)
+            previous.timeTo.takeIf {
                 it <= now && Duration.between(it, focusLesson.timeFrom).toMinutes() <= LessonClock.BREAK_MAX_MINUTES
             } else null
         val countdownFrom = day.atTime(focusLesson.timeFrom).minusMinutes(LessonClock.COUNTDOWN_MINUTES)

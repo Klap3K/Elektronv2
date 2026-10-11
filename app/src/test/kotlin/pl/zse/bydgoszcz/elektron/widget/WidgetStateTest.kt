@@ -216,4 +216,25 @@ class WidgetStateTest {
         assertTrue((retainSubsWidgetData(subs, SubsWidgetState.Failed) as SubsWidgetState.Ready).readError)
     }
 
+
+    @Test
+    fun freedLessonsAreNotCurrentOrNext() {
+        fun freed(date: LocalDate, n: Int, info: String) = pl.zse.bydgoszcz.elektron.domain.model.Substitution(
+            "f$n", date, n, "1D", null, info, null, null, "J.Nauczyciel")
+        // Rano: klasa przychodzi później - odliczanie do 2. lekcji, a nie do zwolnionej 1.
+        val morning = listOf(
+            lesson(friday, 1, "08:00", "08:45").copy(substitution = freed(friday, 1, "Uczniowie przychodzą później")),
+            lesson(friday, 2, "08:55", "09:40"))
+        val st = WidgetDataLoader.buildState(morning, LocalDateTime.of(friday, LocalTime.of(7, 30))) as WidgetState.Ready
+        assertEquals(2, st.focus.number)
+        assertEquals(2, st.lessons.size)                          // zwolniona lekcja dalej na liście
+        // Po południu: reszta lekcji zwolniona - widżet pokazuje następny dzień zamiast "Teraz".
+        val afternoon = listOf(
+            lesson(friday, 1, "08:00", "08:45"),
+            lesson(friday, 2, "08:55", "09:40").copy(substitution = freed(friday, 2, "Uczniowie zwolnieni do domu")),
+            lesson(monday, 1, "08:00", "08:45"))
+        val later = WidgetDataLoader.buildState(afternoon, LocalDateTime.of(friday, LocalTime.of(9, 0))) as WidgetState.Ready
+        assertEquals(monday, later.date)
+        assertFalse(later.isToday)
+    }
 }

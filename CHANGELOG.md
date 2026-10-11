@@ -17,6 +17,12 @@ Wersja testowa (kanał „Beta”). Szczegóły: [release-notes/1.0.1-beta1.md](
 - Odjazdy: animacja pojawiania się kolejnych połączeń i wskaźnik wczytywania w przycisku „Pokaż więcej”.
 - Strona główna: przy zastępstwie informacja szkoły (nie numer sali) jest nagłówkiem także wtedy, gdy wpisany jest zastępca; nauczyciel trafia do drugiej linii. Plan, zakładka Zastępstwa, widżety i powiadomienia bez zmian (najpierw nauczyciel).
 - Plan tygodniowy: kafelek zastępstwa pokazuje zastępcę i salę albo informację szkoły zamiast strzałki „↔” przy nazwie przedmiotu.
+- Zastępstwa: strona z kilkoma nieczytelnymi wierszami (dane zapisane z ostrzeżeniem) liczy się jak udane pobranie - powiadomienia (także po pushu), stan „sprawdzono” i zwykły odstęp w tle; bez ponawiania tej samej strony i bez pobierania co 15 min w nocy.
+- Znacznik powiadomienia zastępstwa obejmuje nieobecnego nauczyciela - dwa zastępstwa tej samej lekcji nie zastępują się w panelu.
+- Wpisy bez klasy (zajęcia łączone) z dni bez zapisanego planu lub listy nauczycieli: dzień traktowany jak niekompletny (wpisy zostają, nie wracają jako „nowe”).
+- Zmieniony plan usuwa też zapisane dalsze tygodnie klasy (poza zakresem zapisu), żeby nie zostawały ze starym planem.
+- Widżety i kafelek: lekcje, z których klasa jest zwolniona, nie są trwającą ani następną lekcją (wybór dnia, odliczanie, przerwa).
+- Harmonogram odświeżania widżetów liczy odstęp w strefie czasowej (zmiana czasu letniego/zimowego).
 - README: informacja o podpisach wydań z F-Droid i z GitHuba.
 
 ## [1.0.0] - 2026-10-10 (35)

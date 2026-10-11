@@ -26,7 +26,9 @@ data class SyncOutcome(
      * (w nocy wszystko świeże) to sukces - dawniej "nic nie pobrano" = Result.retry(),
      * czyli kilka dodatkowych wybudzeń co cykl.
      */
-    val shouldRetry: Boolean get() = !interrupted && succeeded.isEmpty() && failures.isNotEmpty()
+    val shouldRetry: Boolean get() = !interrupted && succeeded.isEmpty() &&
+        // Niepełna strona zastępstw: dane są zapisane, ponowienie pobrałoby tę samą stronę.
+        failures.values.any { it !is IncompleteSchoolDataException }
 
     companion object {
         const val TIMETABLE = "timetable"

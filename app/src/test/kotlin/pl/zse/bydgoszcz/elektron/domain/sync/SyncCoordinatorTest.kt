@@ -102,7 +102,13 @@ class SyncCoordinatorTest {
     private class Subs : SubstitutionsSource {
         @Volatile var items: List<SubstitutionDto> = emptyList()
         @Volatile var error: Exception? = null
+        /** Dni, z których "parser" nie odczytał wszystkich wierszy. */
+        @Volatile var incomplete: Set<String> = emptySet()
         override suspend fun fetchSubstitutions(): List<SubstitutionDto> { error?.let { throw it }; return items }
+        override suspend fun fetchPage(): pl.zse.bydgoszcz.elektron.data.remote.sources.SubstitutionsPage {
+            val list = fetchSubstitutions()
+            return pl.zse.bydgoszcz.elektron.data.remote.sources.SubstitutionsPage(list.map { it.dateRaw }.toSet() + incomplete, list, incomplete)
+        }
     }
 
     private class Anns : AnnouncementsSource {
@@ -290,6 +296,22 @@ class SyncCoordinatorTest {
     }
 
     // --- Powiadomienia: pierwsza synchronizacja (instalacja, zmiana klasy, reset) bez powiadomień ---
+
+    @Test
+    fun incompleteSubstitutionsPageStillNotifiesAndDoesNotRetry() = runBlocking<Unit> {
+        // Jeden nieczytelny wiersz na stronie: zapisane wpisy mają działać jak zwykłe pobranie.
+        subs.incomplete = setOf(nextMonday.format(fmt))
+        subs.items = listOf(sub("1D", "A"))
+        val first = coordinator.sync(SyncRequest.full())
+        assertTrue(first.failures[SyncOutcome.SUBSTITUTIONS] is pl.zse.bydgoszcz.elektron.domain.model.IncompleteSchoolDataException)
+        assertTrue("pierwsza synchronizacja po instalacji", sink.substitutions.isEmpty())
+        assertTrue(t.notificationsRepo.isInitialSyncDone())
+
+        subs.items = listOf(sub("1D", "A"), sub("1D", "B"))
+        val pushLike = coordinator.sync(SyncRequest.of(SyncOutcome.SUBSTITUTIONS))
+        assertEquals("nowe zastępstwo mimo niepełnej strony", 1, sink.substitutions.size)
+        assertFalse("ta sama strona nie jest pobierana ponownie", pushLike.shouldRetry)
+    }
 
     @Test
     fun firstSyncAfterInstallClassChangeAndResetDoesNotNotify() = runBlocking<Unit> {

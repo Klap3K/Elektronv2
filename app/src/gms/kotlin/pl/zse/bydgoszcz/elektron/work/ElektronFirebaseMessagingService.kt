@@ -74,7 +74,8 @@ class ElektronFirebaseMessagingService : FirebaseMessagingService() {
             coordinator.sync(pl.zse.bydgoszcz.elektron.domain.sync.SyncRequest.of(
                 pl.zse.bydgoszcz.elektron.domain.model.SyncOutcome.SUBSTITUTIONS))
         }
-        if (outcome == null || outcome.failures.isNotEmpty()) syncScheduler.syncSubstitutionsNow()
+        // Niepełna strona (kilka nieczytelnych wierszy) jest już zapisana - bez ponownego pobierania.
+        if (outcome == null || outcome.shouldRetry) syncScheduler.syncSubstitutionsNow()
     }
 
     private suspend fun handleAnnouncement(data: Map<String, String>) {

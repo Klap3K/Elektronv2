@@ -130,7 +130,9 @@ class TimetableRepositoryImpl @Inject constructor(
                     val oldGroups = if (oldLessons.isEmpty()) emptyList() else
                         lessonGroupDao.getForLessons(oldLessons.map { it.id })
                     if (oldLessons.toSet() != keptLessons.toSet() || oldGroups.toSet() != keptGroups.toSet()) {
-                        lessonDao.deleteForRange(classId, fromDay, toDay)
+                        // Także tygodnie dalej niż zapisywany zakres (np. obejrzany tydzień +5 przy starym
+                        // planie): inaczej zostawały ze starym planem, a obecność lekcji blokowała pobranie.
+                        lessonDao.deleteForRange(classId, fromDay, Long.MAX_VALUE)
                         lessonDao.upsertAll(keptLessons)
                         lessonGroupDao.upsertAll(keptGroups)
                     }

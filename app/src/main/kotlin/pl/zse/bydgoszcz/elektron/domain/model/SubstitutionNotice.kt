@@ -52,11 +52,14 @@ object SubstitutionNotice {
     }
 
     /**
-     * Stały znacznik powiadomienia dla lekcji (dzień, numer, klasa, grupa). ID zastępstwa zmienia
+     * Stały znacznik powiadomienia dla lekcji (dzień, numer, klasa, grupa, nieobecny nauczyciel). ID zastępstwa zmienia
      * się po poprawce sali lub zastępcy - z tym znacznikiem nowa wersja zastępuje starą w panelu.
      */
     fun tag(sub: Substitution): String =
-        "sub:${sub.date.toEpochDay()}|${sub.lessonNumber}|${sub.classShortName.trim().uppercase(PL)}|${sub.groupNumber ?: 0}"
+        "sub:${sub.date.toEpochDay()}|${sub.lessonNumber}|${sub.classShortName.trim().uppercase(PL)}|${sub.groupNumber ?: 0}|" +
+            // Nieobecny nauczyciel też: dwa różne zastępstwa tej samej lekcji (dwóch nieobecnych) nie
+            // zastępują się w panelu. Poprawka (inna sala, inny zastępca) ma tego samego nieobecnego.
+            sub.originalTeacher.trim().uppercase(PL)
 
     /**
      * ID zastępstwa + skrót uwag. Pozostałe pola (sala, zastępca, nauczyciel) są już w ID, które
