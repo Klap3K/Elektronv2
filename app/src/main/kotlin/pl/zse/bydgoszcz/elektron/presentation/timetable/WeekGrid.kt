@@ -269,8 +269,11 @@ private fun LessonTile(lesson: Lesson, lengthMin: Int, ongoing: Boolean, modifie
     ) {
         Box(Modifier.width(3.dp).fillMaxHeight().background(bar))
         Box(Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 3.dp)) {
+            // Zastępstwo: zamiast samej strzałki - co się dzieje (informacja szkoły albo zastępca) i sala.
+            val tileText = if (sub != null) listOfNotNull(SubstitutionDisplay.headline(sub), SubstitutionDisplay.place(sub)).joinToString(" · ")
+                else name
             Text(
-                listOfNotNull(if (sub != null) "↔" else null, if (hasNote) "✎" else null, name).joinToString(" "),
+                listOfNotNull(if (hasNote) "✎" else null, tileText).joinToString(" "),
                 color = fg,
                 fontSize = 12.sp,
                 lineHeight = 14.sp,

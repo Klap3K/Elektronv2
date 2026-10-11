@@ -35,7 +35,10 @@ class SubstitutionNoticeTest {
     @Test
     fun notesGroupAndDayLabels() {
         val c = SubstitutionNotice.content(sub("Kowalski", "Zajęcia w auli", "za ostatnią lekcję", today, group = 2), null, today)
-        assertEquals("Dziś, 3. lekcja: Kowalski · Zajęcia w auli", c.title)
+        assertEquals("Dziś, 3. lekcja: Zajęcia w auli · Kowalski", c.title)
+        assertTrue(c.expanded.contains("Informacja: Zajęcia w auli"))
+        assertTrue(c.expanded.contains("Zastępca: Kowalski"))
+        assertFalse(c.expanded.contains("Gdzie"))
         assertEquals("Za: Nowak · za ostatnią lekcję", c.text)
         assertTrue(c.expanded.contains("(grupa 2)"))
         assertTrue(c.expanded.contains("Uwagi: za ostatnią lekcję"))

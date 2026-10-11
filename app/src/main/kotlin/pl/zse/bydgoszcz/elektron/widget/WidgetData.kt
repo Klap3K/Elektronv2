@@ -307,10 +307,12 @@ object WidgetDataLoader {
     private fun toWidgetLesson(l: Lesson, styles: Map<String, SubjectStyle>, look: WidgetLook): WidgetLesson {
         val sub = l.substitution
         if (sub != null) {
-            // Na pierwszym planie nauczyciel zastępujący (nie sala) — jak w aplikacji.
+            // Na pierwszym planie informacja szkoły, a bez niej nauczyciel zastępujący (nie sala) - jak w aplikacji.
             val hasSubstitute = !sub.substituteTeacher.isNullOrBlank()
             val info = sub.roomOrInfo.trim()
             val isRoom = hasSubstitute && SubstitutionDisplay.isRoom(info)
+            // Pod informacją: nauczyciel, który zastępuje (sala jest wtedy nieznana).
+            val teacherBelowInfo = SubstitutionDisplay.place(sub).takeIf { SubstitutionDisplay.info(sub) != null }
             return WidgetLesson(
                 number = l.number,
                 title = SubstitutionDisplay.headline(sub),
@@ -318,7 +320,7 @@ object WidgetDataLoader {
                 room = info.takeIf { isRoom },
                 timeFrom = l.timeFrom, timeTo = l.timeTo,
                 isSubstitution = true,
-                note = listOfNotNull(info.takeIf { hasSubstitute && !isRoom && it.isNotEmpty() }, SubstitutionDisplay.notes(sub))
+                note = listOfNotNull(teacherBelowInfo, SubstitutionDisplay.notes(sub))
                     .joinToString(" · ").ifBlank { null }
             )
         }

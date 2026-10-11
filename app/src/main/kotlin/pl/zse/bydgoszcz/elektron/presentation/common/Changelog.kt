@@ -11,7 +11,9 @@ object Changelog {
             "Odświeżenie planu na przyszłym tygodniu aktualizuje też bieżący tydzień, widżety i przypomnienia",
             "Spóźnione przypomnienie o lekcji nie znika po synchronizacji w tle",
             "Widżet Plan dnia: dotknij „za Tobą”, aby zobaczyć wcześniejsze lekcje",
-            "Odjazdy: kolejne połączenia pojawiają się płynnie po „Pokaż więcej”"
+            "Odjazdy: kolejne połączenia pojawiają się płynnie po „Pokaż więcej”",
+            "Zastępstwa: informacja od szkoły (np. „Zajęcia w auli”) na pierwszym planie, nauczyciel pod nią",
+            "Plan tygodniowy pokazuje treść zastępstwa zamiast samej strzałki"
         )),
         Entry(35, "1.0.0", listOf(
             "Pierwsza stabilna wersja eLektrona",

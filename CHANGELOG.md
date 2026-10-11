@@ -15,6 +15,8 @@ Wersja testowa (kanał „Beta”). Szczegóły: [release-notes/1.0.1-beta1.md](
 - Build: cel JVM ustawiony wprost zamiast `jvmToolchain(17)` - projekt buduje się z JDK 17 i nowszym (F-Droid używa JDK 21); CI buduje na JDK 21.
 - Widżet Plan dnia: dotknięcie „N lekcji za Tobą · Pokaż” pokazuje minione lekcje u góry listy (do przejścia do następnej lekcji). Launcher nie pozwala ustawić przewinięcia listy widżetu, dlatego przełącznik zamiast przewijania.
 - Odjazdy: animacja pojawiania się kolejnych połączeń i wskaźnik wczytywania w przycisku „Pokaż więcej”.
+- Zastępstwa: informacja szkoły (nie numer sali) jest nagłówkiem także wtedy, gdy wpisany jest zastępca; nauczyciel trafia do drugiej linii (plan, strona główna, zakładka, widżety, powiadomienia, szczegóły lekcji).
+- Plan tygodniowy: kafelek zastępstwa pokazuje nagłówek i drugą linię zastępstwa zamiast strzałki „↔” przy nazwie przedmiotu.
 - README: informacja o podpisach wydań z F-Droid i z GitHuba.
 
 ## [1.0.0] - 2026-10-10 (35)

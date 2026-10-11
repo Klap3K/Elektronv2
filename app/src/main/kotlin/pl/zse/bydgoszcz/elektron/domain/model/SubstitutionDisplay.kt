@@ -3,9 +3,10 @@ package pl.zse.bydgoszcz.elektron.domain.model
 /**
  * Jak pokazywać zastępstwo — jedno miejsce dla planu, strony głównej, zakładki Zastępstwa
  * i widżetów:
- *  - nagłówek: nauczyciel, który zastępuje (najważniejsza informacja); bez zastępcy —
- *    informacja ze strony ("Uczniowie przychodzą później", "Zajęcia Świetlicowe"),
- *  - druga linia: sala ("s. 211") albo tekst informacji,
+ *  - nagłówek: informacja zamieszczona przez szkołę ("Zajęcia Świetlicowe", "Zajęcia w auli",
+ *    "Uczniowie przychodzą później"), także gdy jest wpisany zastępca; bez takiej informacji -
+ *    nauczyciel, który zastępuje,
+ *  - druga linia: sala ("s. 211") pod nauczycielem albo nauczyciel pod informacją,
  *  - uwagi ("za ostatnią lekcję", "historia") — zawsze widoczne.
  */
 object SubstitutionDisplay {
@@ -15,16 +16,20 @@ object SubstitutionDisplay {
 
     fun isRoom(text: String): Boolean = ROOM.matches(text.trim())
 
-    fun headline(sub: Substitution): String =
-        sub.substituteTeacher?.trim()?.takeIf { it.isNotEmpty() }
-            ?: sub.roomOrInfo.trim().takeIf { it.isNotEmpty() }
-            ?: "Zastępstwo"
+    /** Informacja szkoły (nie numer sali) - ma pierwszeństwo przed nazwiskiem zastępcy. */
+    fun info(sub: Substitution): String? = sub.roomOrInfo.trim().takeIf { it.isNotEmpty() && !isRoom(it) }
 
-    /** Sala lub informacja pod nagłówkiem; null, gdy nagłówkiem jest już informacja. */
+    private fun teacher(sub: Substitution): String? = sub.substituteTeacher?.trim()?.takeIf { it.isNotEmpty() }
+
+    fun headline(sub: Substitution): String =
+        info(sub) ?: teacher(sub) ?: sub.roomOrInfo.trim().takeIf { it.isNotEmpty() } ?: "Zastępstwo"
+
+    /** Druga linia: sala pod nauczycielem albo nauczyciel pod informacją; null, gdy nie ma czego dodać. */
     fun place(sub: Substitution): String? {
-        if (sub.substituteTeacher.isNullOrBlank()) return null
-        val text = sub.roomOrInfo.trim().takeIf { it.isNotEmpty() } ?: return null
-        return if (isRoom(text)) "s. $text" else text
+        val teacher = teacher(sub) ?: return null
+        if (info(sub) != null) return teacher
+        val room = sub.roomOrInfo.trim().takeIf { it.isNotEmpty() } ?: return null
+        return "s. $room"
     }
 
     fun notes(sub: Substitution): String? = sub.notes?.trim()?.takeIf { it.isNotEmpty() }

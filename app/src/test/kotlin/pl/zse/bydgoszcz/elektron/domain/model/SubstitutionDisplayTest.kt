@@ -27,6 +27,15 @@ class SubstitutionDisplayTest {
     }
 
     @Test
+    fun schoolInfoComesFirstEvenWithSubstitute() {
+        val s = sub("Zajęcia w auli", "M. Zelek", "za ostatnią lekcję")
+        assertEquals("Zajęcia w auli", SubstitutionDisplay.headline(s))
+        assertEquals("M. Zelek", SubstitutionDisplay.place(s))
+        assertEquals("Zajęcia w auli", SubstitutionDisplay.info(s))
+        assertNull(SubstitutionDisplay.info(sub("211", "M. Zelek")))
+    }
+
+    @Test
     fun withoutSubstituteInfoIsHeadline() {
         val s = sub("Uczniowie przychodzą później", null)
         assertEquals("Uczniowie przychodzą później", SubstitutionDisplay.headline(s))
