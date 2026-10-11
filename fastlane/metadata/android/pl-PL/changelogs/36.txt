@@ -2,3 +2,5 @@ Zmiana samych uwag w zastępstwie (np. „za ostatnią lekcję”) aktualizuje p
 Wczytanie starszych ogłoszeń nie wywołuje już powiadomień o dawnych wpisach.
 Odświeżenie planu na przyszłym tygodniu aktualizuje też bieżący tydzień, widżety i przypomnienia.
 Spóźnione przypomnienie o lekcji nie znika po synchronizacji w tle.
+Widżet Plan dnia: dotknij „za Tobą”, aby zobaczyć wcześniejsze lekcje.
+Odjazdy: płynne pojawianie się kolejnych połączeń.

@@ -2,3 +2,5 @@ A change to a substitution's notes alone (e.g. "last lesson") now updates its no
 Loading older news no longer triggers notifications about old posts.
 Refreshing the timetable on a future week also updates the current week, widgets and reminders.
 A delayed lesson reminder is no longer dropped by a background sync.
+Day plan widget: tap "behind you" to show earlier lessons.
+Departures: later connections appear with an animation.

@@ -13,6 +13,8 @@ Wersja testowa (kanał „Beta”). Szczegóły: [release-notes/1.0.1-beta1.md](
 - Odświeżenie planu na przyszłym tygodniu zapisuje plan także od bieżącego tygodnia: dzisiejszy dzień, widżety i przypomnienia nie zostają ze starą salą, choć plan był oznaczony jako świeży.
 - Przypomnienie o lekcji, którego niedokładny alarm się spóźnia, zostaje w kolejce do chwili dostarczenia (najpóźniej 5 min po początku lekcji) - synchronizacja w tle nie zastępuje go następnym.
 - Build: cel JVM ustawiony wprost zamiast `jvmToolchain(17)` - projekt buduje się z JDK 17 i nowszym (F-Droid używa JDK 21); CI buduje na JDK 21.
+- Widżet Plan dnia: dotknięcie „N lekcji za Tobą · Pokaż” pokazuje minione lekcje u góry listy (do przejścia do następnej lekcji). Launcher nie pozwala ustawić przewinięcia listy widżetu, dlatego przełącznik zamiast przewijania.
+- Odjazdy: animacja pojawiania się kolejnych połączeń i wskaźnik wczytywania w przycisku „Pokaż więcej”.
 - README: informacja o podpisach wydań z F-Droid i z GitHuba.
 
 ## [1.0.0] - 2026-10-10 (35)

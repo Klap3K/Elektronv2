@@ -2,6 +2,7 @@ package pl.zse.bydgoszcz.elektron.presentation.transit
 
 import pl.zse.bydgoszcz.elektron.domain.util.AppClock
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -146,14 +147,26 @@ fun TransitScreen(viewModel: TransitViewModel, onClose: (() -> Unit)? = null) {
             if (!loading && error == null && matching != null && journeys.isEmpty()) item {
                 Text("Nie znaleziono połączenia do wybranego przystanku w sprawdzonym przedziale. Odśwież wyniki lub wybierz inny cel.")
             }
+            // Animacje: kolejne odjazdy ("Pokaż więcej", wyniki cząstkowe) pojawiają się płynnie,
+            // a przycisk zjeżdża w dół zamiast przeskakiwać.
             itemsIndexed(journeys.take(visibleCount), key = { _, trip -> trip.key }) { index, trip ->
-                JourneyCard(trip, nowMs, if (index == 0) "Najbliższy" else "")
+                Box(Modifier.animateItem()) {
+                    JourneyCard(trip, nowMs, if (index == 0) "Najbliższy" else "")
+                }
             }
-            if (journeys.size > visibleCount || matching?.nextWhenMs != null) item {
+            if (journeys.size > visibleCount || matching?.nextWhenMs != null) item(key = "more") {
                 TextButton(onClick = {
                     visibleCount = minOf(visibleCount, journeys.size) + 3
                     if (journeys.size < visibleCount && matching?.nextWhenMs != null) viewModel.loadJourneys(more = true, minimumCount = visibleCount)
-                }, enabled = !loading && !moreLoading, modifier = Modifier.fillMaxWidth()) { Text(if (moreLoading) "Wczytywanie…" else "Pokaż więcej") }
+                }, enabled = !loading && !moreLoading, modifier = Modifier.fillMaxWidth().animateItem()) {
+                    AnimatedVisibility(visible = moreLoading) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                        }
+                    }
+                    Text(if (moreLoading) "Wczytywanie…" else "Pokaż więcej")
+                }
             }
         }
     }

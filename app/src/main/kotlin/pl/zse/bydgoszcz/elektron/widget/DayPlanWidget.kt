@@ -13,6 +13,13 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.currentState
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceModifier
 import androidx.glance.action.clickable
 import androidx.glance.semantics.contentDescription
@@ -99,16 +106,25 @@ class DayPlanWidget : GlanceAppWidget() {
                     Text(it, style = TextStyle(color = WidgetColors.textSecondary, fontSize = 12.sp), maxLines = 1)
                 }
             }
-            // Dziś: minione lekcje schowane (licznik w nagłówku) — mały widżet od razu
-            // pokazuje to, co ważne, zamiast listy od pierwszej lekcji.
+            // Dziś: lista zaczyna się od bieżącej lekcji, minione są schowane (licznik w nagłówku) -
+            // mały widżet od razu pokazuje to, co ważne. Dotknięcie licznika pokazuje wcześniejsze
+            // lekcje u góry listy. Launcher nie pozwala ustawić przewinięcia listy w widżecie, więc
+            // minione lekcje nie mogą czekać "nad" bieżącą - stąd przełącznik zamiast przewijania.
+            // Rozwinięcie dotyczy tej jednej lekcji: po przejściu do następnej lista znowu zaczyna
+            // się od bieżącej.
             val startIndex = WidgetNoteLayout.dayPlanStart(state)
-            val visible = state.lessons.drop(startIndex)
             val pastCount = startIndex
+            val expandKey = "${state.date}|$startIndex"
+            val expanded = pastCount > 0 && currentState(DayPlanEarlier.EXPANDED) == expandKey
+            val visible = if (expanded) state.lessons else state.lessons.drop(startIndex)
             if (pastCount > 0) {
                 Text(
-                    "$pastCount ${lessonsWord(pastCount)} za Tobą",
+                    if (expanded) "Ukryj ${pastCount} ${lessonsWord(pastCount)} za Tobą"
+                    else "$pastCount ${lessonsWord(pastCount)} za Tobą · Pokaż",
                     style = TextStyle(color = WidgetColors.textSecondary, fontSize = 11.sp),
-                    modifier = GlanceModifier.padding(top = 2.dp)
+                    modifier = GlanceModifier.padding(top = 2.dp, bottom = 2.dp)
+                        .clickable(actionRunCallback<DayPlanEarlier>(actionParametersOf(DayPlanEarlier.KEY to expandKey)))
+                        .semantics { contentDescription = if (expanded) "Ukryj wcześniejsze lekcje" else "Pokaż wcześniejsze lekcje" }
                 )
             }
             Spacer(GlanceModifier.height(6.dp))
@@ -215,6 +231,22 @@ internal fun lessonsWord(n: Int): String = when {
 }
 
 private const val TAG = "DayPlanWidget"
+
+/** Pokaż / ukryj minione dziś lekcje w widżecie Plan dnia (stan zapisany przy tym widżecie). */
+class DayPlanEarlier : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val key = parameters[KEY] ?: return
+        updateAppWidgetState(context, glanceId) { prefs ->
+            if (prefs[EXPANDED] == key) prefs.remove(EXPANDED) else prefs[EXPANDED] = key
+        }
+        DayPlanWidget().update(context, glanceId)
+    }
+
+    companion object {
+        val KEY = ActionParameters.Key<String>("day_plan_earlier")
+        val EXPANDED = stringPreferencesKey("day_plan_expanded")
+    }
+}
 
 class DayPlanWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = DayPlanWidget()

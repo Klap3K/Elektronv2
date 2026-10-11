@@ -9,7 +9,9 @@ object Changelog {
             "Zmiana samych uwag w zastępstwie (np. „za ostatnią lekcję”) aktualizuje powiadomienie",
             "Wczytanie starszych ogłoszeń nie wywołuje już powiadomień o dawnych wpisach",
             "Odświeżenie planu na przyszłym tygodniu aktualizuje też bieżący tydzień, widżety i przypomnienia",
-            "Spóźnione przypomnienie o lekcji nie znika po synchronizacji w tle"
+            "Spóźnione przypomnienie o lekcji nie znika po synchronizacji w tle",
+            "Widżet Plan dnia: dotknij „za Tobą”, aby zobaczyć wcześniejsze lekcje",
+            "Odjazdy: kolejne połączenia pojawiają się płynnie po „Pokaż więcej”"
         )),
         Entry(35, "1.0.0", listOf(
             "Pierwsza stabilna wersja eLektrona",
