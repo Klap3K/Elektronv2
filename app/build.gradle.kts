@@ -180,4 +180,9 @@ tasks.withType<Test>().configureEach {
     val robolectricTmp = layout.buildDirectory.dir("tmp/robolectric").get().asFile
     doFirst { robolectricTmp.mkdirs() }
     systemProperty("java.io.tmpdir", robolectricTmp.absolutePath)
+    // Pełny opis nieudanego testu w logu (CI) - raport HTML nie zawsze da się pobrać.
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }

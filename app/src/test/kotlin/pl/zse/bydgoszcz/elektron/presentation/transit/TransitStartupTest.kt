@@ -35,6 +35,14 @@ class TransitStartupTest {
      */
     private val IO_TIMEOUT = 60.seconds
 
+    /**
+     * Czekanie na stan ViewModelu z limitem w czasie rzeczywistym (wątek Default - limit runTest liczy
+     * czas wirtualny) i opisem: przy zawieszeniu test mówi, na co czekał i jaki był ostatni stan.
+     */
+    private suspend fun <T> kotlinx.coroutines.flow.StateFlow<T>.await(label: String, predicate: (T) -> Boolean): T =
+        withContext(Dispatchers.Default) { withTimeoutOrNull(20_000) { first(predicate) } }
+            ?: throw AssertionError("Nie doczekano się: $label. Ostatni stan: $value")
+
     private val target = TransitDestination("Cel", listOf("99"), 53.1236, 18.007)
     private val depart = System.currentTimeMillis() + 900_000L
 
@@ -75,14 +83,14 @@ class TransitStartupTest {
         val owner = ViewModelStore().apply { put("transit", vm) }
         try {
             prefs.select(target); prefs.setEnabled(true)
-            vm.settings.first { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
+            vm.settings.await("ustawienia gotowe") { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
             vm.startJourneySession(Any(), 3)
-            val partial = vm.journeys.first { it != null }!!
+            val partial = vm.journeys.await("wynik połączeń") { it != null }!!
             assertFalse(partial.complete)
             assertEquals(listOf("25"), partial.journeys.map { it.rides.first().fromId })
             assertTrue(vm.journeyLoading.value)
             release.countDown()
-            val full = vm.journeys.first { it?.complete == true && it.journeys.size == 3 }!!
+            val full = vm.journeys.await("wynik połączeń") { it?.complete == true && it.journeys.size == 3 }!!
             assertEquals(setOf("24", "25", "26"), full.journeys.map { it.rides.first().fromId }.toSet())
             // Pełny wynik trafia do pamięci podręcznej.
             assertTrue(withContext(Dispatchers.IO) { (1..500).any { file.exists() || run { Thread.sleep(10); false } } })
@@ -114,17 +122,17 @@ class TransitStartupTest {
         val owner = ViewModelStore().apply { put("transit", vm) }
         try {
             prefs.select(target); prefs.setEnabled(true)
-            vm.settings.first { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
+            vm.settings.await("ustawienia gotowe") { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
             vm.startJourneySession(Any(), 1)
-            val shown = vm.journeys.first { it != null }!!
+            val shown = vm.journeys.await("wynik połączeń") { it != null }!!
             assertEquals(now - 20 * 60_000L, shown.fetchedAt)
             assertEquals(listOf(ride.key), shown.journeys.map { it.key })
-            vm.journeyLoading.first { it }
+            vm.journeyLoading.await("wczytywanie") { it }
             // Wynik cząstkowy (stanowisko 25) nie podmienia pokazanej, pełnej listy.
             withContext(Dispatchers.IO) { Thread.sleep(300) }
             assertEquals(now - 20 * 60_000L, vm.journeys.value!!.fetchedAt)
             release.countDown()
-            val fresh = vm.journeys.first { it!!.fetchedAt > now }!!
+            val fresh = vm.journeys.await("wynik połączeń") { it!!.fetchedAt > now }!!
             assertTrue(fresh.complete)
             assertEquals(3, fresh.journeys.size)
         } finally {
@@ -158,11 +166,11 @@ class TransitStartupTest {
         val owner = ViewModelStore().apply { put("transit", vm) }
         try {
             prefs.select(target); prefs.setEnabled(true)
-            vm.settings.first { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
+            vm.settings.await("ustawienia gotowe") { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
             // Jak TransitScreen: sesja i LaunchedEffect w tej samej klatce, zanim zapis zostanie odczytany.
             vm.startJourneySession(Any(), 1); vm.refreshJourneys(1); vm.refreshJourneys(1)
             assertTrue("pusta karta bez ładowania w trakcie odczytu", vm.journeys.value != null || vm.journeyLoading.value)
-            assertEquals(listOf(ride.key), vm.journeys.first { it != null }!!.journeys.map { it.key })
+            assertEquals(listOf(ride.key), vm.journeys.await("wynik połączeń") { it != null }!!.journeys.map { it.key })
             withContext(Dispatchers.IO) { Thread.sleep(300) }
             assertEquals(0, requests.get())
             assertFalse(vm.journeyLoading.value)
@@ -187,14 +195,14 @@ class TransitStartupTest {
         val owner = ViewModelStore().apply { put("transit", vm) }
         try {
             prefs.select(target); prefs.setEnabled(true)
-            vm.settings.first { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
+            vm.settings.await("ustawienia gotowe") { it.ready && it.preferences.visible && it.preferences.destination?.key == target.key }
             val consumer = Any()
             vm.startJourneySession(consumer, 3)
-            val partial = vm.journeys.first { it != null }!!
+            val partial = vm.journeys.await("wynik połączeń") { it != null }!!
             vm.stopJourneySession(consumer)          // ekran zamknięty w trakcie pierwszego sprawdzenia
             release.countDown()
             vm.loadJourneys(more = true, minimumCount = 3)
-            val merged = vm.journeys.first { it != null && it.fetchedAt > partial.fetchedAt }!!
+            val merged = vm.journeys.await("wynik połączeń") { it != null && it.fetchedAt > partial.fetchedAt }!!
             assertFalse("stanowiska bez odpowiedzi nadal brakują", merged.complete)
             assertFalse(merged.canReuse(target.key, System.currentTimeMillis()))
         } finally {
