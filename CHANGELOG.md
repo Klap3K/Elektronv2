@@ -29,9 +29,9 @@ Pierwsza stabilna wersja eLektrona.
 - Tytuły w kartach i oknach w kolorze tekstu zamiast szarego; strona główna bez pustych przerw; czytelniejsza trwająca lekcja z zastępstwem w widoku Dzień; baner błędu w kolorach karty.
 - Ogłoszenia bez nawigacji „Poprzedni / Następny” i bez „Odśwież”; pamięć zdjęć do 50 MB. Zwarty ekran Odjazdów („Odjazd z” i „Dokąd” jak w planerach), Odjazdy jako ekran startowy, religia w szybkim wyborze grup, symulacja czasu w trybie dewelopera.
 - Wybór ikony aplikacji (Ustawienia → Wygląd): domyślna albo logo na białym tle (po zmianie aplikacja się zamyka). Skróty po przytrzymaniu ikony z ikoną aplikacji i krótkimi nazwami („Strona główna”, „Ogłoszenia”), skrót Odjazdy przy włączonej zakładce. Skróty przypięte na ekran główny w starszych wersjach trzeba przypiąć ponownie.
-- Poprawki po ostatnim przeglądzie: symulowany czas zawsze widoczny w panelu dewelopera (także po ponownym uruchomieniu), błąd przypisania zastępstw zajęć łączonych nie usuwa wcześniej zapisanych, błąd odczytu ustawień przy starcie nie zamyka aplikacji.
+- Symulowany czas zawsze widoczny w panelu dewelopera (także po ponownym uruchomieniu), błąd przypisania zastępstw zajęć łączonych nie usuwa wcześniej zapisanych, błąd odczytu ustawień przy starcie nie zamyka aplikacji.
 - Widżety z przezroczystym tłem (ponad 40%) w motywie Auto dobierają kolor tekstu do jasności tapety - w trybie jasnym na ciemnej tapecie tekst był nieczytelny. Wybrany motyw jasny lub ciemny zawsze obowiązuje. Widżet Plan dnia przerysowuje wiersze lekcji po zmianie motywu (także trybu ciemnego systemu), przezroczystości czy dnia - wcześniej launcher zostawiał stare wiersze listy.
-- Po zewnętrznym przeglądzie kodu: nowy plan nie wypełnia dni przed „Obowiązuje od”, miniatury ogłoszeń tylko z serwerów szkoły, kanał Stabilne nie pokaże wydania Pre-release także po zmianie kanału bez internetu.
+- Nowy plan nie wypełnia dni przed „Obowiązuje od”, miniatury ogłoszeń tylko z serwerów szkoły, kanał Stabilne nie pokaże wydania Pre-release także po zmianie kanału bez internetu.
 
 Krótki opis do wydania na GitHubie: [release-notes/1.0.0.md](release-notes/1.0.0.md).
 

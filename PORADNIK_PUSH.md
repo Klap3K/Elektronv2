@@ -1,136 +1,169 @@
-# Poradnik: powiadomienia push bez własnego backendu
+# Poradnik: powiadomienia push
 
-Zajmie to ok. 20–30 minut, samych kliknięć w konsolach, zero kodu do pisania (kod już jest
-w patchu). Wszystko na darmowych warstwach — Firebase Cloud Messaging jest darmowe zawsze,
-GitHub Actions jest bez limitu na publicznym repo.
+Powiadomienia push skracają czas, po którym aplikacja dowiaduje się o nowym zastępstwie albo
+ogłoszeniu: zamiast czekać na najbliższą synchronizację w tle (WorkManager, najczęściej co 15 minut),
+telefon dostaje sygnał w ciągu kilku minut od zmiany na stronie szkoły.
+
+Dotyczy to tylko wariantu **`gms`** (APK z GitHub Releases). Wariant **`foss`** (F-Droid) nie ma
+Firebase i polega wyłącznie na synchronizacji w tle. Nie potrzebuje niczego z tego poradnika.
+
+Całość działa na darmowej infrastrukturze, bez własnego serwera:
+
+| Element | Gdzie | Rola |
+|---|---|---|
+| Firebase Cloud Messaging | projekt w konsoli Firebase | dostarcza wiadomości na telefony |
+| Watcher | [stasolejnik/elektron-push-watcher](https://github.com/stasolejnik/elektron-push-watcher) | co 5 minut sprawdza stronę szkoły i wysyła push |
+| Zegar | [cron-job.org](https://cron-job.org) | uruchamia watcher co 5 minut |
+| Aplikacja | `app/src/gms` | subskrybuje tematy i odbiera wiadomości |
+
+Oficjalna konfiguracja już działa. Ten poradnik opisuje, jak postawić ją od zera, np. po utracie
+dostępu do projektu Firebase albo we własnym forku.
 
 ---
 
-## Krok 1 — Firebase (5 min)
+## Krok 1. Projekt Firebase
 
-1. Wejdź na **console.firebase.google.com**, zaloguj się kontem Google.
-2. **Dodaj projekt** → nazwij np. `elektron-zse`. Możesz wyłączyć Google Analytics (niepotrzebne).
-3. W konsoli projektu kliknij ikonę **Androida** ("Dodaj aplikację").
-4. **Nazwa pakietu**: `pl.zse.bydgoszcz.elektron` — musi się zgadzać co do litery z `applicationId` w `app/build.gradle.kts`.
-5. Pobierz **`google-services.json`** i wrzuć go do `~/Atomik/app/` (obok `build.gradle.kts` tego modułu — **nie** do roota repo).
-6. Cloud Messaging jest włączony domyślnie, nic więcej nie trzeba klikać.
+1. Wejdź na **console.firebase.google.com** i zaloguj się kontem Google.
+2. **Dodaj projekt**, np. `elektron-zse`. Google Analytics nie jest potrzebne.
+3. W projekcie kliknij ikonę **Androida** („Dodaj aplikację”).
+4. **Nazwa pakietu:** `pl.zse.bydgoszcz.elektron`. Musi się zgadzać z `applicationId` w `app/build.gradle.kts`.
+5. Pobierz **`google-services.json`** i wrzuć go do `app/` w repozytorium aplikacji (obok
+   `app/build.gradle.kts`, **nie** do katalogu głównego).
+6. Cloud Messaging jest włączony domyślnie.
 
-⚠️ Bez tego pliku build appki **nie zbuduje się w ogóle** (plugin `google-services` rzuci
-czytelny błąd "File google-services.json is missing"). To oczekiwane, dopóki go nie dodasz.
+`app/google-services.json` jest w `.gitignore`. **Nie commituj go.** Każdy, kto buduje wariant `gms`,
+potrzebuje własnej kopii. Wariant `foss` buduje się bez tego pliku.
 
-## Krok 2 — Klucz serwisowy do wysyłania pushy (3 min)
+## Krok 2. Klucz konta usługi
 
-1. W konsoli Firebase: **⚙️ (ustawienia projektu) → Service accounts (Konta usługi)**.
-2. Zakładka "Firebase Admin SDK" → **Generate new private key** → pobierze się plik JSON.
-3. **Trzymaj go w tajemnicy** — to jest klucz uprawniający do wysyłania pushy w Twoim imieniu.
-   Nie commituj go nigdzie do repo. Za chwilę wklejasz go jako sekret GitHub (krok 4).
+1. W konsoli Firebase: **⚙️ Ustawienia projektu → Konta usługi (Service accounts)**.
+2. Zakładka „Firebase Admin SDK” → **Wygeneruj nowy klucz prywatny**. Pobierze się plik JSON.
+3. Ten klucz pozwala wysyłać powiadomienia w imieniu projektu. **Nie wrzucaj go do żadnego
+   repozytorium ani czatu.** Potrzebny jest tylko jako sekret GitHub w kroku 4. Po wklejeniu
+   możesz usunąć plik z dysku.
 
-## Krok 3 — Nowe, publiczne repo na GitHub (5 min)
+## Krok 3. Repozytorium watchera
 
-Musi być **osobne repo na GitHub** (nie GitLab) i musi być **publiczne** — tylko wtedy
-GitHub Actions jest bez limitu minut. Może się nazywać np. `elektron-push-watcher`.
+Watcher musi działać w **publicznym** repozytorium na GitHubie. Tylko wtedy GitHub Actions jest bez
+limitu minut (prywatne repozytorium ma 2000 minut miesięcznie, a przebieg co 5 minut zużyje je
+w kilka dni).
 
-```bash
-# lokalnie, tam gdzie masz rozpakowany folder push-watcher/ z tej odpowiedzi:
-cd push-watcher
-git init
-git add .
-git commit -m "Initial commit: eLektron push watcher"
-git branch -M main
-git remote add origin https://github.com/<TWÓJ_LOGIN>/elektron-push-watcher.git
-git push -u origin main
-```
+Najprościej zrobić **fork** [stasolejnik/elektron-push-watcher](https://github.com/stasolejnik/elektron-push-watcher).
+W forku GitHub domyślnie wyłącza workflowy. Wejdź w zakładkę **Actions** i je włącz.
 
-(Załóż puste repo na github.com/new najpierw — bez README, bez .gitignore, żeby `push -u`
-zadziałało bez konfliktów.)
+Zanim watcher wyśle pierwszy push, wyczyść stan z oryginału, żeby fork zaczął od własnego snapshotu.
+Zastąp zawartość `state.json` przez `{}` i zatwierdź zmianę.
 
-## Krok 4 — Sekret w GitHub Actions (2 min)
+## Krok 4. Sekret w GitHub Actions
 
-1. W nowym repo na GitHubie: **Settings → Secrets and variables → Actions → New repository secret**.
+1. W repozytorium watchera: **Settings → Secrets and variables → Actions → New repository secret**.
 2. Nazwa: **`FCM_SERVICE_ACCOUNT_JSON`**.
-3. Wartość: **cała zawartość** pliku JSON z Kroku 2, wklejona jeden do jednego (całość, łącznie z `{ }`).
+3. Wartość: **cała zawartość** pliku JSON z kroku 2, razem z `{ }`.
 4. Zapisz.
 
-## Krok 5 — Sprawdź, że workflow działa (2 min)
+## Krok 5. Pierwsze uruchomienie
 
-1. W repo na GitHubie: zakładka **Actions**. Jeśli GitHub zapyta, czy włączyć workflowy —
-   potwierdź.
-2. Kliknij workflow **"eLektron push watcher"** → **Run workflow** (to jest `workflow_dispatch`
-   w YAML-u — pozwala odpalić ręcznie, bez czekania na cron).
-3. Poczekaj ~10–20 sekund, sprawdź logi. Powinno być: `Sparsowano X zastępstw`,
-   `Sparsowano Y ogłoszeń`. Pierwsze uruchomienie **nie wysyła** żadnego pusha (to jest
-   snapshot startowy — identyczna zasada co "initial_sync_done" w appce), tylko zapisuje
-   `state.json` z powrotem do repo (zobaczysz nowy commit od "elektron-push-watcher").
-4. Od tego momentu workflow leci sam co 5 minut (harmonogram `cron` w pliku YAML).
+1. **Actions → eLektron push watcher → Run workflow** (gałąź `main`).
+2. W logach kroku „Sprawdź zmiany i wyślij push” powinno być `Sparsowano X zastępstw`,
+   `Sparsowano Y ogłoszeń RSS` i `Nowych zastępstw: …, nowych ogłoszeń: …`.
+3. Pierwszy przebieg na pustym stanie **nie wysyła** powiadomień. Zapisuje tylko snapshot
+   w `state.json` (pojawi się commit „chore: aktualizacja stanu watchera”). Kolejne przebiegi
+   wysyłają już tylko nowości.
 
-## Krok 6 — Zbuduj appkę z patchem
+## Krok 6. Zegar co 5 minut (cron-job.org)
 
-Jeśli jeszcze tego nie zrobiłeś — wgraj main patch z kodem (osobny plik w tej odpowiedzi),
-upewnij się że `google-services.json` z Kroku 1 leży w `app/`, i zbuduj normalnie:
+Workflow ma własny harmonogram (`schedule` co 5 minut), ale GitHub uruchamia go w praktyce co
+15-25 minut. Dlatego główny zegar to cron-job.org, który co 5 minut wywołuje workflow przez API
+GitHuba. Harmonogram GitHuba zostaje jako zapas.
+
+1. **Token GitHub:** **Settings (profilu) → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+   - *Repository access:* **Only select repositories** → tylko repozytorium watchera.
+   - *Permissions → Repository permissions → Actions:* **Read and write**. Nic więcej.
+   - *Expiration:* najdłuższy dostępny termin. Zapisz w kalendarzu datę wygaśnięcia.
+2. **Zadanie w cron-job.org** (darmowe konto):
+   - URL: `https://api.github.com/repos/<LOGIN>/elektron-push-watcher/actions/workflows/watch.yml/dispatches`
+   - Harmonogram: co 5 minut
+   - *Advanced:* metoda **POST**, nagłówki:
+     - `Authorization: Bearer <TOKEN>`
+     - `Accept: application/vnd.github+json`
+     - `X-GitHub-Api-Version: 2022-11-28`
+   - Treść żądania: `{"ref":"main"}`
+3. Zapisz i użyj **Test run**. Poprawna odpowiedź to **204 No Content**, a w zakładce Actions pojawia
+   się nowy przebieg „workflow_dispatch”.
+
+Token trzymaj tylko w cron-job.org. Gdy wygaśnie, wygeneruj nowy i podmień nagłówek.
+
+## Krok 7. Budowanie aplikacji
+
+Z `app/google-services.json` z kroku 1, w katalogu repozytorium aplikacji (wymagany JDK 17):
 
 ```bash
-cd ~/Atomik
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk PATH=/usr/lib/jvm/java-17-openjdk/bin:$PATH ./gradlew :app:assembleDebug
+./gradlew :app:assembleGmsDebug
 ```
 
-## Krok 7 — Test end-to-end
+Jeśli domyślna Java w systemie jest inna, wskaż JDK 17 przez `JAVA_HOME`, np.
+`JAVA_HOME=/ścieżka/do/jdk-17 ./gradlew :app:assembleGmsDebug`.
 
-1. Zainstaluj appkę, przejdź Setup, wybierz swoją klasę (appka subskrybuje temat FCM
-   automatycznie przy starcie — zobacz `FcmTopicManager`).
-2. Na GitHubie: **Actions → Run workflow** ręcznie jeszcze raz. Jeśli w międzyczasie na
-   stronie szkoły pojawiło się nowe zastępstwo dla Twojej klasy — powinieneś dostać
-   powiadomienie na telefonie w ciągu kilku sekund, nawet z appką zamkniętą.
-3. Do testu bez czekania na prawdziwe zastępstwo: dopisz ręcznie wpis do `state.json` w
-   swoim repo tak, żeby na stronie było "coś nowego" względem stanu — albo po prostu poczekaj
-   na pierwsze prawdziwe zastępstwo, appka i tak dostanie je też przez zwykły sync (15 min)
-   jako backup.
+Wydanie: `:app:assembleGmsRelease` (wymaga też `keystore.properties`, patrz README).
+Wariant F-Droid: `:app:assembleFossDebug`, bez `google-services.json`.
+
+## Krok 8. Sprawdzenie
+
+1. Zainstaluj APK `gms` i wybierz klasę. Aplikacja przy każdym starcie subskrybuje tematy
+   `elektron-subs-zse-bydgoszcz` i `elektron-anns-zse-bydgoszcz` (`FcmTopicManager`). Błąd
+   subskrypcji widać w logcat po tagu `FcmTopicManager`.
+2. W Actions sprawdź, że przebiegi pojawiają się co około 5 minut i są zielone.
+3. Najpewniejszy test to prawdziwe nowe zastępstwo albo ogłoszenie. Watcher zaloguje
+   `Nowych zastępstw: 1`, a telefon dostanie powiadomienie w ciągu kilku minut, także przy zamkniętej
+   aplikacji. Ręczna edycja `state.json` nic nie da: aplikacja traktuje push tylko jako sygnał,
+   sama sprawdza stronę szkoły i pomija zastępstwa, o których już powiadomiła.
 
 ---
 
-## Co się dzieje pod spodem (skrót)
+## Jak to działa
 
 ```
-GitHub Actions (co 5 min, za darmo, publiczne repo)
-        │
-        ▼
-watch.py: pobiera zastępstwa.zse... + RSS, porównuje z state.json w repo
-        │  (nowość?)
-        ▼
-FCM HTTP v1 API → temat "elektron-subs-zse-bydgoszcz" / "elektron-anns-zse-bydgoszcz"
-        │
-        ▼
-Telefon (zasubskrybowany temat przez FcmTopicManager)
-        │
-        ▼
-ElektronFirebaseMessagingService.onMessageReceived()
-        │  (czy dotyczy Twojej klasy/nauczyciela? czy masz włączone powiadomienia?)
-        ▼
-Lokalne powiadomienie systemowe (ten sam LocalNotificationSink co dotąd)
+cron-job.org (co 5 min) ──► GitHub Actions: watch.py
+                                │  pobiera stronę zastępstw i RSS, porównuje ze state.json
+                                ▼  (nowość?)
+                  FCM: temat elektron-subs-… / elektron-anns-…
+                                │
+                                ▼
+          ElektronFirebaseMessagingService (telefon, app/src/gms)
+                                │  zastępstwo: czy dotyczy wybranej klasy? czy już powiadomione?
+                                ▼
+          synchronizacja zastępstw ze strony szkoły (limit 8 s, potem WorkManager)
+                                │
+                                ▼
+          powiadomienie systemowe (te same reguły co przy zwykłej synchronizacji)
 ```
 
-Zwykły `SyncWorker` w appce (co 15 min) dalej działa jako siatka bezpieczeństwa — jeśli
-push z jakiegoś powodu nie dotrze (telefon offline, Doze Mode, watcher akurat nie zadziałał),
-appka i tak złapie zmianę przy najbliższym cyklicznym sync.
+Push jest tylko sygnałem. O tym, czy pokazać powiadomienie, decyduje aktualny stan strony szkoły
+i ustawienia w aplikacji (klasa, grupy, włączone powiadomienia). Synchronizacja w tle działa dalej
+jako zabezpieczenie, gdy push nie dotrze (brak sieci, Doze, przerwa w działaniu watchera).
 
-## Koszty — realnie zero, ale pilnuj:
+Szczegóły watchera (ponawianie, archiwum stron, heartbeat): README w
+[elektron-push-watcher](https://github.com/stasolejnik/elektron-push-watcher).
 
-- **Firebase Cloud Messaging**: darmowe zawsze, bez limitu, bez karty.
-- **GitHub Actions**: darmowe bez limitu **tylko jeśli repo jest publiczne**. Jeśli
-  kiedyś zrobisz je prywatnym — 2000 min/mies. za darmo, a workflow co 5 min zużyje to
-  w kilka dni.
-- **Nie hostujesz niczego** — GitHub Actions i Firebase to cudza infrastruktura, zero
-  serwera po Twojej stronie.
+## Koszty
 
-## Jeśli coś nie działa
+- **Firebase Cloud Messaging:** darmowe, bez karty.
+- **GitHub Actions:** bez limitu, dopóki repozytorium watchera jest publiczne.
+- **cron-job.org:** darmowe.
 
-- **Build appki krzyczy o `google-services.json`** → plik musi być w `app/google-services.json`,
-  nie w roocie repo.
-- **Workflow na GitHubie czerwony** → sprawdź logi kroku "Sprawdź zmiany i wyślij push";
-  najczęstsza przyczyna to literówka w sekrecie `FCM_SERVICE_ACCOUNT_JSON` (musi być
-  cały plik JSON, nie sam klucz prywatny).
-- **Nie dostajesz pushy mimo zielonego workflow** → sprawdź w appce Ustawienia → czy
-  przełącznik powiadomień jest włączony; sprawdź czy appka faktycznie subskrybowała
-  temat (log `FcmTopicManager` w logcat filtrowany po "FcmTopicManager").
-- Appka jest zaszyta na sztywno pod ZSE Bydgoszcz (wsparcie wielu szkół zostało wycofane) —
-  `FcmTopicManager` subskrybuje jeden, stały temat przy każdym starcie appki, nic tu nie
-  trzeba konfigurować ani przełączać.
+## Gdy coś nie działa
+
+- **Build `gms` zgłasza brak `google-services.json`:** plik musi leżeć w `app/google-services.json`.
+- **Workflow czerwony z „Brak sekretu FCM_SERVICE_ACCOUNT_JSON”:** sekret nie istnieje albo ma inną nazwę.
+- **Workflow czerwony przy tworzeniu tokenu albo z „FCM send błąd (401/403)”:** w sekrecie musi być
+  cały plik JSON z kroku 2, a nie sam klucz prywatny.
+- **cron-job.org pokazuje 401:** token wygasł albo jest błędnie wklejony. **404:** zły adres
+  lub token nie ma dostępu do repozytorium. **422:** zła gałąź w `{"ref":"main"}`.
+- **Przebiegi tylko co 15-25 minut:** cron-job.org nie działa, a odpala tylko zapasowy harmonogram GitHuba.
+- **Harmonogram GitHuba wyłączony:** GitHub wyłącza go po 60 dniach bez commitów. Watcher zapisuje
+  `heartbeat.txt` co 25 dni, ale gdyby harmonogram się wyłączył, włącz go w zakładce Actions.
+- **Zielony workflow, a brak powiadomień:** sprawdź w aplikacji, czy powiadomienia są włączone, czy
+  wybrana jest właściwa klasa i grupy, oraz logcat z tagiem `FcmTopicManager`. Upewnij się też, że
+  na telefonie jest APK `gms`, a nie z F-Droid, i że klucz z kroku 2 pochodzi z tego samego projektu
+  Firebase co `google-services.json` użyty do zbudowania aplikacji.

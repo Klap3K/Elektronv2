@@ -13,7 +13,8 @@ Zespołu Szkół Elektronicznych w Bydgoszczy. Poniżej opisujemy, jakie dane pr
 
 ## Dane zapisane na telefonie
 
-- **Ustawienia:** wybrana klasa, grupy zajęciowe, motyw, ustawienia powiadomień oraz przystanek docelowy i wybrane ikony dolnego paska i widoczność kafelka odjazdu na stronie głównej.
+- **Ustawienia:** wybrana klasa, grupy zajęciowe, motyw, ustawienia powiadomień, układ dolnego
+  paska, ekran startowy oraz ustawienia Odjazdów (przystanki i widoczność karty na stronie głównej).
 - **Kopia danych ze strony szkoły:** plan lekcji, zastępstwa i ogłoszenia (żeby aplikacja
   działała bez internetu).
 - **Ulubione ogłoszenia:** wybrane wpisy i pobrana treść artykułów, przechowywane lokalnie również po czyszczeniu danych podręcznych.
@@ -94,14 +95,20 @@ Udostępnianie zastępstw przekazuje wybrane informacje do aplikacji wskazanej p
 
 ## Uprawnienia
 
-- **Internet:** pobieranie danych ze stron szkoły i powiadomień.
-- **Powiadomienia:** informowanie o nowych zastępstwach i ogłoszeniach (możesz je
-  wyłączyć w ustawieniach aplikacji albo telefonu).
+- **Internet i stan sieci:** pobieranie danych ze stron szkoły, powiadomień push i odjazdów;
+  synchronizacja w tle czeka na połączenie.
+- **Powiadomienia:** informowanie o nowych zastępstwach i ogłoszeniach oraz przypomnienia
+  (możesz je wyłączyć w ustawieniach aplikacji albo telefonu).
+- **Alarmy o dokładnej godzinie:** punktualne przypomnienia o lekcjach i notatkach.
+- **Uruchamianie po starcie telefonu:** przywrócenie przypomnień i synchronizacji po ponownym
+  uruchomieniu.
+- **Instalowanie aplikacji** (tylko wersja z GitHuba): otwarcie instalatora pobranej aktualizacji.
+  Instalację zawsze zatwierdzasz sam.
 
 ## Dzieci
 
-Aplikacja jest przeznaczona dla uczniów, także niepełnoletnich. Ponieważ nie zbiera
-danych osobowych, nie wymaga zgody rodzica na przetwarzanie danych.
+Aplikacja jest przeznaczona dla uczniów, także niepełnoletnich. Nie wymaga konta, nie prosi
+o imię, nazwisko, adres e-mail ani numer telefonu i nie tworzy profili użytkowników.
 
 ## Kod źródłowy i kontakt
 
