@@ -22,12 +22,19 @@ import pl.zse.bydgoszcz.elektron.domain.model.*
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.seconds
 
 /** Odjazdy przy starcie: zapisany wynik od razu, wyniki cząstkowe przy pierwszym wyszukiwaniu. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransitStartupTest {
+    /**
+     * Testy przechodzą przez prawdziwe wątki (OkHttp, DataStore, zapis pliku) - na wolnym runnerze CI
+     * domyślne 10 s runTest bywało za mało i test kończył się UncompletedCoroutinesError.
+     */
+    private val IO_TIMEOUT = 60.seconds
+
     private val target = TransitDestination("Cel", listOf("99"), 53.1236, 18.007)
     private val depart = System.currentTimeMillis() + 900_000L
 
@@ -53,7 +60,7 @@ class TransitStartupTest {
             .body(json.toResponseBody("application/json".toMediaType())).build()
     }.build()
 
-    @Test fun firstSearchShowsTheFirstAnsweringPlatformBeforeTheSlowOnes() = runTest {
+    @Test fun firstSearchShowsTheFirstAnsweringPlatformBeforeTheSlowOnes() = runTest(timeout = IO_TIMEOUT) {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<Context>()
         val directory = File(app.cacheDir, "transit-partial-${System.nanoTime()}").apply { mkdirs() }
@@ -86,7 +93,7 @@ class TransitStartupTest {
         }
     }
 
-    @Test fun restartShowsTheSavedResultAtOnceAndRefreshesInTheBackground() = runTest {
+    @Test fun restartShowsTheSavedResultAtOnceAndRefreshesInTheBackground() = runTest(timeout = IO_TIMEOUT) {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<Context>()
         val directory = File(app.cacheDir, "transit-restart-${System.nanoTime()}").apply { mkdirs() }
@@ -127,7 +134,7 @@ class TransitStartupTest {
         }
     }
 
-    @Test fun freshSavedResultNeedsNoRequestEvenWhenTheScreenAsksTwice() = runTest {
+    @Test fun freshSavedResultNeedsNoRequestEvenWhenTheScreenAsksTwice() = runTest(timeout = IO_TIMEOUT) {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<Context>()
         val directory = File(app.cacheDir, "transit-fresh-${System.nanoTime()}").apply { mkdirs() }
@@ -166,7 +173,7 @@ class TransitStartupTest {
         }
     }
 
-    @Test fun pagingOnTopOfAnInterruptedPartialResultKeepsItIncomplete() = runTest {
+    @Test fun pagingOnTopOfAnInterruptedPartialResultKeepsItIncomplete() = runTest(timeout = IO_TIMEOUT) {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<Context>()
         val directory = File(app.cacheDir, "transit-merge-${System.nanoTime()}").apply { mkdirs() }
