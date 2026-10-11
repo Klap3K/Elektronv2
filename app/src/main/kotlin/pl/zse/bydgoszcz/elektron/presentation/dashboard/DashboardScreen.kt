@@ -322,11 +322,11 @@ private fun NextLessonCard(state: DashboardViewModel.State, onClick: () -> Unit)
                         val subjectName = lesson.groups.mapNotNull { g -> personal.subjectName(g.subject) }
                             .distinct().joinToString(" / ").ifBlank { null }
                         if (sub != null) {
-                            // Zastępstwo: na pierwszym planie nauczyciel zastępujący, potem sala i uwagi.
-                            Text(SubstitutionDisplay.headline(sub), style = MaterialTheme.typography.headlineSmall,
+                            // Zastępstwo: na pierwszym planie informacja szkoły, a bez niej nauczyciel zastępujący; potem sala i uwagi.
+                            Text(SubstitutionDisplay.headline(sub, infoFirst = true), style = MaterialTheme.typography.headlineSmall,
                                 color = onContainer, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Spacer(Modifier.height(4.dp))
-                            Text(listOfNotNull("${lesson.timeFrom}–${lesson.timeTo}", SubstitutionDisplay.place(sub)).joinToString(" · "),
+                            Text(listOfNotNull("${lesson.timeFrom}–${lesson.timeTo}", SubstitutionDisplay.place(sub, infoFirst = true)).joinToString(" · "),
                                 style = MaterialTheme.typography.bodyLarge, color = onContainer)
                             Text("Za: " + listOfNotNull(subjectName, sub.originalTeacher).joinToString(" · "),
                                 style = MaterialTheme.typography.bodyMedium, color = onContainer.copy(alpha = 0.8f))
@@ -411,10 +411,10 @@ private fun SubstitutionRow(
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                // Nagłówek: nauczyciel zastępujący (bez zastępcy - informacja), pod nim sala.
-                Text(SubstitutionDisplay.headline(s), style = MaterialTheme.typography.titleMedium,
+                // Nagłówek: informacja szkoły, a bez niej nauczyciel zastępujący; pod nim sala albo nauczyciel.
+                Text(SubstitutionDisplay.headline(s, infoFirst = true), style = MaterialTheme.typography.titleMedium,
                     maxLines = 2, overflow = TextOverflow.Ellipsis)
-                SubstitutionDisplay.place(s)?.let {
+                SubstitutionDisplay.place(s, infoFirst = true)?.let {
                     Text(it, style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

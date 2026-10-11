@@ -107,17 +107,6 @@ class WidgetStateTest {
     }
 
     @Test
-    fun substitutionWithSchoolInfoShowsItFirst() {
-        val sub = pl.zse.bydgoszcz.elektron.domain.model.Substitution(
-            "s", friday, 3, "1D", null, "Zajęcia w auli", "M. Zelek", "za ostatnią lekcję", "J.Siepniewska-Stańczyk")
-        val lessons = listOf(lesson(friday, 3, "09:50", "10:35").copy(substitution = sub))
-        val st = WidgetDataLoader.buildState(lessons, LocalDateTime.of(friday, LocalTime.of(9, 0))) as WidgetState.Ready
-        assertEquals("Zajęcia w auli", st.focus.title)
-        assertEquals(null, st.focus.room)
-        assertEquals("M. Zelek · za ostatnią lekcję", st.focus.note)
-    }
-
-    @Test
     fun customSubjectNameIsUsed() {
         // Własna nazwa z Ustawień -> Przedmioty trafia też do widżetów (dla każdej grupy przedmiotu).
         val lessons = listOf(lesson(friday, 3, "09:50", "10:35", subject = "wf-j1"))

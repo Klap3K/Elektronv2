@@ -85,7 +85,7 @@ internal fun LessonDetailsSheet(lesson: Lesson, userNote: LessonNote? = null, on
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Field("Zmiana", SubstitutionDisplay.headline(sub), MaterialTheme.colorScheme.tertiary)
-                SubstitutionDisplay.place(sub)?.let { Field(if (SubstitutionDisplay.info(sub) != null) "Zastępca" else "Gdzie", it) }
+                SubstitutionDisplay.place(sub)?.let { Field("Gdzie", it) }
                 Field("Za nauczyciela", sub.originalTeacher)
                 SubstitutionDisplay.notes(sub)?.let { Field("Uwagi", it) }
             }

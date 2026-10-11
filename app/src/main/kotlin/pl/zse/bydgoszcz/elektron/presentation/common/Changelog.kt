@@ -12,7 +12,7 @@ object Changelog {
             "Spóźnione przypomnienie o lekcji nie znika po synchronizacji w tle",
             "Widżet Plan dnia: dotknij „za Tobą”, aby zobaczyć wcześniejsze lekcje",
             "Odjazdy: kolejne połączenia pojawiają się płynnie po „Pokaż więcej”",
-            "Zastępstwa: informacja od szkoły (np. „Zajęcia w auli”) na pierwszym planie, nauczyciel pod nią",
+            "Strona główna: przy zastępstwie najpierw informacja od szkoły (np. „Zajęcia w auli”), pod nią nauczyciel",
             "Plan tygodniowy pokazuje treść zastępstwa zamiast samej strzałki"
         )),
         Entry(35, "1.0.0", listOf(

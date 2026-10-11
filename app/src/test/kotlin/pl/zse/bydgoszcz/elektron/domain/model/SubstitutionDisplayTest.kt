@@ -27,10 +27,17 @@ class SubstitutionDisplayTest {
     }
 
     @Test
-    fun schoolInfoComesFirstEvenWithSubstitute() {
+    fun homeScreenPutsSchoolInfoFirstElsewhereTeacherFirst() {
         val s = sub("Zajęcia w auli", "M. Zelek", "za ostatnią lekcję")
-        assertEquals("Zajęcia w auli", SubstitutionDisplay.headline(s))
-        assertEquals("M. Zelek", SubstitutionDisplay.place(s))
+        // Strona główna: informacja szkoły na pierwszym planie, nauczyciel pod nią.
+        assertEquals("Zajęcia w auli", SubstitutionDisplay.headline(s, infoFirst = true))
+        assertEquals("M. Zelek", SubstitutionDisplay.place(s, infoFirst = true))
+        // Plan, zakładka Zastępstwa, widżety: najpierw nauczyciel.
+        assertEquals("M. Zelek", SubstitutionDisplay.headline(s))
+        assertEquals("Zajęcia w auli", SubstitutionDisplay.place(s))
+        // Sama sala: bez różnicy.
+        assertEquals("M. Zelek", SubstitutionDisplay.headline(sub("211", "M. Zelek"), infoFirst = true))
+        assertEquals("s. 211", SubstitutionDisplay.place(sub("211", "M. Zelek"), infoFirst = true))
         assertEquals("Zajęcia w auli", SubstitutionDisplay.info(s))
         assertNull(SubstitutionDisplay.info(sub("211", "M. Zelek")))
     }

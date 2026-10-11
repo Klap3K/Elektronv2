@@ -39,10 +39,8 @@ object SubstitutionNotice {
             if (sub.substituteTeacher.isNullOrBlank()) {
                 sub.roomOrInfo.trim().takeIf { it.isNotEmpty() }?.let { append("\nInformacja: $it") }
             } else {
-                SubstitutionDisplay.info(sub)?.let { append("\nInformacja: $it") }
                 append("\nZastępca: ${sub.substituteTeacher.trim()}")
-                sub.roomOrInfo.trim().takeIf { it.isNotEmpty() && SubstitutionDisplay.info(sub) == null }
-                    ?.let { append("\nGdzie: s. $it") }
+                SubstitutionDisplay.place(sub)?.let { append("\nGdzie: $it") }
             }
             notes?.let { append("\nUwagi: $it") }
         }

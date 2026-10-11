@@ -596,7 +596,7 @@ private fun LessonRow(lesson: Lesson, badge: String?, modifier: Modifier = Modif
                 textAlign = TextAlign.Center)
             Column(Modifier.weight(1f).padding(start = 8.dp)) {
                 if (sub != null) {
-                    // Zastępstwo: najważniejsza informacja szkoły, a bez niej nauczyciel, który zastępuje (nie sala).
+                    // Zastępstwo: najważniejszy jest nauczyciel, który zastępuje (nie sala).
                     Text(SubstitutionDisplay.headline(sub), style = MaterialTheme.typography.titleMedium, color = fg,
                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                     SubstitutionDisplay.place(sub)?.let {
