@@ -4,7 +4,9 @@ Wszystkie istotne zmiany w eLektronie. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
-## [1.0.1] - niewydane (36)
+## [1.0.1-beta1] - 2026-10-11 (36)
+
+Wersja testowa (kanał „Beta”). Szczegóły: [release-notes/1.0.1-beta1.md](release-notes/1.0.1-beta1.md).
 
 - Powiadomienia o zastępstwach: zmiana samych uwag (np. „za ostatnią lekcję”) przy tej samej lekcji, sali i zastępcy aktualizuje powiadomienie. Identyfikator zastępstwa się nie zmienia (zgodność z watcherem push), dochodzi odcisk treści uwag; pierwsza synchronizacja po aktualizacji tylko go zapisuje.
 - Ogłoszenia wczytane z archiwum („Pokaż więcej”) od razu trafiają do widzianych - następna synchronizacja nie powiadamia o artykułach sprzed miesięcy.
