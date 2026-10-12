@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">eLektron</string>
+    <string name="app_name">Elektron-Vulcan</string>
     <string name="widget_next_lesson_name">Następna lekcja</string>
     <string name="widget_next_lesson_desc">Trwająca lub najbliższa lekcja, z uwzględnieniem Twoich grup i zastępstw.</string>
     <string name="widget_day_plan_name">Plan dnia</string>

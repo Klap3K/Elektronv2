@@ -72,7 +72,7 @@ class SubstitutionsWidget : GlanceAppWidget() {
         WidgetContainer(target = "substitutions") {
             when (state) {
                 SubsWidgetState.Failed -> WidgetMessage("Nie udało się odczytać danych. Otwórz aplikację i spróbuj ponownie.")
-                SubsWidgetState.NoClass -> WidgetMessage("Otwórz eLektron i wybierz klasę.")
+                SubsWidgetState.NoClass -> WidgetMessage("Otwórz Elektron-Vulcan i wybierz klasę.")
                 is SubsWidgetState.Ready -> Subs(state)
             }
         }

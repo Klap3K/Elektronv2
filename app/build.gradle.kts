@@ -34,11 +34,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "pl.zse.bydgoszcz.elektron"
+        applicationId = "pl.zse.bydgoszcz.elektron.vulcan"
         minSdk = 26
         targetSdk = 35
-        versionCode = 37
-        versionName = "2.0.0"
+        versionCode = 38
+        versionName = "2.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }

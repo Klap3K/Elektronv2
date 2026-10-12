@@ -79,17 +79,17 @@ class NextLessonTileService : TileService() {
                 tile.state = if (state.focusIsNow) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             }
             WidgetState.Failed -> {
-                tile.label = "eLektron"
+                tile.label = "Elektron-Vulcan"
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.subtitle = "Błąd odczytu danych"
                 tile.state = Tile.STATE_INACTIVE
             }
             WidgetState.NoClass -> {
-                tile.label = "eLektron"
+                tile.label = "Elektron-Vulcan"
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.subtitle = "Wybierz klasę"
                 tile.state = Tile.STATE_INACTIVE
             }
             else -> {
-                tile.label = "eLektron"
+                tile.label = "Elektron-Vulcan"
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) tile.subtitle = "Brak lekcji"
                 tile.state = Tile.STATE_INACTIVE
             }

@@ -5,6 +5,10 @@ object Changelog {
     data class Entry(val versionCode: Int, val versionName: String, val items: List<String>)
 
     val entries: List<Entry> = listOf(
+        Entry(38, "2.0.1", listOf(
+            "Osobny identyfikator pakietu (pl.zse.bydgoszcz.elektron.vulcan) — instalacja obok oryginalnej aplikacji",
+            "Zmiana nazwy aplikacji na Elektron-Vulcan oraz nowa ikona aplikacji i logo"
+        )),
         Entry(37, "2.0.0", listOf(
             "Elektron-Vulcan: Natywna integracja z Dziennikiem VULCAN (Hebe API) i terminarz sprawdzianów",
             "Strażnik Frekwencji: obliczanie procentu obecności, limitu opuszczeń przed 50% i symulator",

@@ -146,7 +146,7 @@ fun DashboardScreen(
             ) {
                 if (state.selectedClassId == null) {
                     item {
-                        InfoCard("Witaj w eLektron",
+                        InfoCard("Witaj w Elektron-Vulcan",
                             "Nie wybrano jeszcze klasy. Przejdź do Ustawień i wybierz swoją klasę.")
                     }
                 } else {

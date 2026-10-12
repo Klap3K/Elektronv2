@@ -89,8 +89,8 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SystemUpdate
 
-private const val REPO_URL = "https://github.com/stasolejnik/elektron"
-private const val PRIVACY_URL = "https://github.com/stasolejnik/elektron/blob/main/PRYWATNOSC.md"
+private const val REPO_URL = "https://github.com/Klap3K/Elektronv2"
+private const val PRIVACY_URL = "https://github.com/Klap3K/Elektronv2/blob/main/PRYWATNOSC.md"
 private const val LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -365,7 +365,7 @@ fun SettingsScreen(
                                 )
                         )
                         Spacer(Modifier.height(10.dp))
-                        Text("eLektron", style = MaterialTheme.typography.titleLarge)
+                        Text("Elektron-Vulcan", style = MaterialTheme.typography.titleLarge)
                         Text("Wersja ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

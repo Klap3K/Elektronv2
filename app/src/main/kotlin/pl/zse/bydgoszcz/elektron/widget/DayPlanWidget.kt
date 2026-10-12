@@ -82,7 +82,7 @@ class DayPlanWidget : GlanceAppWidget() {
         WidgetContainer(target = "timetable") {
             when (state) {
                 WidgetState.Failed -> WidgetMessage("Nie udało się odczytać danych. Otwórz aplikację i spróbuj ponownie.")
-                WidgetState.NoClass -> WidgetMessage("Otwórz eLektron i wybierz klasę.")
+                WidgetState.NoClass -> WidgetMessage("Otwórz Elektron-Vulcan i wybierz klasę.")
                 is WidgetState.NoLessons -> WidgetMessage("Brak lekcji w najbliższych dniach.")
                 is WidgetState.Ready -> Plan(state)
             }

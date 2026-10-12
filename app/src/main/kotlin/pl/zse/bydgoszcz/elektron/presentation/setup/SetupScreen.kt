@@ -48,7 +48,7 @@ fun SetupScreen(viewModel: SetupViewModel = hiltViewModel()) {
                 modifier = Modifier.size(96.dp)
             )
             Spacer(Modifier.height(12.dp))
-            Text("eLektron", style = MaterialTheme.typography.displaySmall)
+            Text("Elektron-Vulcan", style = MaterialTheme.typography.displaySmall)
             Spacer(Modifier.height(8.dp))
             Text(
                 "Witaj! Wybierz swoją klasę, żeby zobaczyć plan lekcji.",

@@ -75,8 +75,8 @@ private fun AppIconDialog(selected: AppIcon, onSelect: (AppIcon) -> Unit, onDism
 private fun IconPreview(icon: AppIcon, selected: Boolean) {
     val colors = MaterialTheme.colorScheme
     val background = when (icon) {
-        AppIcon.DEFAULT -> Color.Black
-        AppIcon.LIGHT -> Color.White
+        AppIcon.DEFAULT -> Color.White
+        AppIcon.LIGHT -> Color.Black
     }
     Box(
         Modifier.size(64.dp)

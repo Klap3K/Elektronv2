@@ -18,7 +18,7 @@ import pl.zse.bydgoszcz.elektron.R
  */
 enum class AppIcon(val alias: String, val label: String, val iconRes: Int) {
     DEFAULT("pl.zse.bydgoszcz.elektron.MainActivity", "Domyślna", R.mipmap.ic_launcher),
-    LIGHT("pl.zse.bydgoszcz.elektron.IconLight", "Białe tło", R.mipmap.ic_launcher_light)
+    LIGHT("pl.zse.bydgoszcz.elektron.IconLight", "Ciemne tło", R.mipmap.ic_launcher_light)
 }
 
 object AppIcons {
