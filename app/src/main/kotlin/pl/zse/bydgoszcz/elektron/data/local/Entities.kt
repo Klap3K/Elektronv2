@@ -111,3 +111,17 @@ data class SyncStateEntity(
     val status: String,
     val message: String?
 )
+
+@Entity(tableName = "school_events", indices = [Index("dateEpochDay")])
+data class SchoolEventEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val description: String?,
+    val eventType: String,
+    val subject: String?,
+    val dateEpochDay: Long,
+    val timeFrom: String?,
+    val timeTo: String?,
+    val location: String?,
+    val rawSummary: String
+)

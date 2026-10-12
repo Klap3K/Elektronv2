@@ -37,4 +37,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindNotificationsRepository(impl: NotificationsRepositoryImpl): NotificationsRepository
+
+    @Binds @Singleton
+    abstract fun bindCalendarRepository(impl: pl.zse.bydgoszcz.elektron.data.repository.CalendarRepositoryImpl): pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
 }

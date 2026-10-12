@@ -35,6 +35,7 @@ data class SyncOutcome(
         const val SUBSTITUTIONS = "subs"
         const val ANNOUNCEMENTS = "anns"
         const val SIDEBAR = "sidebar"
+        const val CALENDAR = "calendar"
 
         val INTERRUPTED = SyncOutcome(interrupted = true)
 

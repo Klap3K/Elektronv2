@@ -38,7 +38,13 @@ import java.util.Locale
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun LessonDetailsSheet(lesson: Lesson, userNote: LessonNote? = null, onEditNote: (() -> Unit)? = null, onDismiss: () -> Unit) {
+internal fun LessonDetailsSheet(
+    lesson: Lesson,
+    userNote: LessonNote? = null,
+    schoolEvents: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
+    onEditNote: (() -> Unit)? = null,
+    onDismiss: () -> Unit
+) {
     val personal = LocalPersonalization.current
     val pl = Locale("pl", "PL")
     val sub = lesson.substitution
@@ -88,6 +94,21 @@ internal fun LessonDetailsSheet(lesson: Lesson, userNote: LessonNote? = null, on
                 SubstitutionDisplay.place(sub)?.let { Field("Gdzie", it) }
                 Field("Za nauczyciela", sub.originalTeacher)
                 SubstitutionDisplay.notes(sub)?.let { Field("Uwagi", it) }
+            }
+            if (schoolEvents.isNotEmpty()) {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                schoolEvents.forEach { ev ->
+                    val color = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    Text(
+                        ev.badgeLabel(),
+                        style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+                        color = color,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Field("Wydarzenie", ev.title, color)
+                    ev.description?.takeIf { it.isNotBlank() }?.let { Field("Opis / Zagadnienia", it) }
+                    ev.location?.takeIf { it.isNotBlank() }?.let { Field("Sala", it) }
+                }
             }
             userNote?.let {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))

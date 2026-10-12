@@ -30,9 +30,11 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import pl.zse.bydgoszcz.elektron.presentation.common.pressable
 import pl.zse.bydgoszcz.elektron.presentation.common.rememberNow
 import pl.zse.bydgoszcz.elektron.domain.repository.AppUpdate
 import androidx.compose.material3.TextButton
@@ -81,6 +83,7 @@ fun DashboardScreen(
     /** Dotknięcie ogłoszenia - podgląd w aplikacji (zakładka Ogłoszenia: ulubione, treść offline). */
     onOpenAnnouncement: (String) -> Unit = {},
     transitViewModel: pl.zse.bydgoszcz.elektron.presentation.transit.TransitViewModel = hiltViewModel(),
+    calendarViewModel: pl.zse.bydgoszcz.elektron.presentation.calendar.CalendarViewModel = hiltViewModel(),
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val visible = pl.zse.bydgoszcz.elektron.presentation.common.LocalScreenVisible.current
@@ -91,6 +94,7 @@ fun DashboardScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transitSettings by transitViewModel.settings.collectAsStateWithLifecycle()
+    val upcomingEvents by calendarViewModel.upcomingEvents.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -177,6 +181,15 @@ fun DashboardScreen(
                                 SubstitutionRow(it, Modifier.animateItem().semantics(mergeDescendants = true) {}, onOpenSubstitutions)
                             }
                         }
+                    }
+                }
+
+                if (upcomingEvents.isNotEmpty()) {
+                    item(key = "h_events") {
+                        SectionTitle("Sprawdziany i wydarzenia (${upcomingEvents.size})", Icons.Outlined.CalendarMonth)
+                    }
+                    item(key = "events_card") {
+                        UpcomingEventsCard(upcomingEvents) { date -> onOpenTimetable(date) }
                     }
                 }
 
@@ -470,6 +483,85 @@ private fun AnnouncementRow(a: Announcement, modifier: Modifier = Modifier, onCl
                 Spacer(Modifier.height(4.dp))
                 Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 2,
                     overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpcomingEventsCard(
+    events: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent>,
+    onOpenDay: (java.time.LocalDate) -> Unit
+) {
+    ElektronCard {
+        Column(Modifier.padding(vertical = 4.dp)) {
+            val plLocale = java.util.Locale("pl", "PL")
+            val dateFmt = DateTimeFormatter.ofPattern("EEEE, dd.MM", plLocale)
+            val today = java.time.LocalDate.now()
+
+            events.take(5).forEachIndexed { index, ev ->
+                if (index > 0) androidx.compose.material3.HorizontalDivider(
+                    Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                val isToday = ev.date == today
+                val isTomorrow = ev.date == today.plusDays(1)
+                val dayLabel = when {
+                    isToday -> "Dziś"
+                    isTomorrow -> "Jutro"
+                    else -> ev.date.format(dateFmt).replaceFirstChar { it.titlecase(plLocale) }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().pressable { onOpenDay(ev.date) }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val evColor = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    val icon = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) "📝" else if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ) "📄" else "📌"
+
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "$icon ${ev.badgeLabel()}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = evColor
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                dayLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            ev.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        ev.description?.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    ev.timeFrom?.let { time ->
+                        Text(
+                            time.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
             }
         }
     }

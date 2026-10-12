@@ -6,4 +6,5 @@
     <exclude domain="database" path="elektron.db-shm" />
     <exclude domain="sharedpref" path="." />
     <exclude domain="file" path="last_crash.txt" />
+    <exclude domain="file" path="datastore/calendar_preferences.preferences_pb" />
 </full-backup-content>

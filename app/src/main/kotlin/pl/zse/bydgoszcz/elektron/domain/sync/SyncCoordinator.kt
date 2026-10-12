@@ -49,7 +49,7 @@ import javax.inject.Singleton
  */
 data class SyncRequest(val sources: Set<String>, val anchorDate: LocalDate = LocalDate.now(), val background: Boolean = false) {
     companion object {
-        val ALL_SOURCES = setOf(SyncOutcome.SIDEBAR, SyncOutcome.TIMETABLE, SyncOutcome.SUBSTITUTIONS, SyncOutcome.ANNOUNCEMENTS)
+        val ALL_SOURCES = setOf(SyncOutcome.SIDEBAR, SyncOutcome.TIMETABLE, SyncOutcome.SUBSTITUTIONS, SyncOutcome.ANNOUNCEMENTS, SyncOutcome.CALENDAR)
         fun full(anchorDate: LocalDate = LocalDate.now(), background: Boolean = false) = SyncRequest(ALL_SOURCES, anchorDate, background)
         fun of(vararg sources: String, anchorDate: LocalDate = LocalDate.now()) = SyncRequest(sources.toSet(), anchorDate)
     }
@@ -80,7 +80,8 @@ class SyncCoordinator @Inject constructor(
     private val sink: NotificationSink,
     private val widgetUpdater: WidgetUpdater,
     private val reminders: LessonReminderScheduler,
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    private val calendarRepo: pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository? = null
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val workMutex = Mutex()
@@ -262,6 +263,21 @@ class SyncCoordinator @Inject constructor(
                     substitutionsRepo.syncAll().record(SyncOutcome.SUBSTITUTIONS)
                 }
                 if (SyncOutcome.ANNOUNCEMENTS in sources) launch { announcementsRepo.syncAll().record(SyncOutcome.ANNOUNCEMENTS) }
+                if (SyncOutcome.CALENDAR in sources && calendarRepo != null) launch {
+                    val res = calendarRepo.sync()
+                    res.fold(
+                        onSuccess = { ok += SyncOutcome.CALENDAR },
+                        onFailure = { err ->
+                            val msg = err.message.orEmpty()
+                            if (err is IllegalStateException && msg.contains("Brak skonfigurowanego źródła")) {
+                                // Nieskonfigurowany kalendarz nie jest błędem synchronizacji
+                            } else {
+                                Log.w(TAG, "calendar: synchronizacja nieudana", err)
+                                failed[SyncOutcome.CALENDAR] = err
+                            }
+                        }
+                    )
+                }
             }
             val outcome = SyncOutcome(ok.toSet(), failed.toMap())
             // Zastępstwa zapisane mimo kilku nieczytelnych wierszy (repozytorium zgłasza to wyjątkiem

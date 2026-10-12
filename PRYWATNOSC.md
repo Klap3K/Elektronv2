@@ -93,6 +93,14 @@ Notatki i ustawienie ich przypomnień są zapisywane lokalnie na telefonie, oddz
 
 Udostępnianie zastępstw przekazuje wybrane informacje do aplikacji wskazanej przez użytkownika w systemowym oknie udostępniania. Własne notatki nie są dodawane do udostępnianego planu ani zastępstw.
 
+## Kalendarz i terminarz (VULCAN API / iCal)
+
+Połączenie z Dziennikiem VULCAN za pomocą API mobilnego (Token, Symbol, PIN) lub linku iCal (.ics) jest w pełni opcjonalne.
+Aplikacja nie prosi o hasło główne do konta. Przy połączeniu przez API generowana jest unikalna para kluczy kryptograficznych RSA i certyfikat urządzenia,
+a zapytania wysyłane są bezpośrednio do oficjalnych serwerów VULCAN. Pobrane wydarzenia (sprawdziany, kartkówki, zadania domowe) oraz klucze uwierzytelniające
+są zapisywane wyłącznie w lokalnej bazie i pamięci DataStore na Twoim telefonie – nie są wysyłane do żadnych zewnętrznych serwisów, serwerów pośredniczących ani dewelopera.
+W każdej chwili możesz odłączyć konto VULCAN i usunąć wszystkie zaimportowane wydarzenia w Ustawieniach aplikacji.
+
 ## Uprawnienia
 
 - **Internet i stan sieci:** pobieranie danych ze stron szkoły, powiadomień push i odjazdów;

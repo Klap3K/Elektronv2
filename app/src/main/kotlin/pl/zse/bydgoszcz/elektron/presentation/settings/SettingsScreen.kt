@@ -99,7 +99,8 @@ fun SettingsScreen(
     onOpenGroups: () -> Unit = {},
     onOpenSubjects: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
-    transitViewModel: pl.zse.bydgoszcz.elektron.presentation.transit.TransitViewModel = hiltViewModel()
+    transitViewModel: pl.zse.bydgoszcz.elektron.presentation.transit.TransitViewModel = hiltViewModel(),
+    calendarViewModel: pl.zse.bydgoszcz.elektron.presentation.calendar.CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transitSettings by transitViewModel.settings.collectAsStateWithLifecycle()
@@ -118,6 +119,13 @@ fun SettingsScreen(
     val noteError by notesViewModel.settingsError.collectAsStateWithLifecycle()
     val settingError by viewModel.settingError.collectAsStateWithLifecycle()
     val devMessage by viewModel.devMessage.collectAsStateWithLifecycle()
+    val vulcanAccount by calendarViewModel.vulcanAccount.collectAsStateWithLifecycle()
+    val isRegisteringVulcan by calendarViewModel.isRegistering.collectAsStateWithLifecycle()
+    val calendarUrl by calendarViewModel.calendarUrl.collectAsStateWithLifecycle()
+    val isSyncingCalendar by calendarViewModel.isSyncing.collectAsStateWithLifecycle()
+    val calendarLastSync by calendarViewModel.lastSyncEpochSeconds.collectAsStateWithLifecycle()
+    val calendarError by calendarViewModel.lastSyncError.collectAsStateWithLifecycle()
+    val calendarMessage by calendarViewModel.userMessage.collectAsStateWithLifecycle()
     val toastContext = LocalContext.current
     var toast by remember { mutableStateOf<Toast?>(null) }
     val showToast: (String) -> Unit = { text ->
@@ -128,6 +136,9 @@ fun SettingsScreen(
     LaunchedEffect(noteError) { noteError?.let { showToast(it); notesViewModel.settingsError.value = null } }
     LaunchedEffect(devMessage) {
         devMessage?.let { showToast(it); viewModel.consumeDevMessage() }
+    }
+    LaunchedEffect(calendarMessage) {
+        calendarMessage?.let { showToast(it); calendarViewModel.consumeUserMessage() }
     }
     var logoTaps by remember { mutableIntStateOf(0) }
     var lastLogoTap by remember { mutableLongStateOf(0L) }
@@ -196,6 +207,23 @@ fun SettingsScreen(
 
             item(key = "notes") {
                 NoteRemindersSection(notesState.enabled, notesState.ready && !notesState.error, notesState.timing, notesViewModel::setReminderTiming, notesViewModel::refreshReminders, notesViewModel::setReminders) { showNotes = true }
+            }
+
+            item(key = "calendar") {
+                CalendarSection(
+                    vulcanAccount = vulcanAccount,
+                    isRegistering = isRegisteringVulcan,
+                    calendarUrl = calendarUrl,
+                    isSyncing = isSyncingCalendar,
+                    lastSyncEpochSeconds = calendarLastSync,
+                    lastSyncError = calendarError,
+                    onRegisterVulcan = calendarViewModel::registerVulcan,
+                    onRegisterVulcanRaw = calendarViewModel::registerVulcanFromInput,
+                    onDisconnectVulcan = calendarViewModel::clearVulcanAccount,
+                    onSetUrl = calendarViewModel::setCalendarUrl,
+                    onSync = calendarViewModel::sync,
+                    onClear = calendarViewModel::clearCalendar
+                )
             }
 
             item(key = "home") {

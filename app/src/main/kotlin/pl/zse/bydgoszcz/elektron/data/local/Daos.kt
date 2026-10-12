@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -232,4 +233,34 @@ interface SyncStateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(state: SyncStateEntity)
+}
+
+@Dao
+interface SchoolEventDao {
+    @Query("SELECT * FROM school_events WHERE dateEpochDay = :dateEpochDay ORDER BY timeFrom ASC, id ASC")
+    fun observeForDate(dateEpochDay: Long): Flow<List<SchoolEventEntity>>
+
+    @Query("SELECT * FROM school_events WHERE dateEpochDay BETWEEN :fromDay AND :toDay ORDER BY dateEpochDay ASC, timeFrom ASC, id ASC")
+    fun observeForRange(fromDay: Long, toDay: Long): Flow<List<SchoolEventEntity>>
+
+    @Query("SELECT * FROM school_events WHERE dateEpochDay >= :fromDay ORDER BY dateEpochDay ASC, timeFrom ASC, id ASC LIMIT :limit")
+    fun observeUpcoming(fromDay: Long, limit: Int): Flow<List<SchoolEventEntity>>
+
+    @Query("SELECT * FROM school_events WHERE dateEpochDay BETWEEN :fromDay AND :toDay ORDER BY dateEpochDay ASC, timeFrom ASC, id ASC")
+    suspend fun getForRange(fromDay: Long, toDay: Long): List<SchoolEventEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(items: List<SchoolEventEntity>)
+
+    @Query("DELETE FROM school_events")
+    suspend fun clear()
+
+    @Transaction
+    suspend fun replaceAll(items: List<SchoolEventEntity>) {
+        clear()
+        upsertAll(items)
+    }
+
+    @Query("DELETE FROM school_events WHERE dateEpochDay < :beforeDay")
+    suspend fun deleteOlderThan(beforeDay: Long)
 }

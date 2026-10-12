@@ -78,6 +78,7 @@ internal fun WeekGrid(
     week: List<TimetableViewModel.DayColumn>,
     modifier: Modifier = Modifier,
     notes: Map<String, LessonNote>,
+    events: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
     onNote: (Lesson) -> Unit,
     onLessonClick: (Lesson) -> Unit,
     focusedDay: LocalDate? = null,
@@ -207,12 +208,14 @@ private fun DayGridColumn(
             // Błędne godziny na stronie szkoły (koniec przed początkiem) dawałyby ujemną wysokość
             // kafelka - wyjątek w Compose i zamknięcie aplikacji. Najmniej 15 min.
             val length = ((lesson.timeTo.toSecondOfDay() - lesson.timeFrom.toSecondOfDay()) / 60).coerceAtLeast(15)
+            val lessonEvents = events.filter { it.date == day.date && it.matchesLesson(lesson) }
             LessonTile(
                 lesson = lesson,
                 lengthMin = length,
                 ongoing = nowMinute != null && nowTime >= lesson.timeFrom && nowTime < lesson.timeTo,
                 modifier = Modifier.offset(y = from * PER_MINUTE).height(length * PER_MINUTE).fillMaxWidth(),
                 hasNote = notes.containsKey(LessonNote.key(lesson)),
+                schoolEvents = lessonEvents,
                 onLongClick = if (LessonNote.canEdit(lesson, AppClock.now()) || notes.containsKey(LessonNote.key(lesson))) ({ onNote(lesson) }) else null,
                 onClick = { onLessonClick(lesson) }
             )
@@ -229,7 +232,16 @@ private fun DayGridColumn(
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun LessonTile(lesson: Lesson, lengthMin: Int, ongoing: Boolean, modifier: Modifier, hasNote: Boolean, onLongClick: (() -> Unit)?, onClick: () -> Unit) {
+private fun LessonTile(
+    lesson: Lesson,
+    lengthMin: Int,
+    ongoing: Boolean,
+    modifier: Modifier,
+    hasNote: Boolean,
+    schoolEvents: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
+    onLongClick: (() -> Unit)?,
+    onClick: () -> Unit
+) {
     // Ile linii nazwy mieści kafelek (14 sp na linię, 6 dp marginesów) - wielokropek działa
     // tylko z limitem linii, a nie z ograniczoną wysokością.
     val fontScale = LocalDensity.current.fontScale   // większa czcionka systemowa = wyższe linie
@@ -257,10 +269,17 @@ private fun LessonTile(lesson: Lesson, lengthMin: Int, ongoing: Boolean, modifie
         sub != null -> scheme.tertiary
         else -> subjectColor ?: scheme.primary
     }
+    val eventIcon = when {
+        schoolEvents.any { it.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM } -> "📝"
+        schoolEvents.any { it.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ } -> "📄"
+        schoolEvents.isNotEmpty() -> "📌"
+        else -> null
+    }
     val description = buildString {
         append("${lesson.number}. lekcja, ${lesson.timeFrom}–${lesson.timeTo}, ")
         append(names.joinToString(" / ").ifBlank { name })
         if (hasNote) append(", zapisana notatka")
+        if (eventIcon != null) append(", sprawdzian lub zadanie")
         if (sub != null) append(", zastępstwo: ${SubstitutionDisplay.headline(sub)}")
     }
     Row(
@@ -273,7 +292,7 @@ private fun LessonTile(lesson: Lesson, lengthMin: Int, ongoing: Boolean, modifie
             val tileText = if (sub != null) listOfNotNull(SubstitutionDisplay.headline(sub), SubstitutionDisplay.place(sub)).joinToString(" · ")
                 else name
             Text(
-                listOfNotNull(if (hasNote) "✎" else null, tileText).joinToString(" "),
+                listOfNotNull(if (hasNote) "✎" else null, eventIcon, tileText).joinToString(" "),
                 color = fg,
                 fontSize = 12.sp,
                 lineHeight = 14.sp,

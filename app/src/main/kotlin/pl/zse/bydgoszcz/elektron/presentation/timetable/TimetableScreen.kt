@@ -114,7 +114,8 @@ fun TimetableScreen(
     /** Plan jest aktualnie wybraną zakładką (zmiana -> dzień startowy, patrz niżej). */
     isShown: Boolean = true,
     viewModel: TimetableViewModel = hiltViewModel(),
-    notesViewModel: LessonNotesViewModel = hiltViewModel()
+    notesViewModel: LessonNotesViewModel = hiltViewModel(),
+    calendarViewModel: pl.zse.bydgoszcz.elektron.presentation.calendar.CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Zapamiętany tryb (Dzień/Tydzień) znany od pierwszej klatki - bez mignięcia widoku dnia.
@@ -161,8 +162,11 @@ fun TimetableScreen(
         val detailWeek by remember(targetClass, targetDate) { viewModel.week(targetDate.with(java.time.DayOfWeek.MONDAY)) }
             .collectAsStateWithLifecycle(initialValue = null)
         val lesson = detailWeek?.flatMap { it.lessons }?.firstOrNull { it.id == targetId }
+        val dayEvents by remember(targetDate) { calendarViewModel.eventsForDate(targetDate) }
+            .collectAsStateWithLifecycle(initialValue = emptyList())
         if (lesson != null) LessonDetailsSheet(lesson,
             userNote = notesState.notes.firstOrNull { it.key == LessonNote.key(lesson) },
+            schoolEvents = dayEvents.filter { it.matchesLesson(lesson) },
             onEditNote = if (notesState.ready && !notesState.error &&
                 (LessonNote.canEdit(lesson, AppClock.now()) || noteIndex.containsKey(LessonNote.key(lesson)))) ({ editNote(lesson) }) else null
         ) { showDetails(null) }
@@ -395,23 +399,27 @@ fun TimetableScreen(
                             val date = TimetableViewModel.dayForPage(base, page)
                             val week by remember(date) { viewModel.week(date.with(java.time.DayOfWeek.MONDAY)) }
                                 .collectAsStateWithLifecycle(initialValue = null)
+                            val dayEvents by remember(date) { calendarViewModel.eventsForDate(date) }
+                                .collectAsStateWithLifecycle(initialValue = emptyList())
                             val monday = date.with(java.time.DayOfWeek.MONDAY)
                             val loading = week == null || syncingWeek == monday || state.isRefreshing
                             val pastWeek = TimetableViewModel.isPastWeek(monday, today)
                             val current = page == pagerState.currentPage
                             val lessons = week?.firstOrNull { it.date == date }?.lessons.orEmpty()
                             SideEffect { if (current) visiblePlan = VisiblePlan(page, false, date, lessons) }
-                            DayPage(date, week, clock, loading, pastWeek, pageModifier, noteIndex, editNote) { showDetails(it) }
+                            DayPage(date, week, clock, loading, pastWeek, pageModifier, noteIndex, dayEvents, editNote) { showDetails(it) }
                         }
                         TimetableViewModel.ViewMode.WEEK -> {
                             val monday = TimetableViewModel.mondayForPage(base, page)
                             val week by remember(monday) { viewModel.week(monday) }.collectAsStateWithLifecycle(initialValue = null)
+                            val weekEvents by remember(monday) { calendarViewModel.eventsForRange(monday, monday.plusDays(4)) }
+                                .collectAsStateWithLifecycle(initialValue = emptyList())
                             val loading = week == null || syncingWeek == monday || state.isRefreshing
                             val pastWeek = TimetableViewModel.isPastWeek(monday, today)
                             val current = page == pagerState.currentPage
                             val lessons = week.orEmpty().flatMap { it.lessons }
                             SideEffect { if (current) visiblePlan = VisiblePlan(page, true, monday, lessons) }
-                            WeekPage(week, loading, pastWeek, pageModifier, noteIndex, editNote, state.anchorDate, jump?.id) { showDetails(it) }
+                            WeekPage(week, loading, pastWeek, pageModifier, noteIndex, weekEvents, editNote, state.anchorDate, jump?.id) { showDetails(it) }
                         }
                     }
                 }
@@ -423,6 +431,38 @@ fun TimetableScreen(
 private data class VisiblePlan(val page: Int, val weekMode: Boolean, val date: LocalDate, val lessons: List<Lesson>)
 
 @Composable
+private fun DayEventsCard(events: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent>) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Text(
+                "Wydarzenia dnia (${events.size})",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            events.forEach { ev ->
+                Spacer(Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val icon = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) "📝 " else if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ) "📄 " else "📌 "
+                    Text(
+                        "$icon${ev.title}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun DayPage(
     date: LocalDate,
     week: List<TimetableViewModel.DayColumn>?,
@@ -431,6 +471,7 @@ private fun DayPage(
     pastWeek: Boolean,
     modifier: Modifier,
     notes: Map<String, LessonNote>,
+    dayEvents: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
     onNote: (Lesson) -> Unit,
     onLessonClick: (Lesson) -> Unit
 ) {
@@ -440,6 +481,11 @@ private fun DayPage(
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        if (dayEvents.isNotEmpty()) {
+            item(key = "day_events_${date.toEpochDay()}") {
+                DayEventsCard(dayEvents)
+            }
+        }
         if (lessons.isEmpty()) {
             // Plan tygodnia jest w bazie, a ten dzień po prostu nie ma lekcji — to nie ładowanie.
             val weekHasLessons = week?.any { it.lessons.isNotEmpty() } == true
@@ -458,7 +504,9 @@ private fun DayPage(
                     is LessonClock.Before -> if (status.next.id == lesson.id) status.minutesUntil?.let { "Za $it min" } else null
                     else -> null
                 }
+                val lessonEvents = dayEvents.filter { it.matchesLesson(lesson) }
                 LessonRow(lesson, badge, userNote = notes[LessonNote.key(lesson)],
+                    schoolEvents = lessonEvents,
                     onLongClick = if (LessonNote.canEdit(lesson, AppClock.now()) || notes.containsKey(LessonNote.key(lesson))) ({ onNote(lesson) }) else null,
                     onClick = { onLessonClick(lesson) })
             }
@@ -473,6 +521,7 @@ private fun WeekPage(
     pastWeek: Boolean,
     modifier: Modifier,
     notes: Map<String, LessonNote>,
+    events: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
     onNote: (Lesson) -> Unit,
     focusedDay: LocalDate,
     openingId: Int?,
@@ -485,7 +534,7 @@ private fun WeekPage(
         return
     }
     // Siatka jak w eduVulcan: godziny po lewej, 5 dni, same nazwy przedmiotów.
-    WeekGrid(week, modifier, notes, onNote, onLessonClick, focusedDay, openingId)
+    WeekGrid(week, modifier, notes, events, onNote, onLessonClick, focusedDay, openingId)
 }
 
 
@@ -554,7 +603,15 @@ private fun MessageCard(loading: Boolean, text: String, hint: String? = null) {
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun LessonRow(lesson: Lesson, badge: String?, modifier: Modifier = Modifier, userNote: LessonNote? = null, onLongClick: (() -> Unit)? = null, onClick: (() -> Unit)? = null) {
+private fun LessonRow(
+    lesson: Lesson,
+    badge: String?,
+    modifier: Modifier = Modifier,
+    userNote: LessonNote? = null,
+    schoolEvents: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
+    onLongClick: (() -> Unit)? = null,
+    onClick: (() -> Unit)? = null
+) {
     val sub = lesson.substitution
     val bg = if (sub != null) MaterialTheme.colorScheme.tertiaryContainer
         else MaterialTheme.colorScheme.surfaceContainerHighest
@@ -652,6 +709,12 @@ private fun LessonRow(lesson: Lesson, badge: String?, modifier: Modifier = Modif
                 userNote?.let {
                     Text("Notatka: ${it.text}", style = MaterialTheme.typography.bodySmall,
                         color = emphasis, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                schoolEvents.forEach { ev ->
+                    val evColor = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    val icon = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) "📝" else if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ) "📄" else "📌"
+                    Text("$icon ${ev.badgeLabel()}: ${ev.title}", style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold, color = evColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 shownBadge?.let {
                     Text(it,
