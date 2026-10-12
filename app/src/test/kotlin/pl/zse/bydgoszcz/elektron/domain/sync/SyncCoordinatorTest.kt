@@ -552,8 +552,29 @@ class SyncCoordinatorTest {
             override suspend fun check(force: Boolean) = Result.success<pl.zse.bydgoszcz.elektron.domain.repository.AppUpdate?>(null)
             override suspend fun dismiss(versionName: String) = Unit
         }
+        val dutyStub = object : pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository {
+            override fun observeDuty() = kotlinx.coroutines.flow.flowOf<pl.zse.bydgoszcz.elektron.domain.model.ClassroomDuty?>(null)
+            override suspend fun setStudentNumber(number: Int?) = Unit
+            override suspend fun setClassSize(size: Int) = Unit
+            override suspend fun setDutyManualToday(isDutyToday: Boolean) = Unit
+        }
+        val attendanceStub = object : pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository {
+            override fun observeAll() = kotlinx.coroutines.flow.flowOf(emptyList<pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance>())
+            override fun observeOverall() = kotlinx.coroutines.flow.flowOf(pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance.fromSubjects(emptyList()))
+            override suspend fun sync() = Result.success(0)
+            override suspend fun saveStats(stats: List<pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance>) = Unit
+            override suspend fun clear() = Unit
+        }
+        val activityStub = object : pl.zse.bydgoszcz.elektron.domain.repository.UserActivityRepository {
+            override fun observeAll() = kotlinx.coroutines.flow.flowOf(emptyList<pl.zse.bydgoszcz.elektron.domain.model.UserActivity>())
+            override fun observeForDate(date: java.time.LocalDate) = kotlinx.coroutines.flow.flowOf(emptyList<pl.zse.bydgoszcz.elektron.domain.model.UserActivity>())
+            override fun observeForRange(from: java.time.LocalDate, to: java.time.LocalDate) = kotlinx.coroutines.flow.flowOf(emptyList<pl.zse.bydgoszcz.elektron.domain.model.UserActivity>())
+            override suspend fun save(activity: pl.zse.bydgoszcz.elektron.domain.model.UserActivity) = Unit
+            override suspend fun delete(id: String) = Unit
+            override suspend fun setCompleted(id: String, completed: Boolean) = Unit
+        }
         val vm = pl.zse.bydgoszcz.elektron.presentation.dashboard.DashboardViewModel(settings, t.substitutionsRepo,
-            t.announcementsRepo, t.notificationsRepo, t.timetableRepo, updates, coordinator)
+            t.announcementsRepo, t.notificationsRepo, t.timetableRepo, updates, coordinator, dutyStub, attendanceStub, activityStub)
         val owner = androidx.lifecycle.ViewModelStore().apply { put("dashboard", vm) }
         try {
             timetable.error = IOException("Offline")
