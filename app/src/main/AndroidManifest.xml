@@ -11,6 +11,13 @@
     <!-- Po restarcie telefonu ponowne ustawienie przypomnienia o lekcji (Android kasuje alarmy). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Wykrywanie zainstalowanej oficjalnej aplikacji eduVULCAN / Dzienniczek VULCAN na urządzeniu -->
+    <queries>
+        <package android:name="pl.edu.vulcan.hebece" />
+        <package android:name="pl.edu.vulcan.uonetmobile" />
+        <package android:name="pl.vulcan.uonetmobile" />
+    </queries>
+
     <application
         android:name=".ElektronApplication"
         android:allowBackup="true"
@@ -145,6 +152,17 @@
             <meta-data
                 android:name="android.service.quicksettings.ACTIVE_TILE"
                 android:value="false" />
+        </service>
+
+        <!-- Mostek powiadomień z zainstalowanej aplikacji eduVULCAN na urządzeniu -->
+        <service
+            android:name=".service.EduVulcanNotificationListener"
+            android:exported="true"
+            android:label="Synchronizacja z aplikacji eduVULCAN"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <provider

@@ -1,6 +1,7 @@
 package pl.zse.bydgoszcz.elektron.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import pl.zse.bydgoszcz.elektron.domain.model.EduVulcanSession
 import pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanRegistrationInput
@@ -26,16 +27,22 @@ interface CalendarRepository {
     /** Obserwuje nadchodzące wydarzenia (od dzisiaj, posortowane, z limitem). */
     fun observeUpcomingEvents(limit: Int = 10): Flow<List<SchoolEvent>>
 
-    /** Zarejestrowane konto w oficjalnym API VULCAN (Hebe). */
+    /** Zarejestrowane konto w systemie eduVULCAN / VULCAN. */
     val vulcanAccount: Flow<VulcanAccount?>
 
-    /** Rejestruje konto VULCAN za pomocą Tokenu, Symbolu i PIN-u. */
+    /** Zapisuje aktywną sesję eduVULCAN (po zalogowaniu hasłem) i wykonuje synchronizację sprawdzianów oraz frekwencji. */
+    suspend fun connectEduVulcan(session: EduVulcanSession): Result<VulcanAccount>
+
+    /** Loguje się hasłem do eduVULCAN w tle i pobiera sprawdziany oraz frekwencję. */
+    suspend fun loginEduVulcanWithPassword(username: String, password: String): Result<VulcanAccount>
+
+    /** Rejestruje konto VULCAN za pomocą starszego Tokenu, Symbolu i PIN-u. */
     suspend fun registerVulcan(input: VulcanRegistrationInput): Result<VulcanAccount>
 
-    /** Odłącza konto VULCAN i usuwa powiązane dane uwierzytelniające. */
+    /** Odłącza konto eduVULCAN / VULCAN i usuwa powiązane dane uwierzytelniające. */
     suspend fun clearVulcanAccount()
 
-    /** Pobiera wydarzenia z połączonego konta VULCAN lub skonfigurowanego URL iCal, parsuje i zapisuje do bazy. */
+    /** Pobiera sprawdziany i frekwencję z połączonego konta eduVULCAN lub skonfigurowanego URL iCal, parsuje i zapisuje do bazy. */
     suspend fun sync(): Result<Int>
 
     /** Czyści zapisane wydarzenia i resetuje konfigurację. */

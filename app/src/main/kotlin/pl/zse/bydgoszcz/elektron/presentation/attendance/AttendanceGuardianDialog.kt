@@ -37,12 +37,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance
+import pl.zse.bydgoszcz.elektron.presentation.calendar.EduVulcanLoginDialog
 import java.util.Locale
 
 @Composable
@@ -52,6 +57,19 @@ fun AttendanceGuardianDialog(
 ) {
     val overall by viewModel.overallAttendance.collectAsStateWithLifecycle()
     val simulation by viewModel.simulationState.collectAsStateWithLifecycle()
+    val vulcanAccount by viewModel.vulcanAccount.collectAsStateWithLifecycle()
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    var showLoginDialog by remember { mutableStateOf(false) }
+
+    if (showLoginDialog) {
+        EduVulcanLoginDialog(
+            onDismiss = { showLoginDialog = false },
+            onSessionConnected = { session ->
+                showLoginDialog = false
+                viewModel.connectEduVulcan(session)
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -103,6 +121,27 @@ fun AttendanceGuardianDialog(
                             SubjectRow(subj, simulation.simulatedMissedHours)
                         }
                     }
+                }
+            }
+        },
+        dismissButton = {
+            if (vulcanAccount != null) {
+                TextButton(
+                    enabled = !isSyncing,
+                    onClick = { viewModel.refresh() }
+                ) {
+                    if (isSyncing) {
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Text("Odśwież z eduVULCAN")
+                }
+            } else {
+                TextButton(
+                    enabled = !isSyncing,
+                    onClick = { showLoginDialog = true }
+                ) {
+                    Text("Zaloguj do eduVULCAN")
                 }
             }
         },

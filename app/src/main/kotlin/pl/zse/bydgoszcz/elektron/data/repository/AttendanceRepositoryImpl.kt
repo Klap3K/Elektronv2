@@ -1,19 +1,25 @@
 package pl.zse.bydgoszcz.elektron.data.repository
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import pl.zse.bydgoszcz.elektron.data.local.AttendanceDao
 import pl.zse.bydgoszcz.elektron.data.local.AttendanceEntity
+import pl.zse.bydgoszcz.elektron.data.remote.vulcan.VulcanApiClient
 import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance
 import pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
+import pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AttendanceRepositoryImpl @Inject constructor(
-    private val dao: AttendanceDao
+    private val dao: AttendanceDao,
+    private val calendarRepository: CalendarRepository,
+    private val vulcanApiClient: VulcanApiClient
 ) : AttendanceRepository {
 
     override fun observeAll(): Flow<List<SubjectAttendance>> =
@@ -22,11 +28,24 @@ class AttendanceRepositoryImpl @Inject constructor(
     override fun observeOverall(): Flow<OverallAttendance> =
         observeAll().map { OverallAttendance.fromSubjects(it) }
 
-    override suspend fun sync(): Result<Int> {
+    override suspend fun sync(): Result<Int> = withContext(Dispatchers.IO) {
+        // 1. Jeśli użytkownik jest zalogowany do eduVULCAN, pobierz prawdziwe statystyki frekwencji z uczen.eduvulcan.pl
+        val account = runCatching { calendarRepository.vulcanAccount.first() }.getOrNull()
+        if (account != null && account.isEduVulcan) {
+            val res = vulcanApiClient.fetchEduVulcanAttendance(account)
+            if (res.isSuccess) {
+                val stats = res.getOrDefault(emptyList())
+                if (stats.isNotEmpty()) {
+                    dao.replaceAll(stats.map { it.toEntity() })
+                    return@withContext Result.success(stats.size)
+                }
+            }
+        }
+
+        // 2. Jeśli brak podłączonego konta eduVULCAN i baza jest pusta, zainicjuj danymi demonstracyjnymi,
+        // aby kalkulator / symulator w Strażniku Frekwencji działał od razu przed zalogowaniem
         val current = dao.getAll().first()
         if (current.isEmpty()) {
-            // Inicjalizacja domyślnymi danymi startowymi (przedmioty z planu),
-            // aby Strażnik Frekwencji był natychmiast funkcjonalny
             val nowSeconds = System.currentTimeMillis() / 1000
             val initial = listOf(
                 SubjectAttendance("Język polski", presentHours = 24, absentHours = 4, excusedHours = 2, lateHours = 1, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds),
@@ -38,9 +57,9 @@ class AttendanceRepositoryImpl @Inject constructor(
                 SubjectAttendance("Historia", presentHours = 16, absentHours = 2, excusedHours = 1, lateHours = 0, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds)
             )
             dao.replaceAll(initial.map { it.toEntity() })
-            return Result.success(initial.size)
+            return@withContext Result.success(initial.size)
         }
-        return Result.success(current.size)
+        Result.success(current.size)
     }
 
     override suspend fun saveStats(stats: List<SubjectAttendance>) {

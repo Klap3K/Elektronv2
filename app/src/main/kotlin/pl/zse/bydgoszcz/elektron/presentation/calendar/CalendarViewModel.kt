@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import pl.zse.bydgoszcz.elektron.domain.model.EduVulcanSession
 import pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanRegistrationInput
@@ -51,6 +52,47 @@ class CalendarViewModel @Inject constructor(
     fun eventsForRange(from: LocalDate, to: LocalDate): Flow<List<SchoolEvent>> =
         repository.observeEventsForRange(from, to)
 
+    /**
+     * Zapisuje sesję eduVULCAN wyodrębnioną przez wbudowane okno logowania (WebView + Login/Hasło)
+     * i natychmiast pobiera sprawdziany oraz frekwencję.
+     */
+    fun connectEduVulcanSession(session: EduVulcanSession) {
+        if (_isRegistering.value) return
+        _isRegistering.value = true
+        viewModelScope.launch {
+            try {
+                val res = repository.connectEduVulcan(session)
+                res.onSuccess { acc ->
+                    _userMessage.value = "Połączono z eduVULCAN! Uczeń: ${acc.pupilName}"
+                }.onFailure { err ->
+                    _userMessage.value = "Błąd zapisu sesji eduVULCAN: ${err.localizedMessage ?: "nieznany błąd"}"
+                }
+            } finally {
+                _isRegistering.value = false
+            }
+        }
+    }
+
+    /**
+     * Loguje się hasłem do eduVULCAN w tle i synchronizuje sprawdziany oraz frekwencję.
+     */
+    fun loginEduVulcanWithPassword(username: String, password: String) {
+        if (_isRegistering.value) return
+        _isRegistering.value = true
+        viewModelScope.launch {
+            try {
+                val res = repository.loginEduVulcanWithPassword(username, password)
+                res.onSuccess { acc ->
+                    _userMessage.value = "Zalogowano do eduVULCAN jako: ${acc.pupilName}"
+                }.onFailure { err ->
+                    _userMessage.value = "Błąd logowania eduVULCAN: ${err.localizedMessage ?: "sprawdź login i hasło"}"
+                }
+            } finally {
+                _isRegistering.value = false
+            }
+        }
+    }
+
     fun registerVulcan(token: String, symbol: String, pin: String) {
         val input = VulcanRegistrationInput(token = token.trim(), symbol = symbol.trim(), pin = pin.trim())
         executeVulcanRegistration(input)
@@ -61,7 +103,7 @@ class CalendarViewModel @Inject constructor(
         if (parsed != null) {
             executeVulcanRegistration(parsed)
         } else {
-            _userMessage.value = "Nie rozpoznano formatu kodu VULCAN. Wpisz Token, Symbol i PIN oddzielnie."
+            _userMessage.value = "Nie rozpoznano formatu kodu VULCAN."
         }
     }
 
@@ -85,7 +127,7 @@ class CalendarViewModel @Inject constructor(
     fun clearVulcanAccount() {
         viewModelScope.launch {
             repository.clearVulcanAccount()
-            _userMessage.value = "Odłączono konto VULCAN."
+            _userMessage.value = "Odłączono konto eduVULCAN."
         }
     }
 
@@ -105,7 +147,7 @@ class CalendarViewModel @Inject constructor(
             try {
                 val result = repository.sync()
                 result.onSuccess { count ->
-                    _userMessage.value = "Zsynchronizowano $count sprawdzianów i wydarzeń."
+                    _userMessage.value = "Zsynchronizowano $count sprawdzianów oraz statystyki frekwencji."
                 }.onFailure { e ->
                     _userMessage.value = "Błąd synchronizacji: ${e.localizedMessage ?: "brak połączenia"}"
                 }

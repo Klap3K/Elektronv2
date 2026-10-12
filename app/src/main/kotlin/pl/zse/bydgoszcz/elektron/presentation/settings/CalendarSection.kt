@@ -1,18 +1,16 @@
 package pl.zse.bydgoszcz.elektron.presentation.settings
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -21,16 +19,23 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import pl.zse.bydgoszcz.elektron.domain.model.EduVulcanSession
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
+import pl.zse.bydgoszcz.elektron.presentation.calendar.EduVulcanLoginDialog
 import pl.zse.bydgoszcz.elektron.presentation.common.GroupedSection
+import pl.zse.bydgoszcz.elektron.service.EduVulcanAppBridge
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -43,28 +48,45 @@ internal fun CalendarSection(
     isSyncing: Boolean,
     lastSyncEpochSeconds: Long?,
     lastSyncError: String?,
-    onRegisterVulcan: (token: String, symbol: String, pin: String) -> Unit,
-    onRegisterVulcanRaw: (raw: String) -> Unit,
+    onConnectEduVulcan: (EduVulcanSession) -> Unit,
     onDisconnectVulcan: () -> Unit,
     onSetUrl: (String?) -> Unit,
     onSync: () -> Unit,
     onClear: () -> Unit
 ) {
-    var showConnectDialog by remember { mutableStateOf(false) }
-    var showHelpDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var showEduVulcanLoginDialog by remember { mutableStateOf(false) }
+    var showAppBridgeDialog by remember { mutableStateOf(false) }
     var showUrlDialog by remember { mutableStateOf(false) }
 
+    var isAppInstalled by remember { mutableStateOf(EduVulcanAppBridge.isEduVulcanAppInstalled(context)) }
+    var isBridgeEnabled by remember { mutableStateOf(EduVulcanAppBridge.isNotificationBridgeEnabled(context)) }
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isAppInstalled = EduVulcanAppBridge.isEduVulcanAppInstalled(context)
+                isBridgeEnabled = EduVulcanAppBridge.isNotificationBridgeEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     GroupedSection(
-        title = "Terminarz i sprawdziany (VULCAN)",
+        title = "Dziennik eduVULCAN (Sprawdziany i Frekwencja)",
         icon = Icons.Outlined.CalendarMonth,
-        footer = "Połącz aplikację z Dziennikiem VULCAN za pomocą danych z zakładki 'Dostęp mobilny'. Sprawdziany, kartkówki i prace klasowe pojawią się bezpośrednio na kafelkach lekcji oraz w planie zajęć."
+        footer = "Zaloguj się swoim loginem i hasłem do eduVULCAN lub włącz przechwytywanie danych z zainstalowanej na telefonie aplikacji eduVULCAN. Sprawdziany, kartkówki i frekwencja trafią bezpośrednio do planu lekcji, widżetów oraz Strażnika Frekwencji."
     ) {
         val isConnected = vulcanAccount != null
 
         if (isConnected) {
+            val loginInfo = vulcanAccount.loginUsername.takeIf { it.isNotBlank() }?.let { " • $it" }.orEmpty()
             ActionRow(
-                label = "Konto: ${vulcanAccount.pupilName}",
-                supporting = "${vulcanAccount.schoolName} (${vulcanAccount.symbol})",
+                label = "Uczeń: ${vulcanAccount.pupilName}",
+                supporting = "${vulcanAccount.schoolName} (${vulcanAccount.symbol})$loginInfo",
                 trailing = {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
@@ -77,12 +99,12 @@ internal fun CalendarSection(
 
             RowDivider()
 
-            val syncLabel = if (isSyncing) "Trwa synchronizacja…" else "Synchronizuj sprawdziany"
+            val syncLabel = if (isSyncing) "Trwa synchronizacja z eduVULCAN…" else "Synchronizuj sprawdziany i frekwencję"
             val lastSyncFormatted = lastSyncEpochSeconds?.let {
                 val instant = Instant.ofEpochSecond(it)
                 val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
                     .withZone(ZoneId.systemDefault())
-                "Ostatnio: " + formatter.format(instant)
+                "Ostatnia synchronizacja: " + formatter.format(instant)
             }
 
             ActionRow(
@@ -97,33 +119,52 @@ internal fun CalendarSection(
 
             RowDivider()
             ActionRow(
-                label = "Odłącz konto VULCAN",
+                label = "Zmień konto / zaloguj ponownie",
+                trailingChevron = true,
+                onClick = { showEduVulcanLoginDialog = true }
+            )
+
+            RowDivider()
+            ActionRow(
+                label = "Odłącz konto eduVULCAN",
                 destructive = true,
                 onClick = onDisconnectVulcan
             )
         } else {
             ActionRow(
-                label = "Połącz z VULCAN (Token, Symbol, PIN)",
-                supporting = "Kliknij, aby skonfigurować dostęp mobilny",
-                trailingChevron = true,
-                onClick = { showConnectDialog = true }
-            )
-
-            RowDivider()
-            ActionRow(
-                label = "Jak uzyskać Token i PIN? (Poradnik)",
-                supporting = "Gdzie znaleźć kod w eduVULCAN / UONET+",
-                trailing = {
-                    Icon(
-                        imageVector = Icons.Outlined.HelpOutline,
-                        contentDescription = "Pomoc",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                onClick = { showHelpDialog = true }
+                label = if (isRegistering) "Łączenie z kontem eduVULCAN…" else "Zaloguj się do eduVULCAN (Login i Hasło)",
+                supporting = "Pobierz sprawdziany, kartkówki, zadania domowe i frekwencję",
+                enabled = !isRegistering,
+                trailingChevron = !isRegistering,
+                trailing = if (isRegistering) {
+                    @Composable { CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) }
+                } else null,
+                onClick = { showEduVulcanLoginDialog = true }
             )
         }
+
+        // Integracja z zainstalowaną aplikacją eduVULCAN na urządzeniu
+        RowDivider()
+        val bridgeSupporting = when {
+            isBridgeEnabled && isAppInstalled -> "Aktywne • aplikacja eduVULCAN wykryta na urządzeniu"
+            isBridgeEnabled -> "Aktywne • nasłuchiwanie powiadomień z aplikacji eduVULCAN"
+            isAppInstalled -> "Wykryto aplikację eduVULCAN na telefonie – kliknij, aby połączyć"
+            else -> "Zaciągaj nowe wpisy z zalogowanej aplikacji eduVULCAN na urządzeniu"
+        }
+
+        ActionRow(
+            label = "Zaciągaj dane z aplikacji eduVULCAN na telefonie",
+            supporting = bridgeSupporting,
+            trailing = {
+                Icon(
+                    imageVector = if (isBridgeEnabled) Icons.Outlined.NotificationsActive else Icons.Outlined.PhoneAndroid,
+                    contentDescription = null,
+                    tint = if (isBridgeEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            onClick = { showAppBridgeDialog = true }
+        )
 
         // Sekcja alternatywna iCal
         RowDivider()
@@ -161,161 +202,66 @@ internal fun CalendarSection(
         }
     }
 
-    // --- Dialog łączenia konta VULCAN ---
-    if (showConnectDialog) {
-        var tokenInput by remember { mutableStateOf("") }
-        var symbolInput by remember { mutableStateOf("bydgoszcz") }
-        var pinInput by remember { mutableStateOf("") }
-        var rawQrInput by remember { mutableStateOf("") }
-        var isQrMode by remember { mutableStateOf(false) }
-        var validationError by remember { mutableStateOf<String?>(null) }
-
-        AlertDialog(
-            onDismissRequest = { if (!isRegistering) showConnectDialog = false },
-            title = { Text("Logowanie do Dziennika VULCAN") },
-            text = {
-                Column {
-                    Text(
-                        "Wprowadź dane z zakładki 'Dostęp mobilny' w przeglądarce eduVULCAN / UONET+:",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(Modifier.height(12.dp))
-
-                    if (!isQrMode) {
-                        OutlinedTextField(
-                            value = tokenInput,
-                            onValueChange = { tokenInput = it },
-                            label = { Text("Token") },
-                            placeholder = { Text("np. FK1000... lub C123456") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = symbolInput,
-                            onValueChange = { symbolInput = it },
-                            label = { Text("Symbol") },
-                            placeholder = { Text("np. bydgoszcz") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = pinInput,
-                            onValueChange = { pinInput = it },
-                            label = { Text("PIN") },
-                            placeholder = { Text("6-cyfrowy kod, np. 123456") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        OutlinedTextField(
-                            value = rawQrInput,
-                            onValueChange = {
-                                rawQrInput = it
-                                validationError = null
-                            },
-                            label = { Text("Kod z QR lub JSON") },
-                            placeholder = { Text("Wklej zawartość kodu QR lub JSON...") },
-                            isError = validationError != null,
-                            supportingText = validationError?.let { err -> { Text(err, color = MaterialTheme.colorScheme.error) } },
-                            modifier = Modifier.fillMaxWidth(),
-                            maxLines = 4
-                        )
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(
-                            onClick = {
-                                isQrMode = !isQrMode
-                                validationError = null
-                            }
-                        ) {
-                            Icon(Icons.Outlined.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(if (isQrMode) "Wprowadź pola ręcznie" else "Wklej kod QR / JSON")
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = !isRegistering && (
-                        (isQrMode && rawQrInput.isNotBlank()) ||
-                        (!isQrMode && tokenInput.isNotBlank() && symbolInput.isNotBlank() && pinInput.isNotBlank())
-                    ),
-                    onClick = {
-                        if (isQrMode) {
-                            val parsed = pl.zse.bydgoszcz.elektron.domain.model.VulcanRegistrationInput.parseOrNull(rawQrInput.trim())
-                            if (parsed == null) {
-                                validationError = "Nie rozpoznano formatu kodu QR. Upewnij się, że kod zawiera Token, Symbol i PIN."
-                                return@TextButton
-                            }
-                            onRegisterVulcanRaw(rawQrInput.trim())
-                        } else {
-                            onRegisterVulcan(tokenInput.trim(), symbolInput.trim(), pinInput.trim())
-                        }
-                        showConnectDialog = false
-                    }
-                ) {
-                    if (isRegistering) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(6.dp))
-                    }
-                    Text("Połącz")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    enabled = !isRegistering,
-                    onClick = { showConnectDialog = false }
-                ) {
-                    Text("Anuluj")
-                }
+    // --- Dialog logowania hasłem do eduVULCAN ---
+    if (showEduVulcanLoginDialog) {
+        EduVulcanLoginDialog(
+            onDismiss = { showEduVulcanLoginDialog = false },
+            onSessionConnected = { session ->
+                showEduVulcanLoginDialog = false
+                onConnectEduVulcan(session)
             }
         )
     }
 
-    // --- Dialog poradnika / pomocy ---
-    if (showHelpDialog) {
+    // --- Dialog mostka z zainstalowaną aplikacją eduVULCAN na telefonie ---
+    if (showAppBridgeDialog) {
         AlertDialog(
-            onDismissRequest = { showHelpDialog = false },
-            title = { Text("Skąd wziąć Token, Symbol i PIN?") },
+            onDismissRequest = { showAppBridgeDialog = false },
+            title = { Text("Integracja z aplikacją eduVULCAN na telefonie") },
             text = {
                 Column {
-                    Text("Kroki w przeglądarce:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(6.dp))
-                    Text("1. Zaloguj się na stronę eduVULCAN (lub szkolny dziennik UONET+).")
-                    Spacer(Modifier.height(4.dp))
-                    Text("2. Wejdź w menu ucznia i kliknij zakładkę Dostęp mobilny (lub 'Zarejestruj urządzenie').")
-                    Spacer(Modifier.height(4.dp))
-                    Text("3. Kliknij 'Nowe urządzenie' / 'Zarejestruj urządzenie'.")
-                    Spacer(Modifier.height(4.dp))
-                    Text("4. Wygeneruje się kod QR. Pod nim lub obok niego widoczne będą pola:")
-                    Text("   • Token (długi ciąg znaków)", fontWeight = FontWeight.Medium)
-                    Text("   • Symbol (np. bydgoszcz)", fontWeight = FontWeight.Medium)
-                    Text("   • PIN (6-cyfrowy kod numeryczny)", fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(8.dp))
                     Text(
-                        "Wskazówka: Nigdy nie musisz podawać hasła głównego do konta. Aplikacja generuje bezpieczny certyfikat urządzenia.",
+                        text = if (isAppInstalled) {
+                            "✅ Wykryto zainstalowaną oficjalną aplikację eduVULCAN na Twoim telefonie."
+                        } else {
+                            "ℹ️ Jeśli masz na telefonie zalogowaną oficjalną aplikację eduVULCAN, Elektron-Vulcan może automatycznie przechwytywać z niej nowe wpisy."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = "Jak to działa?\n" +
+                            "1. Włącz uprawnienie „Synchronizacja z aplikacji eduVULCAN” w ustawieniach dostępu do powiadomień.\n" +
+                            "2. Gdy oficjalna aplikacja eduVULCAN wyświetli powiadomienie o nowym sprawdzianie, kartkówce, zadaniu lub nieobecności, Elektron-Vulcan automatycznie zapisze je w Twoim planie lekcji i terminarzu.\n" +
+                            "3. Aby pobrać pełną historię sprawdzianów i frekwencji od razu, zaloguj się także loginem i hasłem powyżej.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (isAppInstalled) {
+                        Spacer(Modifier.height(10.dp))
+                        TextButton(
+                            onClick = {
+                                EduVulcanAppBridge.openInstalledEduVulcanApp(context)
+                            }
+                        ) {
+                            Text("Otwórz zainstalowaną aplikację eduVULCAN")
+                        }
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    showHelpDialog = false
-                    showConnectDialog = true
-                }) {
-                    Text("Wpisz dane")
+                TextButton(
+                    onClick = {
+                        showAppBridgeDialog = false
+                        EduVulcanAppBridge.openNotificationAccessSettings(context)
+                    }
+                ) {
+                    Text(if (isBridgeEnabled) "Ustawienia dostępu (Aktywne)" else "Włącz dostęp do powiadomień")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showHelpDialog = false }) {
+                TextButton(onClick = { showAppBridgeDialog = false }) {
                     Text("Zamknij")
                 }
             }
