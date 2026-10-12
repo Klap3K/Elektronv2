@@ -1,5 +1,6 @@
 package pl.zse.bydgoszcz.elektron.domain.model
 
+import okhttp3.OkHttpClient
 import org.junit.Assert.*
 import org.junit.Test
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanWebAuthenticator
@@ -82,38 +83,56 @@ class GradeCalculatorTest {
     @Test
     fun parseEduVulcanGradesJson_extractsSubjectsAndGrades() {
         val json = """
-            [
-              {
-                "Przedmiot": "Programowanie obiektowe",
-                "Srednia": 4.75,
-                "OcenaProponowana": "5",
-                "OcenaKoncowa": null,
-                "OcenyCzastkowe": [
-                  {
-                    "Id": 901,
-                    "Wpis": "5",
-                    "Waga": 3.0,
-                    "DataOceny": "2026-10-10T00:00:00",
-                    "Nauczyciel": "mgr inż. Adam Nowak",
-                    "Kolumna": {
-                      "Nazwa": "Sprawdzian - klasy i dziedziczenie",
-                      "Kod": "SPR",
-                      "Waga": 3.0
+            {
+              "ustawienia": { "isSredniaAndPunkty": true },
+              "ocenyPrzedmioty": [
+                {
+                  "przedmiotNazwa": "Programowanie obiektowe",
+                  "srednia": 4.75,
+                  "proponowanaOcenaOkresowa": "5",
+                  "ocenaOkresowa": null,
+                  "kolumnyOcenyCzastkowe": [
+                    {
+                      "idKolumny": 10,
+                      "kategoriaKolumny": "SPR",
+                      "nazwaKolumny": "Sprawdzian - klasy i dziedziczenie",
+                      "waga": 3.0,
+                      "oceny": [
+                        {
+                          "wpis": "5",
+                          "waga": 3.0,
+                          "dataOceny": "2026-10-10",
+                          "nauczycielImieNazwisko": "mgr inż. Adam Nowak"
+                        }
+                      ]
+                    },
+                    {
+                      "idKolumny": 11,
+                      "kategoriaKolumny": "KART",
+                      "nazwaKolumny": "Kartkówka",
+                      "waga": 2.0,
+                      "oceny": [
+                        {
+                          "wpis": "4+",
+                          "waga": 2.0,
+                          "dataOceny": "2026-10-11"
+                        }
+                      ]
                     }
-                  },
-                  {
-                    "Id": 902,
-                    "Wpis": "4+",
-                    "DataModyfikacji": "2026-10-11",
-                    "Kategoria": "Kartkówka",
-                    "Waga": 2.0
-                  }
-                ]
-              }
-            ]
+                  ]
+                }
+              ]
+            }
         """.trimIndent()
 
-        val parsed = VulcanApiClient.parseEduVulcanGradesJson(json, periodNumber = 1, isActivePeriod = true)
+        val client = VulcanApiClient(OkHttpClient())
+        val parsed = client.parseEduVulcanGradesJson(
+            jsonStr = json,
+            periodId = "101",
+            periodNumber = 1,
+            isActivePeriod = true,
+            nowSeconds = 1791840000L
+        )
         assertEquals(2, parsed.size)
         assertEquals("Programowanie obiektowe", parsed[0].subject)
         assertEquals("5", parsed[0].value)
@@ -121,7 +140,7 @@ class GradeCalculatorTest {
         assertEquals("SPR", parsed[0].category)
         assertEquals("Sprawdzian - klasy i dziedziczenie", parsed[0].description)
         assertEquals("mgr inż. Adam Nowak", parsed[0].teacher)
-        assertEquals("2026-10-10", parsed[0].dateText)
+        assertEquals("10.10.2026", parsed[0].dateText)
         assertEquals(4.75, parsed[0].apiSubjectAverage!!, 0.001)
         assertEquals("5", parsed[0].proposedGrade)
         assertEquals("4+", parsed[1].value)
@@ -130,11 +149,17 @@ class GradeCalculatorTest {
 
     @Test
     fun parseProfileTiles_parsesValidEntries() {
-        val payload = "Jan Kowalski - Uczeń ZSE||https://dziennik-uczen.vulcan.net.pl/bydgoszcz/012345\nAnna Kowalska - Uczeń||https://uczen.eduvulcan.pl/bydgoszcz/999999"
+        val payload = """
+            [
+              {"title": "Jan Kowalski - Uczeń ZSE", "subtitle": "ZSE Bydgoszcz", "url": "https://dziennik-uczen.vulcan.net.pl/bydgoszcz/012345"},
+              {"title": "Anna Kowalska - Uczeń", "subtitle": "SP 1", "url": "https://uczen.eduvulcan.pl/bydgoszcz/999999"}
+            ]
+        """.trimIndent()
         val tiles = EduVulcanWebAuthenticator.parseProfileTiles(payload)
         assertEquals(2, tiles.size)
-        assertEquals("Jan Kowalski - Uczeń ZSE", tiles[0].label)
+        assertEquals("Jan Kowalski - Uczeń ZSE", tiles[0].title)
+        assertEquals("ZSE Bydgoszcz", tiles[0].subtitle)
         assertEquals("https://dziennik-uczen.vulcan.net.pl/bydgoszcz/012345", tiles[0].url)
-        assertEquals("Anna Kowalska - Uczeń", tiles[1].label)
+        assertEquals("Anna Kowalska - Uczeń", tiles[1].title)
     }
 }

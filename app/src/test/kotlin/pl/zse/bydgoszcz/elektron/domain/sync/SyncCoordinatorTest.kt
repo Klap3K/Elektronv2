@@ -553,10 +553,13 @@ class SyncCoordinatorTest {
             override suspend fun dismiss(versionName: String) = Unit
         }
         val dutyStub = object : pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository {
-            override fun observeDuty() = kotlinx.coroutines.flow.flowOf<pl.zse.bydgoszcz.elektron.domain.model.ClassroomDuty?>(null)
+            override val studentNumber = kotlinx.coroutines.flow.flowOf<Int?>(null)
+            override val classSize = kotlinx.coroutines.flow.flowOf(30)
+            override fun observeDuty(date: java.time.LocalDate) = kotlinx.coroutines.flow.flowOf(
+                pl.zse.bydgoszcz.elektron.domain.model.ClassroomDuty.calculate(null, 30, date)
+            )
             override suspend fun setStudentNumber(number: Int?) = Unit
             override suspend fun setClassSize(size: Int) = Unit
-            override suspend fun setDutyManualToday(isDutyToday: Boolean) = Unit
         }
         val attendanceStub = object : pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository {
             override fun observeAll() = kotlinx.coroutines.flow.flowOf(emptyList<pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance>())
