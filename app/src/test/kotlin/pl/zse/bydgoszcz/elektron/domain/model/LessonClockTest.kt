@@ -57,4 +57,18 @@ class LessonClockTest {
         assertEquals(1, LessonClock.minutesCeil(LocalTime.parse("08:44:30"), LocalTime.parse("08:45")))
         assertEquals(0, LessonClock.minutesCeil(LocalTime.parse("08:45"), LocalTime.parse("08:45")))
     }
+
+    @Test fun freedLessonsAreNeitherCurrentNorNext() {
+        fun freed(n: Int, info: String) = Substitution("f$n", day, n, "1D", null, info, null, null, "X")
+        // 2. lekcja zwolniona: w trakcie jej godzin nic nie "trwa", następna jest 4. lekcja.
+        val withFreed = listOf(lesson(1, "08:00", "08:45"),
+            lesson(2, "08:55", "09:40").copy(substitution = freed(2, "Uczniowie zwolnieni do domu")),
+            lesson(4, "10:45", "11:30"))
+        val s = LessonClock.status(withFreed, at("09:00")) as LessonClock.Before
+        assertEquals(4, s.next.number)
+        // Rano: klasa przychodzi później - pierwszą lekcją dnia jest 2.
+        val late = listOf(lesson(1, "08:00", "08:45").copy(substitution = freed(1, "Uczniowie przychodzą później")),
+            lesson(2, "08:55", "09:40"))
+        assertEquals(2, (LessonClock.status(late, at("07:50")) as LessonClock.Before).next.number)
+    }
 }

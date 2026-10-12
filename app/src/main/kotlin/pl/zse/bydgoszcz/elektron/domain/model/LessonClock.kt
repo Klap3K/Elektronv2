@@ -30,7 +30,10 @@ object LessonClock {
     fun status(lessons: List<Lesson>, now: LocalDateTime): Status {
         val today = now.toLocalDate()
         val time = now.toLocalTime()
-        val todayLessons = lessons.filter { it.date == today }.sortedBy { it.timeFrom }
+        // Lekcje, z których klasa jest zwolniona ("zwolnieni do domu", "przychodzą później"), nie trwają
+        // i nie są następne - jak w widżetach, przypomnieniach i ekranie startowym.
+        val held = lessons.filter(SubstitutionDisplay::takesPlace)
+        val todayLessons = held.filter { it.date == today }.sortedBy { it.timeFrom }
 
         todayLessons.firstOrNull { time >= it.timeFrom && time < it.timeTo }?.let { l ->
             return During(l, minutesCeil(time, l.timeTo), progress(l.timeFrom, l.timeTo, time))
@@ -44,7 +47,7 @@ object LessonClock {
             }
             return Before(next, until.takeIf { it <= COUNTDOWN_MINUTES })
         }
-        val later = lessons.filter { it.date > today }.minWithOrNull(compareBy({ it.date }, { it.timeFrom }))
+        val later = held.filter { it.date > today }.minWithOrNull(compareBy({ it.date }, { it.timeFrom }))
         return if (later != null) Before(later, null) else Nothing
     }
 

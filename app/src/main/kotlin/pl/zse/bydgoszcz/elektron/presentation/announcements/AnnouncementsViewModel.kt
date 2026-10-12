@@ -207,7 +207,10 @@ class AnnouncementsViewModel @Inject constructor(
                     .onSuccess { r ->
                         if (repo.archiveGeneration.first() != requestedGeneration) return@onSuccess
                         if (r.exhausted && r.added == 0) archiveExhausted.value = true
-                        if (!favoritesOnly.value && query.value == requestedQuery) visibleCount.value = shown + maxOf(r.added, PAGE_SIZE)
+                        // Przy wyszukiwaniu [shown] to liczba wyników - bez maxOf lista główna po wyczyszczeniu
+                        // wyszukiwania skracała się (np. z 40 do 17 wpisów).
+                        if (!favoritesOnly.value && query.value == requestedQuery)
+                            visibleCount.value = maxOf(visibleCount.value, shown + maxOf(r.added, PAGE_SIZE))
                     }
                     .onFailure { if (repo.archiveGeneration.first() == requestedGeneration) loadMoreError.value = true }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }

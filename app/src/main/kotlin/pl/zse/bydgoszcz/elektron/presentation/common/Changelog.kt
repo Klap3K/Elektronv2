@@ -16,7 +16,10 @@ object Changelog {
             "Plan tygodniowy pokazuje treść zastępstwa zamiast samej strzałki",
             "Powiadomienia o zastępstwach działają także, gdy części wpisów na stronie szkoły nie da się odczytać",
             "Widżety pomijają lekcje, z których klasa jest zwolniona",
-            "Dwa zastępstwa tej samej lekcji nie zastępują się w powiadomieniach"
+            "Dwa zastępstwa tej samej lekcji nie zastępują się w powiadomieniach",
+            "Strona główna i plan nie pokazują jako trwającej lekcji, z której klasa jest zwolniona",
+            "Plan tygodniowy: z pustego tygodnia można przejść gestem, a w weekend „dziś” to nadchodzący tydzień",
+            "Kanał aktualizacji Stabilne zawsze widzi najnowszą wersję stabilną"
         )),
         Entry(35, "1.0.0", listOf(
             "Pierwsza stabilna wersja eLektrona",

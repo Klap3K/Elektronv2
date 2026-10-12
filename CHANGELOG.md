@@ -23,6 +23,11 @@ Wersja testowa (kanał „Beta”). Szczegóły: [release-notes/1.0.1-beta1.md](
 - Zmieniony plan usuwa też zapisane dalsze tygodnie klasy (poza zakresem zapisu), żeby nie zostawały ze starym planem.
 - Widżety i kafelek: lekcje, z których klasa jest zwolniona, nie są trwającą ani następną lekcją (wybór dnia, odliczanie, przerwa).
 - Harmonogram odświeżania widżetów liczy odstęp w strefie czasowej (zmiana czasu letniego/zimowego).
+- LessonClock (strona główna, znacznik w widoku dnia) pomija lekcje, z których klasa jest zwolniona.
+- Plan tygodniowy: pusty lub wczytywany tydzień jest przewijalny (gest na krawędzi zmienia tydzień); w weekend strona „dziś” to nadchodzący tydzień.
+- Ogłoszenia: „Szukaj w starszych” nie zmniejsza liczby wpisów pokazywanych na liście głównej.
+- Aktualizacje: lista do 100 wydań (wcześniej 10); zapamiętany wynik sprawdzenia dotyczy jednego kanału.
+- Diagnostyka: więcej tagów logów aplikacji w raporcie (bez logów Odjazdów).
 - README: informacja o podpisach wydań z F-Droid i z GitHuba.
 
 ## [1.0.0] - 2026-10-10 (35)

@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
@@ -219,7 +220,8 @@ fun TimetableScreen(
     val today by remember { currentDateFlow() }.collectAsStateWithLifecycle(initialValue = AppClock.today())
     val todayPage = when (mode) {
         TimetableViewModel.ViewMode.DAY -> TimetableViewModel.pageForDay(base, today)
-        TimetableViewModel.ViewMode.WEEK -> TimetableViewModel.pageForWeek(base, today)
+        // Weekend: "dziś" w widoku tygodnia to nadchodzący tydzień (jak dzień startowy w widoku dnia).
+        TimetableViewModel.ViewMode.WEEK -> TimetableViewModel.pageForWeek(base, TimetableViewModel.nextSchoolDay(today))
     }
     // Powrót do aplikacji po dłuższej nieobecności - dzień startowy od nowa (ViewModel).
     // Obrót ekranu to nie wyjście z aplikacji.
@@ -477,7 +479,9 @@ private fun WeekPage(
     onLessonClick: (Lesson) -> Unit
 ) {
     if (week == null || week.all { it.lessons.isEmpty() }) {
-        Box(modifier.padding(12.dp)) { EmptyOrLoading(loading, pastWeek) }
+        // Przewijalne jak lista w widoku dnia: ruch na krawędzi przełącza tydzień (edgePaging).
+        // Dawniej z pustego albo wczytywanego tygodnia nie dało się wyjść gestem.
+        Box(modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(12.dp)) { EmptyOrLoading(loading, pastWeek) }
         return
     }
     // Siatka jak w eduVulcan: godziny po lewej, 5 dni, same nazwy przedmiotów.
