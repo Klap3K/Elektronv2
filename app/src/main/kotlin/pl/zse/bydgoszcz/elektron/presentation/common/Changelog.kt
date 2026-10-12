@@ -5,6 +5,13 @@ object Changelog {
     data class Entry(val versionCode: Int, val versionName: String, val items: List<String>)
 
     val entries: List<Entry> = listOf(
+        Entry(37, "2.0.0", listOf(
+            "Elektron-Vulcan: Natywna integracja z Dziennikiem VULCAN (Hebe API) i terminarz sprawdzianów",
+            "Strażnik Frekwencji: obliczanie procentu obecności, limitu opuszczeń przed 50% i symulator",
+            "Dyżurny klasowy: karta dyżuru na pulpicie i automatyczna rotacja tygodniowa",
+            "Własne plany i aktywności użytkownika w terminarzu i planie lekcji (Room v5)",
+            "Sprawdziany i kartkówki widoczne w widżecie Plan dnia i Następna lekcja na pulpicie telefonu"
+        )),
         Entry(36, "1.0.1-beta1", listOf(
             "Zmiana samych uwag w zastępstwie (np. „za ostatnią lekcję”) aktualizuje powiadomienie",
             "Wczytanie starszych ogłoszeń nie wywołuje już powiadomień o dawnych wpisach",

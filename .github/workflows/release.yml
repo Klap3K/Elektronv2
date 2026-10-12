@@ -1,0 +1,85 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Zbuduj i opublikuj APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v4
+
+      - name: Konfiguracja JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Konfiguracja Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Wygeneruj klucz podpisu wydania
+        run: |
+          keytool -genkeypair -v \
+            -keystore release.jks \
+            -alias elektron \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass elektron123 \
+            -keypass elektron123 \
+            -dname "CN=Elektron-Vulcan, OU=ZSE, O=Elektron, L=Bydgoszcz, C=PL"
+
+          cat <<EOF > keystore.properties
+          storeFile=release.jks
+          storePassword=elektron123
+          keyAlias=elektron
+          keyPassword=elektron123
+          EOF
+
+      - name: Kompilacja APK (Release i Debug)
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleFossRelease :app:assembleFossDebug
+
+      - name: Przygotuj pliki instalacyjne APK
+        run: |
+          mkdir -p release-apk
+          find app/build/outputs/apk/foss/release/ -name "*.apk" -exec cp {} release-apk/Elektron-Vulcan.apk \;
+          find app/build/outputs/apk/foss/debug/ -name "*.apk" -exec cp {} release-apk/Elektron-Vulcan-debug.apk \;
+          ls -lh release-apk/
+
+      - name: Opublikuj GitHub Release z plikami APK
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-apk/Elektron-Vulcan.apk
+            release-apk/Elektron-Vulcan-debug.apk
+          name: "Elektron-Vulcan ${{ github.ref_name }}"
+          body: |
+            ### 🚀 Elektron-Vulcan ${{ github.ref_name }}
+            
+            Oficjalne wydanie instalacyjne aplikacji dla uczniów Zespołu Szkół Elektronicznych w Bydgoszczy.
+            
+            #### 📦 Pliki do pobrania i instalacji:
+            - **[Elektron-Vulcan.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Elektron-Vulcan.apk)** — Podpisana, zoptymalizowana wersja gotowa do bezpośredniej instalacji na smartfonie z Androidem (Android 8.0+).
+            - **[Elektron-Vulcan-debug.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Elektron-Vulcan-debug.apk)** — Wersja debug z włączoną diagnostyką.
+            
+            #### 🌟 Kluczowe nowości:
+            - 🎓 **Dziennik VULCAN (Hebe API):** Bezpieczne logowanie urządzeniem mobilnym (Token, Symbol, PIN lub kod QR), generowanie certyfikatu X.509 i podpisywanie zapytań RSA-2048.
+            - 🛡️ **Strażnik Frekwencji (Attendance Guardian):** Matematyczny model procentu obecności, kalkulacja dopuszczalnych opuszczeń przed progiem 50% oraz interaktywny symulator opuszczeń.
+            - 🧹 **Dyżurny Klasowy:** Karta dyżurnego na pulpicie, automatyczna rotacja par uczniów według numerka i tygodnia oraz lista obowiązków dyżurnego.
+            - ✏️ **Własne Aktywności i Plany:** Dodawanie zadań, nauki, korepetycji i treningów z poziomu planu lekcji i pulpitu.
+            - 📱 **Sprawdziany w Widżetach Glance:** Sprawdziany i kartkówki bezpośrednio na widżecie ekranu głównego.
+          draft: false
+          prerelease: false
