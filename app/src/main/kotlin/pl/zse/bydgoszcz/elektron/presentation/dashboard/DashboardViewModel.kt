@@ -42,6 +42,12 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.TextStyle
 import java.util.Locale
+import pl.zse.bydgoszcz.elektron.domain.model.ClassroomDuty
+import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
+import pl.zse.bydgoszcz.elektron.domain.model.UserActivity
+import pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
+import pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository
+import pl.zse.bydgoszcz.elektron.domain.repository.UserActivityRepository
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,7 +59,10 @@ class DashboardViewModel @Inject constructor(
     private val notificationsRepo: NotificationsRepository,
     private val timetableRepo: TimetableRepository,
     private val updateRepo: UpdateRepository,
-    private val coordinator: SyncCoordinator
+    private val coordinator: SyncCoordinator,
+    private val dutyRepo: DutyRepository,
+    private val attendanceRepo: AttendanceRepository,
+    private val activityRepo: UserActivityRepository
 ) : ViewModel() {
     private val visible = MutableStateFlow(false)
     fun setVisible(value: Boolean) { visible.value = value }
@@ -89,6 +98,10 @@ class DashboardViewModel @Inject constructor(
         val showNextLesson: Boolean = true,
         val showSubstitutions: Boolean = true,
         val showAnnouncements: Boolean = true,
+        val duty: ClassroomDuty? = null,
+        val overallAttendance: OverallAttendance? = null,
+        val atRiskSubjectsCount: Int = 0,
+        val todayActivities: List<UserActivity> = emptyList(),
         /** Pierwsze dane już są (do tego czasu ekran jest niewidoczny, bez mignięć). */
         val ready: Boolean = false
     )
@@ -116,7 +129,10 @@ class DashboardViewModel @Inject constructor(
         val update: AppUpdate? = null,
         val showNextLesson: Boolean = true,
         val showSubstitutions: Boolean = true,
-        val showAnnouncements: Boolean = true
+        val showAnnouncements: Boolean = true,
+        val duty: ClassroomDuty? = null,
+        val overallAttendance: OverallAttendance? = null,
+        val todayActivities: List<UserActivity> = emptyList()
     )
 
     private val refreshing = MutableStateFlow(false)
@@ -157,6 +173,9 @@ class DashboardViewModel @Inject constructor(
         .combine(settings.showAnnouncements) { core, v -> core.copy(showAnnouncements = v) }
         .combine(settings.activeGroupSelections) { core, sel -> core.copy(groups = sel) }
         .combine(updateRepo.availableUpdate) { core, u -> core.copy(update = u) }
+        .combine(dutyRepo.observeDuty()) { core, d -> core.copy(duty = d) }
+        .combine(attendanceRepo.observeOverall()) { core, a -> core.copy(overallAttendance = a) }
+        .combine(todayFlow.flatMapLatest { activityRepo.observeForDate(it) }) { core, acts -> core.copy(todayActivities = acts) }
         .combine(visibleMinuteTicker(visible)) { core, _ -> core }
         .map { core -> compute(core).copy(ready = true) }
         // Przeliczanie stanu (filtry grup, zastępstwa, odliczanie) poza wątkiem UI.
@@ -268,7 +287,11 @@ class DashboardViewModel @Inject constructor(
             }, nowDt),
             showNextLesson = c.showNextLesson,
             showSubstitutions = c.showSubstitutions,
-            showAnnouncements = c.showAnnouncements
+            showAnnouncements = c.showAnnouncements,
+            duty = c.duty,
+            overallAttendance = c.overallAttendance,
+            atRiskSubjectsCount = c.overallAttendance?.criticalSubjectsCount ?: 0,
+            todayActivities = c.todayActivities
         )
     }
 
@@ -276,13 +299,30 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch { updateRepo.dismiss(versionName) }
     }
 
-    /** Pull-to-refresh: pełna synchronizacja przez koordynator (komunikaty, przypomnienia, widżety - tam). */
+    fun setStudentNumber(number: Int?) {
+        viewModelScope.launch { dutyRepo.setStudentNumber(number) }
+    }
+
+    fun setClassSize(size: Int) {
+        viewModelScope.launch { dutyRepo.setClassSize(size) }
+    }
+
+    fun toggleActivity(id: String, completed: Boolean) {
+        viewModelScope.launch { activityRepo.setCompleted(id, completed) }
+    }
+
+    fun deleteActivity(id: String) {
+        viewModelScope.launch { activityRepo.delete(id) }
+    }
+
+    /** Pull-to-refresh: pełna synchronizacja przez koordynator i odświeżenie frekwencji. */
     fun refresh() {
         if (refreshing.value) return
         refreshing.value = true
         viewModelScope.launch {
             try {
                 coordinator.sync(SyncRequest.full())
+                attendanceRepo.sync()
             } finally {
                 refreshing.value = false
             }

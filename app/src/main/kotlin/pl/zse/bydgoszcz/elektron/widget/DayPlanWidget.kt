@@ -196,7 +196,7 @@ class DayPlanWidget : GlanceAppWidget() {
             .padding(horizontal = 8.dp, vertical = 5.dp)
         // Dotknięcie lekcji: Plan na ten dzień i szczegóły tej lekcji.
         val description = listOfNotNull("$dayLabel, lekcja ${lesson.number}", lesson.title, lesson.timeRange,
-            lesson.room?.let { "sala $it" }, lesson.note, lesson.userNote?.let { "Notatka: $it" }).joinToString(", ") + ". Otwórz szczegóły lekcji"
+            lesson.room?.let { "sala $it" }, lesson.note, lesson.examSummary?.let { "Sprawdzian: $it" }, lesson.userNote?.let { "Notatka: $it" }).joinToString(", ") + ". Otwórz szczegóły lekcji"
         val action = target?.let { openLessonAction(LocalContext.current, it) } ?: openAppAction()
         Column(
             GlanceModifier.fillMaxWidth().padding(bottom = 2.dp).clickable(action)
@@ -209,11 +209,15 @@ class DayPlanWidget : GlanceAppWidget() {
                     Text(lesson.title, style = TextStyle(color = titleColor, fontSize = 13.sp, fontWeight = FontWeight.Medium), maxLines = 1)
                     val meta = listOfNotNull(remaining ?: lesson.timeRange, lesson.room?.let { "s. $it" }).joinToString(" · ")
                     Text(meta, style = TextStyle(color = if (past) WidgetColors.textFaded else WidgetColors.textSecondary, fontSize = 11.sp), maxLines = 1)
+                    lesson.examSummary?.let {
+                        val icon = if (it.contains("Kartk", ignoreCase = true)) "📄 " else "📝 "
+                        Text("$icon$it", style = TextStyle(color = WidgetColors.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                    }
                     lesson.note?.let {
                         Text(it, style = TextStyle(color = WidgetColors.substitution, fontSize = 11.sp, fontWeight = FontWeight.Medium), maxLines = 1)
                     }
                     val scale = LocalContext.current.resources.configuration.fontScale
-                    val lines = WidgetNoteLayout.dayPlanLines(LocalSize.current.height.value, visibleLessonCount, lesson.note != null, scale)
+                    val lines = WidgetNoteLayout.dayPlanLines(LocalSize.current.height.value, visibleLessonCount, lesson.note != null || lesson.examSummary != null, scale)
                     if (lines > 0) lesson.userNote?.let {
                         Text("Notatka: $it", style = TextStyle(color = WidgetColors.textPrimary, fontSize = 11.sp), maxLines = lines)
                     }

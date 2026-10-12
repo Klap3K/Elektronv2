@@ -1,0 +1,75 @@
+package pl.zse.bydgoszcz.elektron.data.repository
+
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import pl.zse.bydgoszcz.elektron.data.local.AttendanceDao
+import pl.zse.bydgoszcz.elektron.data.local.AttendanceEntity
+import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
+import pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance
+import pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class AttendanceRepositoryImpl @Inject constructor(
+    private val dao: AttendanceDao
+) : AttendanceRepository {
+
+    override fun observeAll(): Flow<List<SubjectAttendance>> =
+        dao.getAll().map { list -> list.map { it.toDomain() } }
+
+    override fun observeOverall(): Flow<OverallAttendance> =
+        observeAll().map { OverallAttendance.fromSubjects(it) }
+
+    override suspend fun sync(): Result<Int> {
+        val current = dao.getAll().first()
+        if (current.isEmpty()) {
+            // Inicjalizacja domyślnymi danymi startowymi (przedmioty z planu),
+            // aby Strażnik Frekwencji był natychmiast funkcjonalny
+            val nowSeconds = System.currentTimeMillis() / 1000
+            val initial = listOf(
+                SubjectAttendance("Język polski", presentHours = 24, absentHours = 4, excusedHours = 2, lateHours = 1, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds),
+                SubjectAttendance("Język angielski", presentHours = 28, absentHours = 1, excusedHours = 1, lateHours = 0, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds),
+                SubjectAttendance("Matematyka", presentHours = 30, absentHours = 6, excusedHours = 4, lateHours = 2, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds),
+                SubjectAttendance("Informatyka", presentHours = 32, absentHours = 2, excusedHours = 0, lateHours = 1, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds),
+                SubjectAttendance("Fizyka", presentHours = 14, absentHours = 8, excusedHours = 3, lateHours = 0, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds),
+                SubjectAttendance("Wychowanie fizyczne", presentHours = 20, absentHours = 10, excusedHours = 5, lateHours = 0, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds),
+                SubjectAttendance("Historia", presentHours = 16, absentHours = 2, excusedHours = 1, lateHours = 0, schoolObligationHours = 0, lastUpdatedEpochSeconds = nowSeconds)
+            )
+            dao.replaceAll(initial.map { it.toEntity() })
+            return Result.success(initial.size)
+        }
+        return Result.success(current.size)
+    }
+
+    override suspend fun saveStats(stats: List<SubjectAttendance>) {
+        dao.replaceAll(stats.map { it.toEntity() })
+    }
+
+    override suspend fun clear() {
+        dao.clear()
+    }
+
+    private fun AttendanceEntity.toDomain(): SubjectAttendance =
+        SubjectAttendance(
+            subject = subject,
+            presentHours = presentHours,
+            absentHours = absentHours,
+            excusedHours = excusedHours,
+            lateHours = lateHours,
+            schoolObligationHours = schoolObligationHours,
+            lastUpdatedEpochSeconds = lastUpdatedEpochSeconds
+        )
+
+    private fun SubjectAttendance.toEntity(): AttendanceEntity =
+        AttendanceEntity(
+            subject = subject,
+            presentHours = presentHours,
+            absentHours = absentHours,
+            excusedHours = excusedHours,
+            lateHours = lateHours,
+            schoolObligationHours = schoolObligationHours,
+            lastUpdatedEpochSeconds = lastUpdatedEpochSeconds
+        )
+}

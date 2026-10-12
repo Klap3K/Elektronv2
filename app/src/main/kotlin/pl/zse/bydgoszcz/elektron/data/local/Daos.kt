@@ -264,3 +264,43 @@ interface SchoolEventDao {
     @Query("DELETE FROM school_events WHERE dateEpochDay < :beforeDay")
     suspend fun deleteOlderThan(beforeDay: Long)
 }
+
+@Dao
+interface UserActivityDao {
+    @Query("SELECT * FROM user_activities ORDER BY dateEpochDay ASC, timeFrom ASC, createdAtEpochSeconds ASC")
+    fun getAll(): Flow<List<UserActivityEntity>>
+
+    @Query("SELECT * FROM user_activities WHERE dateEpochDay = :dateEpochDay ORDER BY timeFrom ASC, createdAtEpochSeconds ASC")
+    fun getByDate(dateEpochDay: Long): Flow<List<UserActivityEntity>>
+
+    @Query("SELECT * FROM user_activities WHERE dateEpochDay BETWEEN :fromEpochDay AND :toEpochDay ORDER BY dateEpochDay ASC, timeFrom ASC, createdAtEpochSeconds ASC")
+    fun getByRange(fromEpochDay: Long, toEpochDay: Long): Flow<List<UserActivityEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(activity: UserActivityEntity)
+
+    @Query("DELETE FROM user_activities WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("UPDATE user_activities SET isCompleted = :completed WHERE id = :id")
+    suspend fun setCompleted(id: String, completed: Boolean)
+}
+
+@Dao
+interface AttendanceDao {
+    @Query("SELECT * FROM attendance_stats ORDER BY subject ASC")
+    fun getAll(): Flow<List<AttendanceEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(stats: List<AttendanceEntity>)
+
+    @Query("DELETE FROM attendance_stats")
+    suspend fun clear()
+
+    @Transaction
+    suspend fun replaceAll(stats: List<AttendanceEntity>) {
+        clear()
+        upsertAll(stats)
+    }
+}
+

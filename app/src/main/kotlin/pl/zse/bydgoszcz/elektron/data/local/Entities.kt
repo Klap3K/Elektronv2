@@ -125,3 +125,28 @@ data class SchoolEventEntity(
     val location: String?,
     val rawSummary: String
 )
+
+@Entity(tableName = "user_activities", indices = [Index("dateEpochDay")])
+data class UserActivityEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val description: String?,
+    val category: String, // EXAM, HOMEWORK, STUDY, TUTORING, TRAINING, PROJECT, OTHER
+    val dateEpochDay: Long,
+    val timeFrom: String?,
+    val timeTo: String?,
+    val isCompleted: Boolean,
+    val createdAtEpochSeconds: Long
+)
+
+@Entity(tableName = "attendance_stats")
+data class AttendanceEntity(
+    @PrimaryKey val subject: String,
+    val presentHours: Int,
+    val absentHours: Int,
+    val excusedHours: Int,
+    val lateHours: Int,
+    val schoolObligationHours: Int,
+    val lastUpdatedEpochSeconds: Long
+)
+

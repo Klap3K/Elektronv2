@@ -40,4 +40,13 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindCalendarRepository(impl: pl.zse.bydgoszcz.elektron.data.repository.CalendarRepositoryImpl): pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
+
+    @Binds @Singleton
+    abstract fun bindUserActivityRepository(impl: pl.zse.bydgoszcz.elektron.data.repository.UserActivityRepositoryImpl): pl.zse.bydgoszcz.elektron.domain.repository.UserActivityRepository
+
+    @Binds @Singleton
+    abstract fun bindAttendanceRepository(impl: pl.zse.bydgoszcz.elektron.data.repository.AttendanceRepositoryImpl): pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
+
+    @Binds @Singleton
+    abstract fun bindDutyRepository(impl: pl.zse.bydgoszcz.elektron.data.repository.DutyRepositoryImpl): pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository
 }

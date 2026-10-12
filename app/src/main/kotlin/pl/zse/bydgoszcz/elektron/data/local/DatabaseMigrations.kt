@@ -3,7 +3,7 @@ package pl.zse.bydgoszcz.elektron.data.local
 import androidx.room.migration.Migration
 
 /** Aktualna wersja schematu bazy. Podnosisz ją => MUSISZ dodać migrację poniżej. */
-const val DATABASE_VERSION = 4
+const val DATABASE_VERSION = 5
 
 /**
  * Migracje schematu Room.
@@ -59,6 +59,41 @@ object DatabaseMigrations {
                     """.trimIndent()
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_school_events_dateEpochDay` ON `school_events` (`dateEpochDay`)")
+            }
+        },
+        object : Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `user_activities` (
+                        `id` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `description` TEXT,
+                        `category` TEXT NOT NULL,
+                        `dateEpochDay` INTEGER NOT NULL,
+                        `timeFrom` TEXT,
+                        `timeTo` TEXT,
+                        `isCompleted` INTEGER NOT NULL,
+                        `createdAtEpochSeconds` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_activities_dateEpochDay` ON `user_activities` (`dateEpochDay`)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `attendance_stats` (
+                        `subject` TEXT NOT NULL,
+                        `presentHours` INTEGER NOT NULL,
+                        `absentHours` INTEGER NOT NULL,
+                        `excusedHours` INTEGER NOT NULL,
+                        `lateHours` INTEGER NOT NULL,
+                        `schoolObligationHours` INTEGER NOT NULL,
+                        `lastUpdatedEpochSeconds` INTEGER NOT NULL,
+                        PRIMARY KEY(`subject`)
+                    )
+                    """.trimIndent()
+                )
             }
         },
     )

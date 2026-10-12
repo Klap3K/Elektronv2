@@ -53,8 +53,20 @@
   - Logowanie za pomocą jednorazowego kodu (Token, Symbol, PIN) lub wklejenia zawartości kodu QR.
   - Opcjonalne wsparcie dla zewnętrznych subskrypcji kalendarza iCal (`.ics` / `webcal://`).
   - Sprawdź szczegółowy przewodnik: [**PORADNIK_VULCAN.md**](PORADNIK_VULCAN.md).
+- **🛡️ Strażnik Frekwencji (Attendance Guardian):**
+  - Obliczanie procentu frekwencji ogółem oraz per przedmiot.
+  - Matematyczny algorytm wyliczający ile lekcji uczeń może jeszcze opuścić przed spadkiem poniżej ustawowego progu 50% (lub progu ostrzegawczego).
+  - Wskaźnik liczby obecności z rzędu potrzebnych do powrotu powyżej progu dla przedmiotów zagrożonych.
+  - Interaktywny symulator opuszczeń (+1h, +2h, +4h, +8h) z natychmiastowym przeliczaniem nowej frekwencji.
+- **🧹 Dyżurny Klasowy na Ekranie Głównym:**
+  - Karta dyżurnego informująca, kiedy uczeń ma dyżur w klasie (wyróżnienie gdy dzisiaj / w tym tygodniu / za X dni).
+  - Automatyczna rotacja par uczniów według numeru z dziennika i tygodnia roku szkolnego.
+  - Lista codziennych obowiązków dyżurnego (tablica, wietrzenie sali, pomoc nauczycielowi).
+- **✏️ Własne Aktywności i Plany Użytkownika:**
+  - Możliwość dodawania własnych zadań (nauka, korepetycje, treningi, projekty) do terminarza i planu lekcji.
+  - Pełne zarządzanie (CRUD), godziny od-do, notatki oraz odhaczanie ukończonych zadań bezpośrednio z widoku dnia i pulpitu.
 - **Plan lekcji:**
-  - Widok pojedynczego dnia i pełnej siatki tygodnia zintegrowany z zastępstwami oraz odznakami sprawdzianów (`📝`, `📄`, `📌`).
+  - Widok pojedynczego dnia i pełnej siatki tygodnia zintegrowany z zastępstwami oraz plakietkami sprawdzianów (`📝 Sprawdzian`, `📄 Kartkówka`, `📌 Wydarzenie`).
   - Filtrowanie grup zajęciowych (języki obce, WF, przedmioty zawodowe).
 - **Zastępstwa:**
   - Natychmiastowy podgląd zmian dotyczących Twojej klasy i grup, z uwzględnieniem sal i nauczycieli zastępujących.
@@ -65,9 +77,10 @@
 - **Ogłoszenia szkolne:**
   - Archiwum wiadomości ze strony zse.bydgoszcz.pl z trybem offline i ulubionymi.
 - **Widżety i Szybki Dostęp:**
-  - Widżety Glance na ekran główny: *Następna lekcja*, *Plan dnia*, *Zastępstwa*.
+  - Widżety Glance na ekran główny (*Następna lekcja*, *Plan dnia*, *Zastępstwa*) z bezpośrednim wyświetlaniem zaplanowanych sprawdzianów i kartkówek (`📝`, `📄`).
 - **Personalizacja:**
   - Dynamiczne kolory Material You (Android 12+), ciemny motyw, własne kolory i skróty przedmiotów.
+
 
 ---
 

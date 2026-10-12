@@ -109,13 +109,61 @@ Kod projektu jest w pełni stabilny, bezpieczny i gotowy do wypchnięcia na GitH
 
 ### BLD-01: Kompletność schematów bazy danych Room 4.json
 * **Zastosowane rozwiązanie:**
-  Wygenerowano poprawny plik schematu `app/schemas/pl.zse.bydgoszcz.elektron.data.local.AppDatabase/4.json` zawierający pełną definicję tabeli `school_events` wraz z indeksem `index_school_events_dateEpochDay`. Gwarantuje to pomyślne przejście testów integracyjnych Room i weryfikacji schematów w środowiskach CI.
+  Wygenerowano poprawny plik schematu `app/schemas/pl.zse.bydgoszcz/elektron/data/local/AppDatabase/4.json` zawierający pełną definicję tabeli `school_events` wraz z indeksem `index_school_events_dateEpochDay`. Gwarantuje to pomyślne przejście testów integracyjnych Room i weryfikacji schematów w środowiskach CI.
 
 ---
 
-## 🚀 Gotowość do Publikacji na GitHub
+## 🔍 Część 2: Audyt Nowych Funkcjonalności (Wdrożenie v5.0.0)
 
-Wszystkie zmiany są przygotowane lokalnie w repozytorium.
-Aby umieścić projekt na GitHubie:
-1. Skonfiguruj lub wskaż docelowe repozytorium na Twoim koncie GitHub.
-2. Zacommituj i wypchnij zmiany za pomocą poleceń gita.
+W ramach kolejnego etapu rozwoju aplikacji **Elektron-Vulcan** przeprowadzono wdrożenie i szczegółowy audyt 4 kluczowych funkcji:
+
+### 1. 📦 Baza Danych i Migracja Room v4 → v5
+* **Wdrożenie:**
+  - Dodano encję `UserActivityEntity` (tabela `user_activities`) z indeksem na `dateEpochDay`.
+  - Dodano encję `AttendanceEntity` (tabela `attendance_stats`) z kluczem głównym na `subject`.
+  - Utworzono interfejsy `UserActivityDao` oraz `AttendanceDao` z metodami `@Transaction replaceAll()`.
+  - Zarejestrowano obie encje w `AppDatabase` i podniesiono `DATABASE_VERSION = 5`.
+  - Utworzono migrację `MIGRATION_4_5` w `DatabaseMigrations.ALL`.
+* **Wykryty i naprawiony problem (BLD-02):**
+  - Podczas audytu pliku schematu `app/schemas/.../5.json` wykryto obecność znaku **UTF-8 BOM (`\uFEFF`)** na początku pliku, co powodowało błąd parsowania JSON w środowisku kompilatora Room.
+  - **Naprawa:** Znak BOM został usunięty, a plik schematu został zwalidowany jako w 100% poprawny JSON.
+  - Weryfikacja testów `DatabaseMigrationsTest`: testy potwierdzają spójność migracji dla wszystkich wersji 2→3, 3→4 oraz 4→5.
+
+### 2. 📱 Sprawdziany w Widżetach Glance i Planie Lekcji
+* **Wdrożenie:**
+  - Rozszerzono `WidgetLesson` o pola `examSummary`, `examTitle`, `examType`.
+  - Dodano `calendarRepo(): CalendarRepository` do interfejsu wstrzykiwania `WidgetEntryPoint`.
+  - W `WidgetDataLoader.loadChecked` zaimplementowano asynchroniczne pobieranie wydarzeń z kalendarza dla pokazywanego dnia i automatyczne parowanie ich z lekcjami według przedmiotu i godzin.
+  - W widżecie `DayPlanWidget` oraz `NextLessonWidget` dodano plakietki `📝 Sprawdzian` / `📄 Kartkówka`.
+  - W `TimetableScreen.kt` zaktualizowano `LessonRow`: sprawdziany są teraz wyróżnione jako dedykowane kolorowe etykiety `Surface` z zaokrąglonymi rogami, zamiast zwykłego tekstu.
+
+### 3. 🛡️ Strażnik Frekwencji (Attendance Guardian)
+* **Weryfikacja modeli i obliczeń matematycznych:**
+  - Model `SubjectAttendance` oraz `OverallAttendance` implementuje ścisłe wzory:
+    - Procent frekwencji: $(O / W) \times 100\%$, gdzie $O = \text{obecności} + \text{spóźnienia} + \text{obowiązek szkolny}$, a $W = O + \text{nieobecności} + \text{zwolnienia}$.
+    - Dopuszczalne opuszczenia przed progiem 50%: $x = \lfloor \frac{O(1 - T) - N \cdot T}{T} \rfloor$.
+    - Liczba obecności potrzebnych do powrotu powyżej progu: $y = \lceil \frac{N \cdot T - O(1 - T)}{1 - T} \rceil$.
+  - Dodano dedykowane testy jednostkowe `AttendanceTest.kt` weryfikujące poprawność formuł, wyliczeń brzegowych i symulacji. Wszystkie testy przeszły pomyślnie.
+  - Zbudowano `AttendanceGuardianDialog` z interaktywnym symulatorem opuszczeń (+1h, +2h, +4h, +8h) i natychmiastowym przeliczaniem nowej frekwencji.
+
+### 4. 🧹 Karta Dyżurnego Klasowego
+* **Weryfikacja logiki rotacyjnej:**
+  - W `ClassroomDuty.kt` zaimplementowano algorytm rotacji par uczniów w oparciu o początek roku szkolnego i tydzień roku.
+  - Weekendy (sobota, niedziela) są poprawnie wykluczone z flagi `isDutyToday`.
+  - Dodano testy jednostkowe `ClassroomDutyTest.kt` sprawdzające wyznaczanie dyżurów i dni roboczych.
+  - Na `DashboardScreen` zintegrowano kartę `DutyCard` z wyróżnieniem statusu i dialogiem szybkiej konfiguracji numeru z dziennika (`DutyConfigDialog`).
+
+### 5. ✏️ Własne Aktywności i Plany Użytkownika
+* **Wdrożenie i bezpieczeństwo danych:**
+  - Własne plany użytkownika są przechowywane w niezależnej tabeli `user_activities`, co gwarantuje, że synchronizacja z VULCAN/iCal ich **nie nadpisze**.
+  - Zbudowano `AddActivityDialog` z walidacją tytułu, wyborem kategorii (sprawdzian, nauka, trening, projekt, inne), daty, formatowaniem godzin i opcjonalnym opisem.
+  - W widoku dnia `DayPage` w `TimetableScreen` oraz na pulpicie `DashboardScreen` dodano możliwość odhaczania zadań (checkbox) i ich usuwania.
+  - Testy jednostkowe `UserActivityTest.kt` weryfikują parsowanie kategorii i formatowanie zakresu godzin.
+
+---
+
+## 🚀 Podsumowanie Stanu Repozytorium
+
+Wszystkie nowe funkcjonalności zostały zaimplementowane, zweryfikowane pod kątem architektury Clean Architecture i przetestowane.
+Repozytorium jest w pełni gotowe do zatwierdzenia commitem i wysłania na GitHub.
+

@@ -28,6 +28,8 @@ import pl.zse.bydgoszcz.elektron.domain.model.SubstitutionRelevance
 import pl.zse.bydgoszcz.elektron.domain.repository.SubstitutionsRepository
 import pl.zse.bydgoszcz.elektron.domain.model.LessonGroups
 import pl.zse.bydgoszcz.elektron.domain.model.LessonTarget
+import pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent
+import pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.SettingsRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.ThemeMode
 import pl.zse.bydgoszcz.elektron.domain.repository.TimetableRepository
@@ -47,6 +49,7 @@ interface WidgetEntryPoint {
     fun widgetUpdater(): WidgetUpdater
     fun lessonNotes(): LessonNotesRepository
     fun syncCoordinator(): pl.zse.bydgoszcz.elektron.domain.sync.SyncCoordinator
+    fun calendarRepo(): CalendarRepository
 }
 
 /** Lekcja przygotowana do wyświetlenia w widżecie. */
@@ -62,7 +65,10 @@ data class WidgetLesson(
     val note: String? = null,
     /** Własny kolor przedmiotu (ARGB) z Ustawień -> Przedmioty; null = akcent. */
     val color: Long? = null,
-    val userNote: String? = null
+    val userNote: String? = null,
+    val examSummary: String? = null,
+    val examTitle: String? = null,
+    val examType: String? = null
 ) {
     val timeRange: String get() = "$timeFrom–$timeTo"
 }
@@ -175,7 +181,8 @@ object WidgetDataLoader {
         val styles = runCatchingCancellable { ep.settings().subjectStyles.first() }.getOrDefault(emptyMap())
         val look = runCatchingCancellable { ep.settings().widgetLook.first() }.getOrDefault(WidgetLook())
         val notes = runCatchingCancellable { ep.lessonNotes().notes.first() }.getOrDefault(emptyList())
-        return buildState(lessons, nowDt, styles, look, notes)
+        val events = runCatchingCancellable { ep.calendarRepo().observeEventsForRange(today, today.plusDays(7)).first() }.getOrDefault(emptyList())
+        return buildState(lessons, nowDt, styles, look, notes, events)
     }
 
     /**
@@ -189,7 +196,8 @@ object WidgetDataLoader {
         nowDt: LocalDateTime,
         styles: Map<String, SubjectStyle> = emptyMap(),
         look: WidgetLook = WidgetLook(),
-        notes: List<LessonNote> = emptyList()
+        notes: List<LessonNote> = emptyList(),
+        events: List<SchoolEvent> = emptyList()
     ): WidgetState {
         val today = nowDt.toLocalDate()
         val now = nowDt.toLocalTime()
@@ -240,7 +248,15 @@ object WidgetDataLoader {
             className = className,
             dayLabel = dayLabel(day, today),
             date = day,
-            lessons = dayLessons.map { toWidgetLesson(it, styles, look).copy(userNote = userNote(it, notesByKey)) },
+            lessons = dayLessons.map { l ->
+                val ev = events.firstOrNull { it.matchesLesson(l) && it.type.isAssessment } ?: events.firstOrNull { it.matchesLesson(l) }
+                toWidgetLesson(l, styles, look).copy(
+                    userNote = userNote(l, notesByKey),
+                    examSummary = ev?.let { "${it.badgeLabel()}: ${it.title}" },
+                    examTitle = ev?.title,
+                    examType = ev?.badgeLabel()
+                )
+            },
             focusIndex = focusIndex,
             focusIsNow = focusIsNow,
             isToday = isToday,

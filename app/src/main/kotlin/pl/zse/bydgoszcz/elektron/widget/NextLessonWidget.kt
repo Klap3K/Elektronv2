@@ -153,6 +153,10 @@ class NextLessonWidget : GlanceAppWidget() {
             if (showDetail) lesson.detail?.let {
                 Text(it, style = TextStyle(color = if (lesson.isSubstitution) accent else WidgetColors.textSecondary, fontSize = 12.sp), maxLines = 1)
             }
+            lesson.examSummary?.let {
+                val icon = if (it.contains("Kartk", ignoreCase = true)) "📄 " else "📝 "
+                Text("$icon$it", style = TextStyle(color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+            }
             lesson.note?.let {
                 Text(it, style = TextStyle(color = WidgetColors.substitution, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1)
             }
@@ -213,6 +217,10 @@ class NextLessonWidget : GlanceAppWidget() {
             Text(lesson.timeRange, style = TextStyle(color = WidgetColors.textSecondary, fontSize = 12.sp), maxLines = 1)
             lesson.room?.let {
                 Text("s. $it", style = TextStyle(color = WidgetColors.textSecondary, fontSize = 12.sp), maxLines = 1)
+            }
+            lesson.examSummary?.let {
+                val icon = if (it.contains("Kartk", ignoreCase = true)) "📄 " else "📝 "
+                Text("$icon$it", style = TextStyle(color = WidgetColors.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold), maxLines = 1)
             }
             lesson.note?.let {
                 Text(it, style = TextStyle(color = WidgetColors.substitution, fontSize = 11.sp), maxLines = 1)

@@ -27,6 +27,10 @@ import androidx.compose.material.icons.filled.FreeBreakfast
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
@@ -34,15 +38,21 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import pl.zse.bydgoszcz.elektron.presentation.common.pressable
 import pl.zse.bydgoszcz.elektron.presentation.common.rememberNow
 import pl.zse.bydgoszcz.elektron.domain.repository.AppUpdate
+import pl.zse.bydgoszcz.elektron.domain.util.AppClock
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -96,6 +106,27 @@ fun DashboardScreen(
     val transitSettings by transitViewModel.settings.collectAsStateWithLifecycle()
     val upcomingEvents by calendarViewModel.upcomingEvents.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    var showAttendanceDialog by rememberSaveable { mutableStateOf(false) }
+    var showDutyConfigDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showAttendanceDialog) {
+        pl.zse.bydgoszcz.elektron.presentation.attendance.AttendanceGuardianDialog(
+            onDismiss = { showAttendanceDialog = false }
+        )
+    }
+    if (showDutyConfigDialog) {
+        DutyConfigDialog(
+            initialNumber = state.duty?.studentNumber,
+            initialSize = state.duty?.classSize ?: 30,
+            onDismiss = { showDutyConfigDialog = false },
+            onSave = { num, size ->
+                viewModel.setStudentNumber(num)
+                viewModel.setClassSize(size)
+                showDutyConfigDialog = false
+            }
+        )
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -159,6 +190,32 @@ fun DashboardScreen(
                         item(key = "next") {
                             if (state.loadingTimetable) DelayedLoading { LoadingCard("Ładowanie planu lekcji…") }
                             else NextLessonCard(state) { onOpenTimetable(state.nextLesson?.date) }
+                        }
+                    }
+
+                    state.duty?.let { duty ->
+                        item(key = "duty_card") {
+                            DutyCard(duty, onConfigure = { showDutyConfigDialog = true })
+                        }
+                    }
+
+                    state.overallAttendance?.let { att ->
+                        item(key = "attendance_card") {
+                            AttendanceGuardianCard(
+                                attendance = att,
+                                atRiskCount = state.atRiskSubjectsCount,
+                                onClick = { showAttendanceDialog = true }
+                            )
+                        }
+                    }
+
+                    if (state.todayActivities.isNotEmpty()) {
+                        item(key = "today_activities") {
+                            TodayActivitiesCard(
+                                activities = state.todayActivities,
+                                onToggle = { id, comp -> viewModel.toggleActivity(id, comp) },
+                                onOpenTimetable = { onOpenTimetable(AppClock.today()) }
+                            )
                         }
                     }
 
@@ -566,3 +623,279 @@ private fun UpcomingEventsCard(
         }
     }
 }
+
+@Composable
+private fun DutyCard(
+    duty: pl.zse.bydgoszcz.elektron.domain.model.ClassroomDuty,
+    onConfigure: () -> Unit
+) {
+    val isToday = duty.isDutyToday
+    val containerBg = if (isToday) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = if (isToday) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+
+    ElektronCard(containerColor = containerBg) {
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (isToday) "🧹 Dzisiaj jesteś dyżurnym!" else "🧹 Dyżurny klasowy",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
+                )
+                TextButton(onClick = onConfigure) {
+                    Text(if (duty.studentNumber == null) "Ustaw numer" else "Zmień #${duty.studentNumber}")
+                }
+            }
+
+            if (isToday) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Pamiętaj o obowiązkach dyżurnego:",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = contentColor
+                )
+                duty.duties.forEach { dutyText ->
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "• $dutyText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor.copy(alpha = 0.9f)
+                    )
+                }
+            } else if (duty.studentNumber != null) {
+                val statusText = when {
+                    duty.isDutyThisWeek -> "Twoja kolej w tym tygodniu!"
+                    duty.daysUntilDuty != null -> "Twój kolejny dyżur za ok. ${duty.daysUntilDuty} dni."
+                    else -> "Aktualni dyżurni: #${duty.currentDutyNumber1} i #${duty.currentDutyNumber2}"
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    statusText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor
+                )
+                Text(
+                    "Aktualni dyżurni w tym tygodniu: #${duty.currentDutyNumber1} oraz #${duty.currentDutyNumber2}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.75f)
+                )
+            } else {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Ustaw swój numer w dzienniku, aby wiedzieć kiedy przypada Twój dyżur w klasie.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.8f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttendanceGuardianCard(
+    attendance: pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance,
+    atRiskCount: Int,
+    onClick: () -> Unit
+) {
+    val pct = attendance.percentage
+    val color = when {
+        pct < 50f -> MaterialTheme.colorScheme.error
+        pct < 65f -> Color(0xFFF57C00)
+        else -> Color(0xFF2E7D32)
+    }
+
+    ElektronCard(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        onClick = onClick
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.Shield,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Strażnik Frekwencji",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    String.format(java.util.Locale.US, "%.1f%%", pct),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { (pct / 100f).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(6.dp),
+                color = color,
+                trackColor = color.copy(alpha = 0.2f),
+                drawStopIndicator = {}
+            )
+
+            Spacer(Modifier.height(8.dp))
+            val safeHours = attendance.maxMissableHours(0.50f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (atRiskCount > 0) {
+                    Text(
+                        "⚠️ Zagrożone przedmioty: $atRiskCount (<50%)",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Text(
+                        "Dopuszczalne opuszczenia: $safeHours h",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    "Szczegóły ›",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodayActivitiesCard(
+    activities: List<pl.zse.bydgoszcz.elektron.domain.model.UserActivity>,
+    onToggle: (String, Boolean) -> Unit,
+    onOpenTimetable: () -> Unit
+) {
+    ElektronCard(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        onClick = onOpenTimetable
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Twoje plany na dziś (${activities.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Plan lekcji ›",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(Modifier.height(6.dp))
+            activities.take(3).forEach { act ->
+                Spacer(Modifier.height(3.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = act.isCompleted,
+                        onCheckedChange = { onToggle(act.id, it) },
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "${act.category.icon} ${act.title}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        textDecoration = if (act.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                        color = if (act.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    act.timeRangeText?.let { time ->
+                        Text(
+                            time,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DutyConfigDialog(
+    initialNumber: Int?,
+    initialSize: Int,
+    onDismiss: () -> Unit,
+    onSave: (Int?, Int) -> Unit
+) {
+    var numberStr by remember { mutableStateOf(initialNumber?.toString().orEmpty()) }
+    var sizeStr by remember { mutableStateOf(initialSize.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Ustawienia dyżurnego klasowego") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = numberStr,
+                    onValueChange = { numberStr = it.filter { ch -> ch.isDigit() } },
+                    label = { Text("Twój numer w dzienniku") },
+                    placeholder = { Text("np. 14") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = sizeStr,
+                    onValueChange = { sizeStr = it.filter { ch -> ch.isDigit() } },
+                    label = { Text("Liczba uczniów w klasie") },
+                    placeholder = { Text("30") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val num = numberStr.toIntOrNull()
+                val size = sizeStr.toIntOrNull() ?: 30
+                onSave(num, size)
+            }) {
+                Text("Zapisz")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Anuluj")
+            }
+        }
+    )
+}
+

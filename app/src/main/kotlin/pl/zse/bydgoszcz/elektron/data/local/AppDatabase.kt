@@ -14,7 +14,9 @@ import androidx.room.RoomDatabase
         AnnouncementEntity::class,
         NotificationItemEntity::class,
         SyncStateEntity::class,
-        SchoolEventEntity::class
+        SchoolEventEntity::class,
+        UserActivityEntity::class,
+        AttendanceEntity::class
     ],
     version = DATABASE_VERSION,
     // Eksport schematu do app/schemas/ — podstawa pod przyszłe Migration zamiast
@@ -32,6 +34,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun syncStateDao(): SyncStateDao
     abstract fun schoolEventDao(): SchoolEventDao
+    abstract fun userActivityDao(): UserActivityDao
+    abstract fun attendanceDao(): AttendanceDao
 
     companion object { const val NAME = "elektron.db" }
 }

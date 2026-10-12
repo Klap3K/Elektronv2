@@ -5,6 +5,7 @@ import pl.zse.bydgoszcz.elektron.domain.util.AppClock
 import android.content.Intent
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Close
 import pl.zse.bydgoszcz.elektron.domain.model.TimetableShare
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
@@ -115,7 +116,8 @@ fun TimetableScreen(
     isShown: Boolean = true,
     viewModel: TimetableViewModel = hiltViewModel(),
     notesViewModel: LessonNotesViewModel = hiltViewModel(),
-    calendarViewModel: pl.zse.bydgoszcz.elektron.presentation.calendar.CalendarViewModel = hiltViewModel()
+    calendarViewModel: pl.zse.bydgoszcz.elektron.presentation.calendar.CalendarViewModel = hiltViewModel(),
+    activityViewModel: pl.zse.bydgoszcz.elektron.presentation.activity.UserActivityViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Zapamiętany tryb (Dzień/Tydzień) znany od pierwszej klatki - bez mignięcia widoku dnia.
@@ -131,6 +133,7 @@ fun TimetableScreen(
     // Wskazanie lekcji (klasa, dzień, id) zamiast obiektu - okno przetrwa obrót ekranu,
     // a treść i tak czytamy z aktualnego planu.
     var detailsRef by rememberSaveable { mutableStateOf<String?>(null) }
+    var activityDialogDate by rememberSaveable { mutableStateOf<Long?>(null) }
     val detailsTarget = remember(detailsRef) {
         detailsRef?.split('\n', limit = 3)?.takeIf { it.size == 3 }?.let { (classId, day, id) ->
             day.toLongOrNull()?.let { Triple(classId, LocalDate.ofEpochDay(it), id) }
@@ -157,6 +160,16 @@ fun TimetableScreen(
     if (orphanedDraft) RestoredNoteDraft(notesViewModel)
     editingLesson?.let { lesson ->
         LessonNoteEditor(lesson, notesState, notesViewModel) { notesViewModel.closeEditor() }
+    }
+    activityDialogDate?.let { epochDay ->
+        pl.zse.bydgoszcz.elektron.presentation.activity.AddActivityDialog(
+            initialDate = LocalDate.ofEpochDay(epochDay),
+            onDismiss = { activityDialogDate = null },
+            onSave = {
+                activityViewModel.addActivity(it)
+                activityDialogDate = null
+            }
+        )
     }
     detailsTarget?.let { (targetClass, targetDate, targetId) ->
         val detailWeek by remember(targetClass, targetDate) { viewModel.week(targetDate.with(java.time.DayOfWeek.MONDAY)) }
@@ -401,13 +414,29 @@ fun TimetableScreen(
                                 .collectAsStateWithLifecycle(initialValue = null)
                             val dayEvents by remember(date) { calendarViewModel.eventsForDate(date) }
                                 .collectAsStateWithLifecycle(initialValue = emptyList())
+                            val dayActivities by remember(date) { activityViewModel.activitiesForDate(date) }
+                                .collectAsStateWithLifecycle(initialValue = emptyList())
                             val monday = date.with(java.time.DayOfWeek.MONDAY)
                             val loading = week == null || syncingWeek == monday || state.isRefreshing
                             val pastWeek = TimetableViewModel.isPastWeek(monday, today)
                             val current = page == pagerState.currentPage
                             val lessons = week?.firstOrNull { it.date == date }?.lessons.orEmpty()
                             SideEffect { if (current) visiblePlan = VisiblePlan(page, false, date, lessons) }
-                            DayPage(date, week, clock, loading, pastWeek, pageModifier, noteIndex, dayEvents, editNote) { showDetails(it) }
+                            DayPage(
+                                date = date,
+                                week = week,
+                                clock = clock,
+                                loading = loading,
+                                pastWeek = pastWeek,
+                                modifier = pageModifier,
+                                notes = noteIndex,
+                                dayEvents = dayEvents,
+                                dayActivities = dayActivities,
+                                onAddActivity = { activityDialogDate = date.toEpochDay() },
+                                onToggleActivity = { id, comp -> activityViewModel.toggleCompleted(id, comp) },
+                                onDeleteActivity = { id -> activityViewModel.deleteActivity(id) },
+                                onNote = editNote
+                            ) { showDetails(it) }
                         }
                         TimetableViewModel.ViewMode.WEEK -> {
                             val monday = TimetableViewModel.mondayForPage(base, page)
@@ -463,6 +492,103 @@ private fun DayEventsCard(events: List<pl.zse.bydgoszcz.elektron.domain.model.Sc
 }
 
 @Composable
+private fun DayActivitiesSection(
+    activities: List<pl.zse.bydgoszcz.elektron.domain.model.UserActivity>,
+    onAdd: () -> Unit,
+    onToggle: (String, Boolean) -> Unit,
+    onDelete: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Moje plany i zadania (${activities.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                androidx.compose.material3.TextButton(
+                    onClick = onAdd,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text("+ Dodaj plan", fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            if (activities.isEmpty()) {
+                Text(
+                    "Brak własnych zadań na ten dzień.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            } else {
+                activities.forEach { act ->
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Checkbox(
+                            checked = act.isCompleted,
+                            onCheckedChange = { onToggle(act.id, it) },
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "${act.category.icon} ${act.title}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    textDecoration = if (act.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                                    color = if (act.isCompleted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                act.timeRangeText?.let { time ->
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        time,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            act.description?.let { desc ->
+                                Text(
+                                    desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        IconButton(onClick = { onDelete(act.id) }, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Usuń zadanie",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun DayPage(
     date: LocalDate,
     week: List<TimetableViewModel.DayColumn>?,
@@ -472,6 +598,10 @@ private fun DayPage(
     modifier: Modifier,
     notes: Map<String, LessonNote>,
     dayEvents: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
+    dayActivities: List<pl.zse.bydgoszcz.elektron.domain.model.UserActivity> = emptyList(),
+    onAddActivity: () -> Unit = {},
+    onToggleActivity: (String, Boolean) -> Unit = { _, _ -> },
+    onDeleteActivity: (String) -> Unit = {},
     onNote: (Lesson) -> Unit,
     onLessonClick: (Lesson) -> Unit
 ) {
@@ -485,6 +615,14 @@ private fun DayPage(
             item(key = "day_events_${date.toEpochDay()}") {
                 DayEventsCard(dayEvents)
             }
+        }
+        item(key = "day_activities_${date.toEpochDay()}") {
+            DayActivitiesSection(
+                activities = dayActivities,
+                onAdd = onAddActivity,
+                onToggle = onToggleActivity,
+                onDelete = onDeleteActivity
+            )
         }
         if (lessons.isEmpty()) {
             // Plan tygodnia jest w bazie, a ten dzień po prostu nie ma lekcji — to nie ładowanie.
@@ -713,8 +851,21 @@ private fun LessonRow(
                 schoolEvents.forEach { ev ->
                     val evColor = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                     val icon = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) "📝" else if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ) "📄" else "📌"
-                    Text("$icon ${ev.badgeLabel()}: ${ev.title}", style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold, color = evColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = evColor.copy(alpha = 0.14f),
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        Text(
+                            "$icon ${ev.badgeLabel()}: ${ev.title}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = evColor,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 shownBadge?.let {
                     Text(it,
