@@ -517,7 +517,8 @@ internal fun ActionRow(
     trailingChevron: Boolean = false,
     supporting: String? = null,
     enabled: Boolean = true,
-    onClick: () -> Unit
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
     Row(
@@ -532,11 +533,12 @@ internal fun ActionRow(
             else -> colors.primary
         }
         RowLabel(label, supporting, color, Modifier.weight(1f).padding(end = 8.dp))
-        if (trailingIcon) {
+        if (trailing != null) {
+            trailing()
+        } else if (trailingIcon) {
             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null,
                 tint = colors.onSurfaceVariant, modifier = Modifier.size(18.dp))
-        }
-        if (trailingChevron) {
+        } else if (trailingChevron) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null,
                 tint = colors.onSurfaceVariant, modifier = Modifier.size(22.dp))
         }

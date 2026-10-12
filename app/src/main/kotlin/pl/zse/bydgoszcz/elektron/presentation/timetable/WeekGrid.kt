@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 // Int * Dp (minuty * wysokość minuty) - operator rozszerzający, wymaga importu.
 import androidx.compose.ui.unit.times
 import pl.zse.bydgoszcz.elektron.domain.model.Lesson
+import pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent
 import pl.zse.bydgoszcz.elektron.domain.model.SubstitutionDisplay
 import pl.zse.bydgoszcz.elektron.presentation.common.LocalPersonalization
 import pl.zse.bydgoszcz.elektron.presentation.common.rememberNow
@@ -116,6 +117,7 @@ internal fun WeekGrid(
                     day = day, startMin = startMin, totalMin = totalMin,
                     nowMinute = if (day.date == today) now.toLocalTime().toSecondOfDay() / 60 else null,
                     nowTime = now.toLocalTime(),
+                    events = events,
                     onLessonClick = onLessonClick,
                     notes = notes, onNote = onNote,
                     modifier = Modifier.weight(1f)
@@ -183,6 +185,7 @@ private fun DayGridColumn(
     totalMin: Int,
     nowMinute: Int?,
     nowTime: LocalTime,
+    events: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent> = emptyList(),
     onLessonClick: (Lesson) -> Unit,
     notes: Map<String, LessonNote>, onNote: (Lesson) -> Unit,
     modifier: Modifier

@@ -27,6 +27,7 @@ import pl.zse.bydgoszcz.elektron.domain.model.LessonNote
 import pl.zse.bydgoszcz.elektron.domain.model.LessonGroups
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectStyles
 import pl.zse.bydgoszcz.elektron.domain.model.SubstitutionDisplay
+import pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType
 import pl.zse.bydgoszcz.elektron.presentation.common.LocalPersonalization
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -98,7 +99,7 @@ internal fun LessonDetailsSheet(
             if (schoolEvents.isNotEmpty()) {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 schoolEvents.forEach { ev ->
-                    val color = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    val color = if (ev.type == SchoolEventType.EXAM) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                     Text(
                         ev.badgeLabel(),
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,

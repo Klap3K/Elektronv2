@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
 import pl.zse.bydgoszcz.elektron.presentation.common.GroupedSection
-import pl.zse.bydgoszcz.elektron.presentation.common.RowDivider
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -91,7 +90,7 @@ internal fun CalendarSection(
                 supporting = lastSyncFormatted,
                 enabled = !isSyncing,
                 trailing = if (isSyncing) {
-                    { CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) }
+                    @Composable { CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) }
                 } else null,
                 onClick = onSync
             )
