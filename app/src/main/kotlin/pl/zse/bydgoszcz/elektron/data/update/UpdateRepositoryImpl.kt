@@ -69,7 +69,9 @@ class UpdateRepositoryImpl @Inject constructor(
                 val now = Instant.now().epochSecond
                 val channel = settings.updateChannel.first()
                 if (!force) {
-                    val last = syncStateDao.get(KEY_CHECKED)?.lastSyncEpochSeconds ?: 0L
+                    // Wynik z innego kanału (zmiana kanału bez internetu) nie jest aktualny dla tego.
+                    val checked = syncStateDao.get(KEY_CHECKED)?.takeIf { it.message == channel.name }
+                    val last = checked?.lastSyncEpochSeconds ?: 0L
                     if (now - last in 0 until CHECK_INTERVAL_SECONDS) {
                         return@runCatchingCancellable decode(syncStateDao.get(KEY_LATEST)?.message)
                             ?.takeIf { channel.accepts(it.versionName, it.prerelease) }
@@ -91,7 +93,7 @@ class UpdateRepositoryImpl @Inject constructor(
                     GitHubReleases.parse(resp.body?.string() ?: throw IOException("GitHub: pusta odpowiedź"))
                 }
                 val newest = newestFor(channel, releases)
-                syncStateDao.upsert(SyncStateEntity(KEY_CHECKED, now, "ok", null))
+                syncStateDao.upsert(SyncStateEntity(KEY_CHECKED, now, "ok", channel.name))
                 // Także "brak" - inaczej po zmianie kanału zostawała zapisana wersja z poprzedniego.
                 syncStateDao.upsert(SyncStateEntity(KEY_LATEST, now, "ok", newest?.let(::encode)))
                 newest?.takeIf { AppVersion.isNewer(it.versionName, currentVersion) }
@@ -130,7 +132,9 @@ class UpdateRepositoryImpl @Inject constructor(
                 .maxWithOrNull { a, b -> AppVersion.compare(a.tag, b.tag) }
                 ?.let { AppUpdate(it.tag.removePrefix("v").removePrefix("V"), it.pageUrl, it.apkUrl, it.apkSha256, it.apkSize, it.prerelease) }
 
-        const val RELEASES_API = "https://api.github.com/repos/stasolejnik/elektron/releases?per_page=10"
+        // 100 wydań w jednym zapytaniu: przy serii wersji testowych wydanie stabilne wypadało z 10
+        // najnowszych i kanał Stabilne przestawał je widzieć.
+        const val RELEASES_API = "https://api.github.com/repos/stasolejnik/elektron/releases?per_page=100"
         const val CHECK_INTERVAL_SECONDS = 12 * 60 * 60L
         const val KEY_ATTEMPTED = "update_attempted"
         const val RETRY_INTERVAL_SECONDS = 15 * 60L

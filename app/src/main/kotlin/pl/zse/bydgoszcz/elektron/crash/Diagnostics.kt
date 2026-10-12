@@ -42,7 +42,10 @@ object Diagnostics {
         "NextLessonTile", "OptivumListaParser", "OptivumTimetableParser", "RssParser", "SafeUrls",
         "SettingsViewModel", "SetupViewModel", "SubstitutionMapper", "SubstitutionsRepositoryImpl",
         "SyncCoordinator", "SyncWorker", "TimetableRepositoryImpl", "WidgetUpdater", "ZastepstwaParser",
-        "ZseRssAnnouncementsSource", "ZseSubstitutionsSource", "ZseTimetableSource"
+        "ZseRssAnnouncementsSource", "ZseSubstitutionsSource", "ZseTimetableSource",
+        "AppIcons", "AppShortcuts", "ElektronApp", "LessonNotes", "LessonReminder", "NoteReminders",
+        "SettingsRepository", "SystemEvents", "TimetableMapper", "WidgetData", "WidgetSession"
+        // Bez logów Odjazdów (Transit*): zawierają przystanki, a cel podróży bywa adresem domowym.
     )
 
     /**
