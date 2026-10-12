@@ -105,6 +105,7 @@ class EduVulcanNotificationListener : NotificationListenerService() {
     @InstallIn(SingletonComponent::class)
     interface ListenerEntryPoint {
         fun schoolEventDao(): SchoolEventDao
+        fun gradeDao(): pl.zse.bydgoszcz.elektron.data.local.GradeDao
         fun calendarRepository(): CalendarRepository
         fun attendanceRepository(): AttendanceRepository
         fun widgetUpdater(): WidgetUpdater
@@ -193,12 +194,46 @@ class EduVulcanNotificationListener : NotificationListenerService() {
                 entryPoint.widgetUpdater().requestUpdate()
             }
 
-            // 2. Jeśli powiadomienie dotyczy frekwencji lub terminarza i mamy też sesję eduVULCAN, odśwież w tle
-            if (isExamOrQuiz || lower.contains("frekwencj") || lower.contains("nieobecno") || lower.contains("spóźnien")) {
+            // 2. Jeśli powiadomienie dotyczy nowej oceny, frekwencji lub terminarza – zsynchronizuj dane z eduVULCAN
+            val isGrade = lower.contains("ocen") || lower.contains("stopie")
+            if (isGrade) {
+                extractGradeFromNotification(title, text)?.let { gradeEntity ->
+                    runCatching { entryPoint.gradeDao().upsert(gradeEntity) }
+                }
+            }
+
+            if (isExamOrQuiz || isGrade || lower.contains("frekwencj") || lower.contains("nieobecno") || lower.contains("spóźnien")) {
                 runCatching { entryPoint.calendarRepository().sync() }
                 runCatching { entryPoint.attendanceRepository().sync() }
             }
         }
+    }
+
+    private fun extractGradeFromNotification(title: String, body: String): pl.zse.bydgoszcz.elektron.data.local.GradeEntity? {
+        val combined = "$title $body"
+        val gradeMatch = Regex("""(?:ocena|stopień)[:\s]+([1-6][+-]?|\d{1,3}%)""", RegexOption.IGNORE_CASE).find(combined)
+            ?: Regex("""\b([1-6][+-]?)\b""").find(body)
+            ?: return null
+        val gradeValue = gradeMatch.groupValues[1].trim()
+        val subject = extractSubjectFromText(title, body) ?: "Przedmiot szkolny"
+        val todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+        return pl.zse.bydgoszcz.elektron.data.local.GradeEntity(
+            id = "manual_notif_${(subject + gradeValue + todayStr + body).hashCode()}",
+            subject = subject,
+            value = gradeValue,
+            weight = 1.0,
+            category = "Z powiadomienia eduVULCAN",
+            description = body.takeIf { it.isNotBlank() },
+            teacher = null,
+            dateText = todayStr,
+            periodNumber = 1,
+            isActivePeriod = true,
+            isSuperseded = false,
+            apiSubjectAverage = null,
+            proposedGrade = null,
+            finalGrade = null,
+            updatedAtEpochSeconds = System.currentTimeMillis() / 1000
+        )
     }
 
     private fun extractDateFromText(text: String): LocalDate? {

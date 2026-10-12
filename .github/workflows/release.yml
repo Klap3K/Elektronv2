@@ -28,17 +28,12 @@ jobs:
       - name: Konfiguracja Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Wygeneruj klucz podpisu wydania
+      - name: Przygotuj stały klucz podpisu wydania (umożliwia aktualizację bez odinstalowywania)
         run: |
-          keytool -genkeypair -v \
-            -keystore release.jks \
-            -alias elektron \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass elektron123 \
-            -keypass elektron123 \
-            -dname "CN=Elektron-Vulcan, OU=ZSE, O=Elektron, L=Bydgoszcz, C=PL"
+          base64 -d .github/signing/release.pfx.b64 > release_raw.pfx
+          openssl pkcs12 -in release_raw.pfx -passin pass:elektron123 -nodes -out release_bundle.pem
+          openssl pkcs12 -export -in release_bundle.pem -out release.jks -name elektron -passout pass:elektron123
+          rm -f release_raw.pfx release_bundle.pem
 
           cat <<EOF > keystore.properties
           storeFile=release.jks
@@ -72,14 +67,13 @@ jobs:
             Oficjalne wydanie instalacyjne aplikacji dla uczniów Zespołu Szkół Elektronicznych w Bydgoszczy.
             
             #### 📦 Pliki do pobrania i instalacji:
-            - **[Elektron-Vulcan.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Elektron-Vulcan.apk)** — Podpisana, zoptymalizowana wersja gotowa do bezpośredniej instalacji na smartfonie z Androidem (Android 8.0+).
+            - **[Elektron-Vulcan.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Elektron-Vulcan.apk)** — Podpisana stałym kluczem, zoptymalizowana wersja gotowa do bezpośredniej instalacji oraz aktualizacji w miejscu (Android 8.0+).
             - **[Elektron-Vulcan-debug.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Elektron-Vulcan-debug.apk)** — Wersja debug z włączoną diagnostyką.
             
-            #### 🌟 Kluczowe nowości:
-            - 🎓 **Dziennik VULCAN (Hebe API):** Bezpieczne logowanie urządzeniem mobilnym (Token, Symbol, PIN lub kod QR), generowanie certyfikatu X.509 i podpisywanie zapytań RSA-2048.
-            - 🛡️ **Strażnik Frekwencji (Attendance Guardian):** Matematyczny model procentu obecności, kalkulacja dopuszczalnych opuszczeń przed progiem 50% oraz interaktywny symulator opuszczeń.
-            - 🧹 **Dyżurny Klasowy:** Karta dyżurnego na pulpicie, automatyczna rotacja par uczniów według numerka i tygodnia oraz lista obowiązków dyżurnego.
-            - ✏️ **Własne Aktywności i Plany:** Dodawanie zadań, nauki, korepetycji i treningów z poziomu planu lekcji i pulpitu.
-            - 📱 **Sprawdziany w Widżetach Glance:** Sprawdziany i kartkówki bezpośrednio na widżecie ekranu głównego.
+            #### 🌟 Kluczowe nowości i poprawki:
+            - 🖱️ **Poprawiony wybór profilu ucznia i przewijanie w eduVULCAN:** Natywne kafelki wykrytych profili w oknie logowania (wybór jednym dotknięciem), pełna obsługa przewijania strony WebView oraz automatyczne pomijanie nieaktywnych kont (`/End/NieaktywnyUczen`).
+            - 🎓 **Import ocen i średnich z dziennika eduVULCAN:** Pobieranie ocen cząstkowych, wag, kategorii, ocen proponowanych i końcowych z `uczen.eduvulcan.pl` oraz kalkulator/symulator średniej ważonej.
+            - 🔄 **Aktualizacje w aplikacji bez odinstalowywania:** Stały certyfikat podpisu wydań (`release.jks`) oraz wbudowana funkcja **„Sprawdź aktualizacje”** w Ustawieniach i baner na Stronie głównej pobierający i instalujący nowe wersje bezpośrednio w aplikacji.
+            - 🛡️ **Strażnik Frekwencji, Dyżurny Klasowy, Własne Plany i Widżety ze sprawdzianami.**
           draft: false
           prerelease: false

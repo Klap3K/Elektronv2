@@ -37,4 +37,5 @@ object DatabaseModule {
     @Provides fun provideSchoolEventDao(db: AppDatabase) = db.schoolEventDao()
     @Provides fun provideUserActivityDao(db: AppDatabase) = db.userActivityDao()
     @Provides fun provideAttendanceDao(db: AppDatabase) = db.attendanceDao()
+    @Provides fun provideGradeDao(db: AppDatabase) = db.gradeDao()
 }

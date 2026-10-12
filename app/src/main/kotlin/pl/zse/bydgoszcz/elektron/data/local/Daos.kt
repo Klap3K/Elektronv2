@@ -304,3 +304,31 @@ interface AttendanceDao {
     }
 }
 
+@Dao
+interface GradeDao {
+    @Query("SELECT * FROM student_grades ORDER BY subject ASC, dateText DESC, id ASC")
+    fun observeAll(): Flow<List<GradeEntity>>
+
+    @Query("SELECT * FROM student_grades ORDER BY subject ASC, dateText DESC, id ASC")
+    suspend fun getAll(): List<GradeEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(grades: List<GradeEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(grade: GradeEntity)
+
+    @Query("DELETE FROM student_grades WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM student_grades")
+    suspend fun clear()
+
+    @Transaction
+    suspend fun replaceAll(grades: List<GradeEntity>) {
+        clear()
+        upsertAll(grades)
+    }
+}
+
+

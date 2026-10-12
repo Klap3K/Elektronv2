@@ -95,6 +95,7 @@ fun DashboardScreen(
     onOpenAnnouncement: (String) -> Unit = {},
     transitViewModel: pl.zse.bydgoszcz.elektron.presentation.transit.TransitViewModel = hiltViewModel(),
     calendarViewModel: pl.zse.bydgoszcz.elektron.presentation.calendar.CalendarViewModel = hiltViewModel(),
+    gradesViewModel: pl.zse.bydgoszcz.elektron.presentation.grades.GradesViewModel = hiltViewModel(),
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val visible = pl.zse.bydgoszcz.elektron.presentation.common.LocalScreenVisible.current
@@ -106,14 +107,23 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transitSettings by transitViewModel.settings.collectAsStateWithLifecycle()
     val upcomingEvents by calendarViewModel.upcomingEvents.collectAsStateWithLifecycle()
+    val gradeSummaries by gradesViewModel.subjectSummaries.collectAsStateWithLifecycle()
+    val overallGradesAvg by gradesViewModel.overallAverage.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     var showAttendanceDialog by rememberSaveable { mutableStateOf(false) }
+    var showGradesDialog by rememberSaveable { mutableStateOf(false) }
     var showDutyConfigDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showAttendanceDialog) {
         pl.zse.bydgoszcz.elektron.presentation.attendance.AttendanceGuardianDialog(
             onDismiss = { showAttendanceDialog = false }
+        )
+    }
+    if (showGradesDialog) {
+        pl.zse.bydgoszcz.elektron.presentation.grades.GradesDialog(
+            onDismiss = { showGradesDialog = false },
+            viewModel = gradesViewModel
         )
     }
     if (showDutyConfigDialog) {
@@ -208,6 +218,16 @@ fun DashboardScreen(
                                 onClick = { showAttendanceDialog = true }
                             )
                         }
+                    }
+
+                    item(key = "grades_card") {
+                        val totalGradesCount = gradeSummaries.sumOf { it.grades.size }
+                        GradesSummaryCard(
+                            overallAverage = overallGradesAvg,
+                            subjectsCount = gradeSummaries.size,
+                            gradesCount = totalGradesCount,
+                            onClick = { showGradesDialog = true }
+                        )
                     }
 
                     if (state.todayActivities.isNotEmpty()) {
@@ -776,6 +796,65 @@ private fun AttendanceGuardianCard(
                 }
                 Text(
                     "Szczegóły ›",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GradesSummaryCard(
+    overallAverage: Double?,
+    subjectsCount: Int,
+    gradesCount: Int,
+    onClick: () -> Unit
+) {
+    ElektronCard(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        onClick = onClick
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "🎓 Oceny i średnia (eduVULCAN)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = overallAverage?.let { String.format(java.util.Locale.US, "Śr: %.2f", it) } ?: "Importuj",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (gradesCount > 0) {
+                        "Zaimportowano $gradesCount ocen z $subjectsCount przedmiotów"
+                    } else {
+                        "Dotknij, aby zaimportować oceny z dziennika eduVULCAN"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "Otwórz ›",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold

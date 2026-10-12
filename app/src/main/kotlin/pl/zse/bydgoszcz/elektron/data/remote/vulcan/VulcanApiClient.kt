@@ -9,6 +9,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent
 import pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType
+import pl.zse.bydgoszcz.elektron.domain.model.StudentGrade
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanRegistrationInput
@@ -322,7 +323,301 @@ class VulcanApiClient @Inject constructor(
         }
     }
 
-    private fun warmUpAndVerifyContext(baseUrl: String, cookies: String) {
+    /**
+     * Pobiera oceny cząstkowe, proponowane i okresowe oraz średnie przedmiotów z portalu uczen.eduvulcan.pl.
+     */
+    fun fetchEduVulcanGrades(account: VulcanAccount): Result<List<StudentGrade>> {
+        val domain = account.domain.ifBlank { "eduvulcan.pl" }
+        val symbol = account.symbol.trim()
+        val key = account.studentKey.ifBlank { account.token }.trim()
+        val baseUrl = "https://uczen.$domain/$symbol"
+
+        val cookies = buildMergedCookies(domain, symbol, account.cookiesHeader)
+        if (cookies.isBlank()) {
+            return Result.failure(EduVulcanSessionExpiredException("Brak ciasteczek sesji eduVULCAN."))
+        }
+
+        try {
+            val contextJson = warmUpAndVerifyContext(baseUrl, cookies)
+
+            // Wyznacz idDziennik z konta lub z /api/Context
+            var idDziennik = account.pupilId
+            if (idDziennik <= 0) {
+                val uczniowie = contextJson.optJSONArray("uczniowie")
+                if (uczniowie != null) {
+                    for (i in 0 until uczniowie.length()) {
+                        val u = uczniowie.optJSONObject(i) ?: continue
+                        if (u.optString("key") == key || idDziennik <= 0) {
+                            val idDz = u.optInt("idDziennik", 0)
+                            if (idDz > 0) {
+                                idDziennik = idDz
+                                if (u.optString("key") == key) break
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (idDziennik <= 0) {
+                return Result.failure(IOException("Brak identyfikatora dziennika (idDziennik) dla tego ucznia w eduVULCAN."))
+            }
+
+            // 1. Pobierz okresy klasyfikacyjne (/api/OkresyKlasyfikacyjne?key=...&idDziennik=...)
+            val periodsUrl = "$baseUrl/api/OkresyKlasyfikacyjne".toHttpUrlOrNull()!!
+                .newBuilder()
+                .addQueryParameter("key", key)
+                .addQueryParameter("idDziennik", idDziennik.toString())
+                .build()
+
+            val periodsReq = Request.Builder()
+                .url(periodsUrl)
+                .get()
+                .header("Cookie", cookies)
+                .header("User-Agent", EduVulcanWebAuthenticator.USER_AGENT)
+                .header("Accept", "application/json")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Referer", "$baseUrl/App")
+                .build()
+
+            val periodsRes = okHttp.newCall(periodsReq).execute()
+            val periodsBody = periodsRes.body?.string().orEmpty().trim()
+            if (periodsRes.code == 401 || periodsRes.code == 403 || isLoginRedirect(periodsRes.request.url.toString(), periodsBody)) {
+                return Result.failure(EduVulcanSessionExpiredException("Sesja eduVULCAN wygasła podczas pobierania okresów klasyfikacyjnych."))
+            }
+            if (!periodsRes.isSuccessful) {
+                return Result.failure(IOException("Błąd pobierania okresów klasyfikacyjnych (HTTP ${periodsRes.code})"))
+            }
+
+            val periodsArray = runCatching { JSONArray(periodsBody) }.getOrNull()
+                ?: return Result.failure(IOException("Nieprawidłowy format okresów klasyfikacyjnych eduVULCAN"))
+
+            if (periodsArray.length() == 0) {
+                return Result.success(emptyList())
+            }
+
+            val today = LocalDate.now()
+            var activePeriodId: String? = null
+            for (i in 0 until periodsArray.length()) {
+                val p = periodsArray.optJSONObject(i) ?: continue
+                val pId = p.opt("id")?.toString() ?: continue
+                val fromDate = parseDateOrNull(p.optString("dataOd"))
+                val toDate = parseDateOrNull(p.optString("dataDo"))
+                if (fromDate != null && toDate != null && !today.isBefore(fromDate) && !today.isAfter(toDate)) {
+                    activePeriodId = pId
+                    break
+                }
+            }
+            if (activePeriodId == null) {
+                activePeriodId = periodsArray.optJSONObject(periodsArray.length() - 1)?.opt("id")?.toString()
+            }
+
+            val nowSeconds = System.currentTimeMillis() / 1000
+            val allGrades = mutableListOf<StudentGrade>()
+
+            // 2. Dla każdego okresu klasyfikacyjnego pobierz oceny (/api/Oceny?key=...&idOkresKlasyfikacyjny=...)
+            for (i in 0 until periodsArray.length()) {
+                val p = periodsArray.optJSONObject(i) ?: continue
+                val periodId = p.opt("id")?.toString()?.takeIf { it.isNotBlank() } ?: continue
+                val periodNum = p.optInt("numerOkresu", i + 1)
+                val isActive = periodId == activePeriodId
+
+                val gradesUrl = "$baseUrl/api/Oceny".toHttpUrlOrNull()!!
+                    .newBuilder()
+                    .addQueryParameter("key", key)
+                    .addQueryParameter("idOkresKlasyfikacyjny", periodId)
+                    .build()
+
+                val gradesReq = Request.Builder()
+                    .url(gradesUrl)
+                    .get()
+                    .header("Cookie", cookies)
+                    .header("User-Agent", EduVulcanWebAuthenticator.USER_AGENT)
+                    .header("Accept", "application/json")
+                    .header("X-Requested-With", "XMLHttpRequest")
+                    .header("Referer", "$baseUrl/App")
+                    .build()
+
+                val gradesRes = runCatching { okHttp.newCall(gradesReq).execute() }.getOrNull() ?: continue
+                if (!gradesRes.isSuccessful) continue
+                val gradesBody = gradesRes.body?.string().orEmpty().trim()
+                if (gradesBody.isBlank()) continue
+
+                val parsedPeriodGrades = parseEduVulcanGradesJson(
+                    jsonStr = gradesBody,
+                    periodId = periodId,
+                    periodNumber = periodNum,
+                    isActivePeriod = isActive,
+                    nowSeconds = nowSeconds
+                )
+                allGrades.addAll(parsedPeriodGrades)
+            }
+
+            return Result.success(allGrades)
+        } catch (e: EduVulcanSessionExpiredException) {
+            return Result.failure(e)
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+    }
+
+    internal fun parseEduVulcanGradesJson(
+        jsonStr: String,
+        periodId: String,
+        periodNumber: Int,
+        isActivePeriod: Boolean,
+        nowSeconds: Long
+    ): List<StudentGrade> {
+        val root = runCatching { JSONObject(jsonStr) }.getOrNull() ?: return emptyList()
+        val result = mutableListOf<StudentGrade>()
+
+        val srednieWlaczone = root.optJSONObject("ustawienia")?.optBoolean("isSredniaAndPunkty", true) ?: true
+
+        // Wariant 1: uczen.eduvulcan.pl ("ocenyPrzedmioty")
+        val przedmiotyArr = root.optJSONArray("ocenyPrzedmioty")
+            ?: root.optJSONObject("data")?.optJSONArray("Oceny")
+
+        if (przedmiotyArr == null) return emptyList()
+
+        for (s in 0 until przedmiotyArr.length()) {
+            val pItem = przedmiotyArr.optJSONObject(s) ?: continue
+            val subjectName = pItem.optString("przedmiotNazwa")
+                .ifBlank { pItem.optString("Przedmiot") }
+                .trim()
+                .ifBlank { "Inne" }
+
+            val rawAvg = pItem.opt("srednia") ?: pItem.opt("Srednia")
+            val apiAvg = if (srednieWlaczone && rawAvg != null && rawAvg != JSONObject.NULL) {
+                rawAvg.toString().replace(',', '.').toDoubleOrNull()?.takeIf { it > 0.0 }
+            } else null
+
+            val proposed = pItem.optString("proponowanaOcenaOkresowa")
+                .ifBlank { pItem.optString("ProponowanaOcenaRoczna") }
+                .trim()
+                .takeIf { it.isNotBlank() && it != "null" }
+
+            val finalG = pItem.optString("ocenaOkresowa")
+                .ifBlank { pItem.optString("OcenaRoczna") }
+                .trim()
+                .takeIf { it.isNotBlank() && it != "null" }
+
+            var addedForSubject = 0
+
+            // Nowy układ: kolumnyOcenyCzastkowe -> oceny
+            val kolumny = pItem.optJSONArray("kolumnyOcenyCzastkowe")
+            if (kolumny != null) {
+                for (k in 0 until kolumny.length()) {
+                    val kol = kolumny.optJSONObject(k) ?: continue
+                    val idKolumny = kol.opt("idKolumny")?.toString().orEmpty().ifBlank { "$k" }
+                    val kat = kol.optString("kategoriaKolumny").trim().takeIf { it.isNotBlank() && it != "null" }
+                    val nazwaKol = kol.optString("nazwaKolumny").trim().takeIf { it.isNotBlank() && it != "null" }
+                    val colWeight = kol.optDouble("waga", 1.0).let { if (it.isNaN() || it <= 0.0) 1.0 else it }
+
+                    val ocenyArr = kol.optJSONArray("oceny") ?: continue
+                    for (oIdx in 0 until ocenyArr.length()) {
+                        val o = ocenyArr.optJSONObject(oIdx) ?: continue
+                        val wpis = o.optString("wpis").trim()
+                        if (wpis.isBlank() || wpis == "null") continue
+
+                        val rawDate = o.optString("dataOceny").trim().takeIf { it.isNotBlank() && it != "null" }
+                        val formattedDate = parseDateOrNull(rawDate)?.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                            ?: rawDate
+
+                        val weight = o.optDouble("waga", colWeight).let { if (it.isNaN() || it <= 0.0) colWeight else it }
+                        val teacher = o.optString("nauczycielImieNazwisko")
+                            .ifBlank { o.optString("nauczyciel") }
+                            .trim()
+                            .takeIf { it.isNotBlank() && it != "null" }
+                        val superseded = !o.isNull("idOcenaPoprawiona") &&
+                            o.optString("idOcenaPoprawiona").let { it.isNotBlank() && it != "null" && it != "0" }
+
+                        result.add(
+                            StudentGrade(
+                                id = "ev_${periodId}_${subjectName}_${idKolumny}_${oIdx}_${wpis}",
+                                subject = subjectName,
+                                value = wpis,
+                                weight = weight,
+                                category = kat,
+                                description = nazwaKol,
+                                teacher = teacher,
+                                dateText = formattedDate,
+                                periodNumber = periodNumber,
+                                isActivePeriod = isActivePeriod,
+                                isSuperseded = superseded,
+                                apiSubjectAverage = apiAvg,
+                                proposedGrade = proposed,
+                                finalGrade = finalG,
+                                updatedAtEpochSeconds = nowSeconds
+                            )
+                        )
+                        addedForSubject++
+                    }
+                }
+            }
+
+            // Starszy układ: OcenyCzastkowe bezpośrednio na przedmiocie
+            val ocenyCzastkowe = pItem.optJSONArray("OcenyCzastkowe")
+            if (ocenyCzastkowe != null) {
+                for (oIdx in 0 until ocenyCzastkowe.length()) {
+                    val o = ocenyCzastkowe.optJSONObject(oIdx) ?: continue
+                    val wpis = o.optString("Wpis").trim()
+                    if (wpis.isBlank() || wpis == "null") continue
+                    val weight = o.optDouble("Waga", 1.0).let { if (it.isNaN() || it <= 0.0) 1.0 else it }
+                    val kat = o.optString("KodKolumny").trim().takeIf { it.isNotBlank() && it != "null" }
+                    val desc = o.optString("NazwaKolumny").trim().takeIf { it.isNotBlank() && it != "null" }
+                    val teacher = o.optString("Nauczyciel").trim().takeIf { it.isNotBlank() && it != "null" }
+                    val rawDate = o.optString("DataOceny").trim().takeIf { it.isNotBlank() && it != "null" }
+
+                    result.add(
+                        StudentGrade(
+                            id = "ev_${periodId}_${subjectName}_legacy_${oIdx}_${wpis}",
+                            subject = subjectName,
+                            value = wpis,
+                            weight = weight,
+                            category = kat,
+                            description = desc,
+                            teacher = teacher,
+                            dateText = rawDate,
+                            periodNumber = periodNumber,
+                            isActivePeriod = isActivePeriod,
+                            isSuperseded = false,
+                            apiSubjectAverage = apiAvg,
+                            proposedGrade = proposed,
+                            finalGrade = finalG,
+                            updatedAtEpochSeconds = nowSeconds
+                        )
+                    )
+                    addedForSubject++
+                }
+            }
+
+            // Jeśli przedmiot ma ocenę proponowaną/roczną lub średnią, ale brak ocen cząstkowych
+            if (addedForSubject == 0 && (proposed != null || finalG != null || apiAvg != null)) {
+                result.add(
+                    StudentGrade(
+                        id = "ev_${periodId}_${subjectName}_summary",
+                        subject = subjectName,
+                        value = "",
+                        weight = 0.0,
+                        category = null,
+                        description = null,
+                        teacher = null,
+                        dateText = null,
+                        periodNumber = periodNumber,
+                        isActivePeriod = isActivePeriod,
+                        isSuperseded = false,
+                        apiSubjectAverage = apiAvg,
+                        proposedGrade = proposed,
+                        finalGrade = finalG,
+                        updatedAtEpochSeconds = nowSeconds
+                    )
+                )
+            }
+        }
+
+        return result
+    }
+
+    private fun warmUpAndVerifyContext(baseUrl: String, cookies: String): JSONObject {
         val ctxReq = Request.Builder()
             .url("$baseUrl/api/Context")
             .get()
@@ -341,6 +636,7 @@ class VulcanApiClient @Inject constructor(
         if (json == null || !json.has("uczniowie")) {
             throw EduVulcanSessionExpiredException("Sesja eduVULCAN jest nieaktywna.")
         }
+        return json
     }
 
     private fun fetchDetailJson(

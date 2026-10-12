@@ -9,7 +9,7 @@ data class GitHubRelease(
     val pageUrl: String,
     val draft: Boolean,
     val prerelease: Boolean,
-    /** Plik .apk z Assets (tylko z repozytorium eLektrona), inaczej null. */
+    /** Plik .apk z Assets (tylko z repozytorium Elektron-Vulcan), inaczej null. */
     val apkUrl: String? = null,
     /** SHA-256 pliku APK (pole "digest" GitHuba, "sha256:..."), inaczej null. */
     val apkSha256: String? = null,
@@ -23,8 +23,11 @@ data class GitHubRelease(
  */
 object GitHubReleases {
 
-    const val REPO_RELEASES_PAGE = "https://github.com/stasolejnik/elektron/releases"
-    private const val DOWNLOAD_PREFIX = "$REPO_RELEASES_PAGE/download/"
+    const val REPO_RELEASES_PAGE = "https://github.com/Klap3K/Elektronv2/releases"
+    private val ALLOWED_RELEASE_PAGES = listOf(
+        REPO_RELEASES_PAGE,
+        "https://github.com/stasolejnik/elektron/releases"
+    )
     private val SHA256_HEX = Regex("^[0-9a-f]{64}$")
 
     fun parse(json: String): List<GitHubRelease> {
@@ -47,19 +50,24 @@ object GitHubReleases {
     }
 
     /**
-     * Pierwszy plik .apk z Assets, pobierany wyłącznie z wydań repozytorium eLektrona
-     * (https://github.com/stasolejnik/elektron/releases/download/...). Inny adres - brak APK
-     * (aplikacja otworzy wtedy stronę wydania).
+     * Plik .apk z Assets wydania. Jeśli w wydaniu jest zarówno podpisany plik release
+     * (`Elektron-Vulcan.apk`), jak i plik `-debug.apk`, zawsze wybieramy podpisany plik release.
      */
     private fun apkAsset(release: JSONObject): JSONObject? {
         val assets = release.optJSONArray("assets") ?: return null
-        return (0 until assets.length()).mapNotNull { assets.optJSONObject(it) }.firstOrNull { a ->
-            a.optString("name").endsWith(".apk", ignoreCase = true) &&
-                a.optString("browser_download_url").startsWith(DOWNLOAD_PREFIX)
-        }
+        val validApks = (0 until assets.length())
+            .mapNotNull { assets.optJSONObject(it) }
+            .filter { a ->
+                val name = a.optString("name")
+                val url = a.optString("browser_download_url")
+                name.endsWith(".apk", ignoreCase = true) &&
+                    ALLOWED_RELEASE_PAGES.any { base -> url.startsWith("$base/download/") }
+            }
+        return validApks.firstOrNull { !it.optString("name").contains("debug", ignoreCase = true) }
+            ?: validApks.firstOrNull()
     }
 
-    /** Otwieramy tylko strony wydań repozytorium eLektrona; cokolwiek innego -> lista wydań. */
+    /** Otwieramy tylko strony wydań zaufanego repozytorium; cokolwiek innego -> lista wydań. */
     private fun safePageUrl(url: String): String =
-        if (url.startsWith("$REPO_RELEASES_PAGE/")) url else REPO_RELEASES_PAGE
+        if (ALLOWED_RELEASE_PAGES.any { base -> url.startsWith("$base/") }) url else REPO_RELEASES_PAGE
 }

@@ -3,7 +3,7 @@ package pl.zse.bydgoszcz.elektron.data.local
 import androidx.room.migration.Migration
 
 /** Aktualna wersja schematu bazy. Podnosisz ją => MUSISZ dodać migrację poniżej. */
-const val DATABASE_VERSION = 5
+const val DATABASE_VERSION = 6
 
 /**
  * Migracje schematu Room.
@@ -96,5 +96,33 @@ object DatabaseMigrations {
                 )
             }
         },
+        object : Migration(5, 6) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `student_grades` (
+                        `id` TEXT NOT NULL,
+                        `subject` TEXT NOT NULL,
+                        `value` TEXT NOT NULL,
+                        `weight` REAL NOT NULL,
+                        `category` TEXT,
+                        `description` TEXT,
+                        `teacher` TEXT,
+                        `dateText` TEXT,
+                        `periodNumber` INTEGER NOT NULL,
+                        `isActivePeriod` INTEGER NOT NULL,
+                        `isSuperseded` INTEGER NOT NULL,
+                        `apiSubjectAverage` REAL,
+                        `proposedGrade` TEXT,
+                        `finalGrade` TEXT,
+                        `updatedAtEpochSeconds` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_student_grades_subject` ON `student_grades` (`subject`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_student_grades_periodNumber` ON `student_grades` (`periodNumber`)")
+            }
+        }
     )
 }

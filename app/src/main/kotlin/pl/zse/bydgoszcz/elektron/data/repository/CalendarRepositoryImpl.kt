@@ -22,6 +22,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import pl.zse.bydgoszcz.elektron.data.local.AttendanceDao
 import pl.zse.bydgoszcz.elektron.data.local.AttendanceEntity
+import pl.zse.bydgoszcz.elektron.data.local.GradeDao
 import pl.zse.bydgoszcz.elektron.data.local.SchoolEventDao
 import pl.zse.bydgoszcz.elektron.data.local.SchoolEventEntity
 import pl.zse.bydgoszcz.elektron.data.remote.parser.IcalParser
@@ -49,6 +50,7 @@ class CalendarRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val schoolEventDao: SchoolEventDao,
     private val attendanceDao: AttendanceDao,
+    private val gradeDao: GradeDao,
     private val okHttp: OkHttpClient,
     private val vulcanApiClient: VulcanApiClient,
     private val eduVulcanAuthenticator: EduVulcanWebAuthenticator
@@ -286,12 +288,21 @@ class CalendarRepositoryImpl @Inject constructor(
                 }
             )
 
-            // Równolegle pobieramy statystyki frekwencji z eduVULCAN do Strażnika Frekwencji
+            // Równolegle pobieramy statystyki frekwencji oraz oceny z eduVULCAN
             if (activeAccount.isEduVulcan) {
                 val attRes = vulcanApiClient.fetchEduVulcanAttendance(activeAccount)
                 attRes.onSuccess { stats ->
                     if (stats.isNotEmpty()) {
                         attendanceDao.replaceAll(stats.map { it.toAttendanceEntity() })
+                    }
+                }
+
+                val gradesRes = vulcanApiClient.fetchEduVulcanGrades(activeAccount)
+                gradesRes.onSuccess { remoteGrades ->
+                    if (remoteGrades.isNotEmpty()) {
+                        val manualGrades = gradeDao.getAll().filter { it.id.startsWith("manual_") }
+                        val gradeEntities = (remoteGrades.map { it.toEntity() } + manualGrades).distinctBy { it.id }
+                        gradeDao.replaceAll(gradeEntities)
                     }
                 }
             }

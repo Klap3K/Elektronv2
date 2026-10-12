@@ -49,4 +49,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindDutyRepository(impl: pl.zse.bydgoszcz.elektron.data.repository.DutyRepositoryImpl): pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository
+
+    @Binds @Singleton
+    abstract fun bindGradeRepository(impl: pl.zse.bydgoszcz.elektron.data.repository.GradeRepositoryImpl): pl.zse.bydgoszcz.elektron.domain.repository.GradeRepository
 }

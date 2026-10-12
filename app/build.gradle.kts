@@ -37,16 +37,15 @@ android {
         applicationId = "pl.zse.bydgoszcz.elektron.vulcan"
         minSdk = 26
         targetSdk = 35
-        versionCode = 39
-        versionName = "2.0.2"
+        versionCode = 40
+        versionName = "2.0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
 
     // Dwa warianty dystrybucji:
-    //  - gms  (GitHub Releases): powiadomienia push przez Firebase + sprawdzanie aktualizacji,
-    //  - foss (F-Droid): wyłącznie wolne zależności, bez Firebase i bez sprawdzania aktualizacji
-    //    (F-Droid sam aktualizuje aplikację i podpisuje ją własnym kluczem).
+    //  - gms  (GitHub Releases + Firebase),
+    //  - foss (GitHub Releases bez zależności Google/Firebase, z wbudowanym sprawdzaniem i instalacją aktualizacji).
     flavorDimensions += "distribution"
     productFlavors {
         create("gms") {
@@ -55,7 +54,7 @@ android {
         }
         create("foss") {
             dimension = "distribution"
-            buildConfigField("boolean", "UPDATE_CHECK", "false")
+            buildConfigField("boolean", "UPDATE_CHECK", "true")
         }
     }
 

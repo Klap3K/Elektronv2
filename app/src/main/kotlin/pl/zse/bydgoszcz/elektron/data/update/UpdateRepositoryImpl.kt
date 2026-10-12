@@ -134,7 +134,7 @@ class UpdateRepositoryImpl @Inject constructor(
 
         // 100 wydań w jednym zapytaniu: przy serii wersji testowych wydanie stabilne wypadało z 10
         // najnowszych i kanał Stabilne przestawał je widzieć.
-        const val RELEASES_API = "https://api.github.com/repos/stasolejnik/elektron/releases?per_page=100"
+        const val RELEASES_API = "https://api.github.com/repos/Klap3K/Elektronv2/releases?per_page=100"
         const val CHECK_INTERVAL_SECONDS = 12 * 60 * 60L
         const val KEY_ATTEMPTED = "update_attempted"
         const val RETRY_INTERVAL_SECONDS = 15 * 60L

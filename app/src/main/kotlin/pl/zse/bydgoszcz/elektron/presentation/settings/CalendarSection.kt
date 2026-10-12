@@ -58,6 +58,7 @@ internal fun CalendarSection(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var showEduVulcanLoginDialog by remember { mutableStateOf(false) }
+    var showGradesDialog by remember { mutableStateOf(false) }
     var showAppBridgeDialog by remember { mutableStateOf(false) }
     var showUrlDialog by remember { mutableStateOf(false) }
 
@@ -76,9 +77,9 @@ internal fun CalendarSection(
     }
 
     GroupedSection(
-        title = "Dziennik eduVULCAN (Sprawdziany i Frekwencja)",
+        title = "Dziennik eduVULCAN (Oceny, Sprawdziany, Frekwencja)",
         icon = Icons.Outlined.CalendarMonth,
-        footer = "Zaloguj się swoim loginem i hasłem do eduVULCAN lub włącz przechwytywanie danych z zainstalowanej na telefonie aplikacji eduVULCAN. Sprawdziany, kartkówki i frekwencja trafią bezpośrednio do planu lekcji, widżetów oraz Strażnika Frekwencji."
+        footer = "Zaloguj się swoim loginem i hasłem do eduVULCAN lub włącz przechwytywanie danych z zainstalowanej na telefonie aplikacji eduVULCAN. Oceny, sprawdziany, kartkówki i frekwencja trafią bezpośrednio do aplikacji."
     ) {
         val isConnected = vulcanAccount != null
 
@@ -99,7 +100,7 @@ internal fun CalendarSection(
 
             RowDivider()
 
-            val syncLabel = if (isSyncing) "Trwa synchronizacja z eduVULCAN…" else "Synchronizuj sprawdziany i frekwencję"
+            val syncLabel = if (isSyncing) "Trwa synchronizacja z eduVULCAN…" else "Synchronizuj oceny, sprawdziany i frekwencję"
             val lastSyncFormatted = lastSyncEpochSeconds?.let {
                 val instant = Instant.ofEpochSecond(it)
                 val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
@@ -119,7 +120,15 @@ internal fun CalendarSection(
 
             RowDivider()
             ActionRow(
-                label = "Zmień konto / zaloguj ponownie",
+                label = "Oceny i średnia (Import ocen z eduVULCAN)",
+                supporting = "Przeglądaj zaimportowane oceny cząstkowe, wagi i średnie",
+                trailingChevron = true,
+                onClick = { showGradesDialog = true }
+            )
+
+            RowDivider()
+            ActionRow(
+                label = "Zmień konto / wybierz inny profil",
                 trailingChevron = true,
                 onClick = { showEduVulcanLoginDialog = true }
             )
@@ -133,13 +142,21 @@ internal fun CalendarSection(
         } else {
             ActionRow(
                 label = if (isRegistering) "Łączenie z kontem eduVULCAN…" else "Zaloguj się do eduVULCAN (Login i Hasło)",
-                supporting = "Pobierz sprawdziany, kartkówki, zadania domowe i frekwencję",
+                supporting = "Pobierz oceny, sprawdziany, kartkówki, zadania domowe i frekwencję",
                 enabled = !isRegistering,
                 trailingChevron = !isRegistering,
                 trailing = if (isRegistering) {
                     @Composable { CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) }
                 } else null,
                 onClick = { showEduVulcanLoginDialog = true }
+            )
+
+            RowDivider()
+            ActionRow(
+                label = "Oceny i średnia (Import ocen)",
+                supporting = "Zaimportuj oceny z dziennika eduVULCAN lub oblicz średnią",
+                trailingChevron = true,
+                onClick = { showGradesDialog = true }
             )
         }
 
@@ -200,6 +217,13 @@ internal fun CalendarSection(
                 onClick = onClear
             )
         }
+    }
+
+    // --- Dialog ocen ---
+    if (showGradesDialog) {
+        pl.zse.bydgoszcz.elektron.presentation.grades.GradesDialog(
+            onDismiss = { showGradesDialog = false }
+        )
     }
 
     // --- Dialog logowania hasłem do eduVULCAN ---

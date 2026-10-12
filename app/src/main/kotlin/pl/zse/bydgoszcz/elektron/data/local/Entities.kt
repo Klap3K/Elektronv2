@@ -150,3 +150,23 @@ data class AttendanceEntity(
     val lastUpdatedEpochSeconds: Long
 )
 
+@Entity(tableName = "student_grades", indices = [Index("subject"), Index("periodNumber")])
+data class GradeEntity(
+    @PrimaryKey val id: String,
+    val subject: String,
+    val value: String,
+    val weight: Double,
+    val category: String?,
+    val description: String?,
+    val teacher: String?,
+    val dateText: String?,
+    val periodNumber: Int,
+    val isActivePeriod: Boolean,
+    val isSuperseded: Boolean,
+    val apiSubjectAverage: Double?,
+    val proposedGrade: String?,
+    val finalGrade: String?,
+    val updatedAtEpochSeconds: Long
+)
+
+

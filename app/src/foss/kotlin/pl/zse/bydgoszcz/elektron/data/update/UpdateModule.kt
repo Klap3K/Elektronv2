@@ -6,10 +6,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import pl.zse.bydgoszcz.elektron.domain.repository.UpdateInstaller
 
-/** Wariant foss (F-Droid): bez instalowania aktualizacji w aplikacji. */
+/** Wariant foss: bezpośrednia instalacja aktualizacji z GitHub Releases w aplikacji. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class UpdateModule {
     @Binds
-    abstract fun bindUpdateInstaller(impl: NoUpdateInstaller): UpdateInstaller
+    abstract fun bindUpdateInstaller(impl: ApkUpdateInstaller): UpdateInstaller
 }
