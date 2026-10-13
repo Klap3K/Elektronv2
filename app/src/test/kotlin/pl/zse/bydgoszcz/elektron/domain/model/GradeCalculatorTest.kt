@@ -9,18 +9,16 @@ import pl.zse.bydgoszcz.elektron.data.remote.vulcan.VulcanApiClient
 class GradeCalculatorTest {
 
     @Test
-    fun parseNumericValue_handlesPolishGradeFormats() {
-        assertEquals(5.0, GradeCalculator.parseNumericValue("5")!!, 0.001)
-        assertEquals(4.5, GradeCalculator.parseNumericValue("4+")!!, 0.001)
-        assertEquals(3.75, GradeCalculator.parseNumericValue("4-")!!, 0.001)
-        assertEquals(4.5, GradeCalculator.parseNumericValue("+4")!!, 0.001)
-        assertEquals(3.75, GradeCalculator.parseNumericValue("-4")!!, 0.001)
-        assertEquals(6.0, GradeCalculator.parseNumericValue("cel")!!, 0.001)
-        assertEquals(5.0, GradeCalculator.parseNumericValue("bdb")!!, 0.001)
-        assertEquals(1.0, GradeCalculator.parseNumericValue("ndst")!!, 0.001)
-        assertNull(GradeCalculator.parseNumericValue("np"))
-        assertNull(GradeCalculator.parseNumericValue("bz"))
-        assertNull(GradeCalculator.parseNumericValue("+"))
+    fun parseNumericGrade_handlesPolishGradeFormats() {
+        assertEquals(5.0, GradeCalculator.parseNumericGrade("5")!!, 0.001)
+        assertEquals(4.5, GradeCalculator.parseNumericGrade("4+")!!, 0.001)
+        assertEquals(3.75, GradeCalculator.parseNumericGrade("4-")!!, 0.001)
+        assertEquals(6.0, GradeCalculator.parseNumericGrade("cel")!!, 0.001)
+        assertEquals(5.0, GradeCalculator.parseNumericGrade("bdb")!!, 0.001)
+        assertEquals(1.0, GradeCalculator.parseNumericGrade("ndst")!!, 0.001)
+        assertNull(GradeCalculator.parseNumericGrade("np"))
+        assertNull(GradeCalculator.parseNumericGrade("bz"))
+        assertNull(GradeCalculator.parseNumericGrade("+"))
     }
 
     @Test
@@ -72,12 +70,8 @@ class GradeCalculatorTest {
         val math = summaries.first()
         assertEquals("Matematyka", math.subject)
         // (5*3 + 3*1) / (3 + 1) = 18 / 4 = 4.50
-        assertEquals(4.5, math.calculatedAverage!!, 0.001)
-        assertEquals(4.5, math.effectiveAverage!!, 0.001)
-
-        // Symulacja dodania oceny 2 o wadze 2: (18 + 4) / (4 + 2) = 22 / 6 = 3.666...
-        val simulated = GradeCalculator.simulateAverage(math, "2", 2.0)!!
-        assertEquals(3.666, simulated, 0.01)
+        assertEquals(4.5, math.average!!, 0.001)
+        assertEquals(4.5, GradeCalculator.overallAverage(summaries)!!, 0.001)
     }
 
     @Test

@@ -556,7 +556,7 @@ class SyncCoordinatorTest {
             override val studentNumber = kotlinx.coroutines.flow.flowOf<Int?>(null)
             override val classSize = kotlinx.coroutines.flow.flowOf(30)
             override fun observeDuty(date: java.time.LocalDate) = kotlinx.coroutines.flow.flowOf(
-                pl.zse.bydgoszcz.elektron.domain.model.ClassroomDuty.calculate(null, 30, date)
+                pl.zse.bydgoszcz.elektron.domain.model.ClassroomDuty.calculate(date, null, 30)
             )
             override suspend fun setStudentNumber(number: Int?) = Unit
             override suspend fun setClassSize(size: Int) = Unit
