@@ -77,7 +77,8 @@ import pl.zse.bydgoszcz.elektron.domain.model.EduVulcanSession
 @Composable
 fun EduVulcanLoginDialog(
     onDismiss: () -> Unit,
-    onSessionConnected: (EduVulcanSession) -> Unit
+    onSessionConnected: (EduVulcanSession) -> Unit,
+    initialErrorMessage: String? = null
 ) {
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
@@ -90,7 +91,7 @@ fun EduVulcanLoginDialog(
     var showWebViewPreview by remember { mutableStateOf(false) }
     var forceShowInputs by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Wpisz login/e-mail oraz hasło do konta eduVULCAN") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember(initialErrorMessage) { mutableStateOf<String?>(initialErrorMessage) }
     var detectedProfiles by remember { mutableStateOf<List<EduVulcanProfileTile>>(emptyList()) }
 
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
@@ -167,6 +168,34 @@ fun EduVulcanLoginDialog(
                 }
 
                 if (!inputsCollapsed) {
+                    if (!initialErrorMessage.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = initialErrorMessage,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Zaloguj się swoim kontem eduVULCAN (eduvulcan.pl), aby automatycznie pobierać oceny, sprawdziany, kartkówki i frekwencję.",

@@ -193,6 +193,7 @@ class SettingsViewModel @Inject constructor(
         val liveBellNotificationEnabled: Boolean = true,
         val dutyStudentNumber: Int? = null,
         val dutyClassSize: Int = 30,
+        val attendanceTargetPercent: Int = 75,
         val cardOrder: List<DashboardCardItem> = DashboardLayoutUtils.defaultOrder(),
         /** Pierwsze dane już są (do tego czasu ekran jest niewidoczny, bez mignięć). */
         val ready: Boolean = false
@@ -215,7 +216,8 @@ class SettingsViewModel @Inject constructor(
         settings.liveBellNotificationEnabled,
         dutyRepo.studentNumber,
         dutyRepo.classSize,
-        settings.dashboardCardsOrder
+        settings.dashboardCardsOrder,
+        settings.attendanceTargetPercent
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         State(
@@ -241,9 +243,14 @@ class SettingsViewModel @Inject constructor(
             liveBellNotificationEnabled = values[18] as Boolean,
             dutyStudentNumber = values[19] as Int?,
             dutyClassSize = values[20] as Int,
-            cardOrder = DashboardLayoutUtils.decode(values[21] as String?)
+            cardOrder = DashboardLayoutUtils.decode(values[21] as String?),
+            attendanceTargetPercent = values[22] as Int
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), State())
+
+    fun setAttendanceTargetPercent(percent: Int) = writeSetting {
+        settings.setAttendanceTargetPercent(percent)
+    }
 
     fun setTheme(m: ThemeMode) = writeSetting {
         settings.setThemeMode(m)

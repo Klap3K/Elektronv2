@@ -14,12 +14,14 @@ import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
 import pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
+import pl.zse.bydgoszcz.elektron.domain.repository.SettingsRepository
 import javax.inject.Inject
 
 @HiltViewModel
 class AttendanceViewModel @Inject constructor(
     private val repo: AttendanceRepository,
-    private val calendarRepo: CalendarRepository
+    private val calendarRepo: CalendarRepository,
+    private val settings: SettingsRepository
 ) : ViewModel() {
 
     private val simulatedMissed = MutableStateFlow(0)
@@ -33,6 +35,9 @@ class AttendanceViewModel @Inject constructor(
 
     val overallAttendance: StateFlow<OverallAttendance?> = repo.observeOverall()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val targetThresholdPercent: StateFlow<Int> = settings.attendanceTargetPercent
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 75)
 
     data class SimulationState(
         val simulatedMissedHours: Int = 0,
@@ -65,6 +70,12 @@ class AttendanceViewModel @Inject constructor(
 
     fun setSimulatedMissed(hours: Int) {
         simulatedMissed.value = hours.coerceIn(0, 100)
+    }
+
+    fun setTargetThresholdPercent(percent: Int) {
+        viewModelScope.launch {
+            settings.setAttendanceTargetPercent(percent)
+        }
     }
 
     fun selectSubjectForSimulation(subject: String?) {

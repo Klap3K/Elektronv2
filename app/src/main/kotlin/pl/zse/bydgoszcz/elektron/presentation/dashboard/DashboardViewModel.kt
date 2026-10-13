@@ -112,6 +112,7 @@ class DashboardViewModel @Inject constructor(
         val duty: ClassroomDuty? = null,
         val overallAttendance: OverallAttendance? = null,
         val atRiskSubjectsCount: Int = 0,
+        val attendanceTargetPercent: Int = 75,
         val todayActivities: List<UserActivity> = emptyList(),
         val countdown: CountdownSettings = CountdownSettings(),
         val autoDndActive: Boolean = false,
@@ -146,6 +147,7 @@ class DashboardViewModel @Inject constructor(
         val showAnnouncements: Boolean = true,
         val duty: ClassroomDuty? = null,
         val overallAttendance: OverallAttendance? = null,
+        val attendanceTargetPercent: Int = 75,
         val todayActivities: List<UserActivity> = emptyList(),
         val countdown: CountdownSettings? = null,
         val autoDnd: Boolean = false,
@@ -192,6 +194,7 @@ class DashboardViewModel @Inject constructor(
         .combine(updateRepo.availableUpdate) { core, u -> core.copy(update = u) }
         .combine(dutyRepo.observeDuty()) { core, d -> core.copy(duty = d) }
         .combine(attendanceRepo.observeOverall()) { core, a -> core.copy(overallAttendance = a) }
+        .combine(settings.attendanceTargetPercent) { core, tp -> core.copy(attendanceTargetPercent = tp) }
         .combine(todayFlow.flatMapLatest { activityRepo.observeForDate(it) }) { core, acts -> core.copy(todayActivities = acts) }
         .combine(settings.countdownSettings) { core, cs -> core.copy(countdown = cs) }
         .combine(settings.autoDndEnabled) { core, dnd -> core.copy(autoDnd = dnd) }
@@ -211,6 +214,7 @@ class DashboardViewModel @Inject constructor(
                 isSyncing = c.syncing, lastSyncError = c.error,
                 showNextLesson = c.showNextLesson, showSubstitutions = c.showSubstitutions,
                 showAnnouncements = c.showAnnouncements,
+                attendanceTargetPercent = c.attendanceTargetPercent,
                 countdown = c.countdown ?: CountdownSettings(),
                 autoDndActive = false)
         }
@@ -315,6 +319,7 @@ class DashboardViewModel @Inject constructor(
             duty = c.duty,
             overallAttendance = c.overallAttendance,
             atRiskSubjectsCount = c.overallAttendance?.criticalSubjectsCount ?: 0,
+            attendanceTargetPercent = c.attendanceTargetPercent,
             todayActivities = c.todayActivities,
             countdown = c.countdown ?: CountdownSettings(),
             autoDndActive = autoDndActive,

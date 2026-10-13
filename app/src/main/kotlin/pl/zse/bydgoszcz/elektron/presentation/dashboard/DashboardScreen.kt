@@ -268,6 +268,7 @@ fun DashboardScreen(
                                         AttendanceGuardianCard(
                                             attendance = att,
                                             atRiskCount = state.atRiskSubjectsCount,
+                                            targetPercent = state.attendanceTargetPercent,
                                             onClick = { showAttendanceDialog = true }
                                         )
                                     }
@@ -864,12 +865,14 @@ private fun DutyCard(
 private fun AttendanceGuardianCard(
     attendance: pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance,
     atRiskCount: Int,
+    targetPercent: Int = 75,
     onClick: () -> Unit
 ) {
     val pct = attendance.percentage
+    val bal = attendance.balance(targetPercent)
     val color = when {
-        pct < 50f -> MaterialTheme.colorScheme.error
-        pct < 65f -> Color(0xFFF57C00)
+        bal.isCritical -> MaterialTheme.colorScheme.error
+        bal.isBelowTarget -> Color(0xFFF57C00)
         else -> Color(0xFF2E7D32)
     }
 
@@ -915,27 +918,26 @@ private fun AttendanceGuardianCard(
             )
 
             Spacer(Modifier.height(8.dp))
-            val safeHours = attendance.maxMissableHours(0.50f)
+            val balanceText = when {
+                atRiskCount > 0 -> "⚠️ Zagrożone przedmioty: $atRiskCount (<50%)"
+                bal.isBelowTarget -> "Do ${targetPercent}%: +${bal.recoveryNeededToTarget} h (zapas: ${bal.maxMissableTo50} h)"
+                else -> "Zapas do ${targetPercent}%: ${bal.maxMissableToTarget} h (do 50%: ${bal.maxMissableTo50} h)"
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (atRiskCount > 0) {
-                    Text(
-                        "⚠️ Zagrożone przedmioty: $atRiskCount (<50%)",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else {
-                    Text(
-                        "Dopuszczalne opuszczenia: $safeHours h",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    balanceText,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (atRiskCount > 0) FontWeight.Bold else FontWeight.Medium,
+                    color = when {
+                        atRiskCount > 0 -> MaterialTheme.colorScheme.error
+                        bal.isBelowTarget -> Color(0xFFF57C00)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
                 Text(
                     "Szczegóły ›",
                     style = MaterialTheme.typography.labelMedium,

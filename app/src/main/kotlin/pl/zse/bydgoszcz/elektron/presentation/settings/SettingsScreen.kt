@@ -267,6 +267,8 @@ fun SettingsScreen(
                     isSyncing = isSyncingCalendar,
                     lastSyncEpochSeconds = calendarLastSync,
                     lastSyncError = calendarError,
+                    attendanceTargetPercent = state.attendanceTargetPercent,
+                    onSetAttendanceTargetPercent = viewModel::setAttendanceTargetPercent,
                     onConnectEduVulcan = calendarViewModel::connectEduVulcanSession,
                     onDisconnectVulcan = calendarViewModel::clearVulcanAccount,
                     onSetUrl = calendarViewModel::setCalendarUrl,

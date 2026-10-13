@@ -5,6 +5,13 @@ object Changelog {
     data class Entry(val versionCode: Int, val versionName: String, val items: List<String>)
 
     val entries: List<Entry> = listOf(
+        Entry(48, "2.1.1", listOf(
+            "Konfigurowalny próg docelowy w Strażniku Frekwencji: wybór własnego celu obecności (50% – 95%, domyślnie bezpieczne 75%)",
+            "Precyzyjny bilans godzin: wskaźnik bezpiecznego zapasu do opuszczenia lub godzin do odrobienia wprost przy każdym przedmiocie",
+            "Podwójny próg bezpieczeństwa: równoległa ochrona przed progiem 50% (nieklasyfikowanie) oraz Twoim celem bezpiecznym",
+            "Karta Strażnika na pulpicie: natychmiastowy podgląd bilansu godzin i zapasu do celu bez wchodzenia w szczegóły",
+            "Czytelna obsługa wygasłej sesji eduVULCAN: dedykowany baner informacyjny o konieczności ponownego zalogowania"
+        )),
         Entry(47, "2.1.0", listOf(
             "Symulator Ocen „Co jeśli”: natychmiastowa symulacja przewidywanych ocen i ich wpływu na średnią ważoną przedmiotu oraz średnią ogólną",
             "Strażnik Frekwencji: naprawione pobieranie wszystkich przedmiotów z eduVULCAN oraz kalkulator bezpiecznego progu z precyzyjnym limitem opuszczeń i godzinami do odrobienia",

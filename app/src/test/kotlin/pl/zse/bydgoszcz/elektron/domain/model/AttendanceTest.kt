@@ -71,5 +71,11 @@ class AttendanceTest {
         // Total present: 30, Total absent: 10 => 30/40 = 75%
         assertEquals(75.0f, overall.percentage, 0.01f)
         assertEquals(0, overall.criticalSubjectsCount)
+
+        val balance = overall.balance(75)
+        assertEquals(75.0, balance.currentPercentage, 0.01)
+        assertFalse(balance.isBelowTarget)
+        assertFalse(balance.isCritical)
+        assertEquals(0, balance.maxMissableToTarget) // exact 75%
     }
 }

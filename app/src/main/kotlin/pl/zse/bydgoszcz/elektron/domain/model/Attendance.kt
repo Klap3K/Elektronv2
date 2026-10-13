@@ -66,6 +66,16 @@ data class SubjectAttendance(
         ).hoursNeededToRecover
 
     /**
+     * Zwraca precyzyjny bilans frekwencji względem konfigurowalnego progu docelowego [targetThresholdPercent].
+     */
+    fun balance(targetThresholdPercent: Int = 75): AttendanceBalance =
+        AttendanceThresholdCalculator.calculateBalance(
+            presentHours = presentCount,
+            absentHours = absentCount,
+            targetThresholdPercent = targetThresholdPercent
+        )
+
+    /**
      * Symuluje nową frekwencję przy dodatkowych opuszczonych [simulatedAbsentHours] lub odrobionych [simulatedPresentHours].
      */
     fun simulate(simulatedAbsentHours: Int = 0, simulatedPresentHours: Int = 0): Float {
@@ -113,6 +123,16 @@ data class OverallAttendance(
             absentHours = absentCount,
             requiredThreshold = thresholdFraction.toDouble()
         ).hoursNeededToRecover
+
+    /**
+     * Zwraca precyzyjny bilans ogólnej frekwencji względem konfigurowalnego progu docelowego [targetThresholdPercent].
+     */
+    fun balance(targetThresholdPercent: Int = 75): AttendanceBalance =
+        AttendanceThresholdCalculator.calculateBalance(
+            presentHours = presentCount,
+            absentHours = absentCount,
+            targetThresholdPercent = targetThresholdPercent
+        )
 
     fun simulate(simulatedAbsentHours: Int = 0, simulatedPresentHours: Int = 0): Float {
         val newPresent = (presentCount + simulatedPresentHours).coerceAtLeast(0)

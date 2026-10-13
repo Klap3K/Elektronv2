@@ -18,6 +18,22 @@ data class AttendanceThresholdResult(
 )
 
 /**
+ * Zrównoważony bilans frekwencji z uwzględnieniem progu docelowego (np. 75%) oraz krytycznego (50%).
+ */
+data class AttendanceBalance(
+    val currentPercentage: Double,
+    val targetThresholdPercent: Int,
+    val isCritical: Boolean,
+    val isBelowTarget: Boolean,
+    val maxMissableToTarget: Int,
+    val recoveryNeededToTarget: Int,
+    val maxMissableTo50: Int,
+    val recoveryNeededTo50: Int,
+    val shortSummary: String,
+    val fullSummary: String
+)
+
+/**
  * Kalkulator bezpiecznego progu frekwencji (np. 50% dla zagrożenia nieklasyfikowaniem).
  *
  * Matematyka:
@@ -31,6 +47,7 @@ data class AttendanceThresholdResult(
 object AttendanceThresholdCalculator {
 
     const val DEFAULT_THRESHOLD = 0.50
+    const val DEFAULT_TARGET_THRESHOLD_PERCENT = 75
 
     fun calculate(
         presentHours: Int,
@@ -87,6 +104,70 @@ object AttendanceThresholdCalculator {
             isBelowThreshold = isBelow,
             maxMissableHours = maxMissable,
             hoursNeededToRecover = recovery
+        )
+    }
+
+    /**
+     * Wylicza kompleksowy bilans frekwencji z porównaniem do progu docelowego [targetThresholdPercent] (np. 75%)
+     * oraz ustawowego progu ostrzegawczego 50%.
+     */
+    fun calculateBalance(
+        presentHours: Int,
+        absentHours: Int,
+        targetThresholdPercent: Int = DEFAULT_TARGET_THRESHOLD_PERCENT
+    ): AttendanceBalance {
+        val targetPct = targetThresholdPercent.coerceIn(50, 95)
+        val targetRatio = targetPct.toDouble() / 100.0
+        val critRatio = DEFAULT_THRESHOLD
+
+        val p = presentHours.coerceAtLeast(0)
+        val a = absentHours.coerceAtLeast(0)
+        val total = p + a
+
+        if (total == 0) {
+            return AttendanceBalance(
+                currentPercentage = 100.0,
+                targetThresholdPercent = targetPct,
+                isCritical = false,
+                isBelowTarget = false,
+                maxMissableToTarget = 0,
+                recoveryNeededToTarget = 0,
+                maxMissableTo50 = 0,
+                recoveryNeededTo50 = 0,
+                shortSummary = "Brak zajęć",
+                fullSummary = "Brak odnotowanych godzin lekcyjnych."
+            )
+        }
+
+        val resCrit = calculate(p, a, critRatio)
+        val resTarget = calculate(p, a, targetRatio)
+        val currentPct = resCrit.currentPercentage
+        val isCrit = resCrit.isBelowThreshold
+        val isBelowTgt = resTarget.isBelowThreshold
+
+        val short = when {
+            isCrit -> "Zagrożenie: +${resCrit.hoursNeededToRecover} h do 50%"
+            isBelowTgt -> "Do $targetPct%: +${resTarget.hoursNeededToRecover} h (zapas: ${resCrit.maxMissableHours} h)"
+            else -> "Zapas: ${resTarget.maxMissableHours} h (do $targetPct%)"
+        }
+
+        val full = when {
+            isCrit -> "Zagrożenie nieklasyfikowaniem! Musisz być obecny na ${resCrit.hoursNeededToRecover} godz. z rzędu, by osiągnąć próg 50%."
+            isBelowTgt -> "Poniżej celu $targetPct%: brakuje ${resTarget.hoursNeededToRecover} godz. obecności. Bezpieczny zapas do progu 50%: ${resCrit.maxMissableHours} godz."
+            else -> "Możesz opuścić jeszcze ${resTarget.maxMissableHours} godz. przed spadkiem poniżej celu $targetPct% (oraz ${resCrit.maxMissableHours} godz. do progu 50%)."
+        }
+
+        return AttendanceBalance(
+            currentPercentage = currentPct,
+            targetThresholdPercent = targetPct,
+            isCritical = isCrit,
+            isBelowTarget = isBelowTgt,
+            maxMissableToTarget = resTarget.maxMissableHours,
+            recoveryNeededToTarget = resTarget.hoursNeededToRecover,
+            maxMissableTo50 = resCrit.maxMissableHours,
+            recoveryNeededTo50 = resCrit.hoursNeededToRecover,
+            shortSummary = short,
+            fullSummary = full
         )
     }
 }

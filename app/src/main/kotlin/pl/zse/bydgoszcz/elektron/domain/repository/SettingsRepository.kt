@@ -80,6 +80,10 @@ interface SettingsRepository {
     val dashboardCardsOrder: Flow<String?>
     suspend fun setDashboardCardsOrder(order: String)
 
+    /** Docelowy bezpieczny próg frekwencji w procentach (np. 75%; zakres 50..95). */
+    val attendanceTargetPercent: Flow<Int> get() = flowOf(75)
+    suspend fun setAttendanceTargetPercent(percent: Int) {}
+
     /** Kanał aktualizacji z GitHuba; domyślnie stabilny. */
     val updateChannel: Flow<UpdateChannel> get() = flowOf(UpdateChannel.STABLE)
     suspend fun setUpdateChannel(channel: UpdateChannel) {}

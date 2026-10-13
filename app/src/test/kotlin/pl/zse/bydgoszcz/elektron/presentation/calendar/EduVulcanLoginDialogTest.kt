@@ -44,4 +44,17 @@ class EduVulcanLoginDialogTest {
         assertTrue(dismissed)
         assertTrue(!connected)
     }
+
+    @Test fun initialErrorMessageIsDisplayedWhenProvided() {
+        compose.setContent {
+            MaterialTheme {
+                EduVulcanLoginDialog(
+                    onDismiss = {},
+                    onSessionConnected = {},
+                    initialErrorMessage = "Twoja sesja eduVULCAN wygasła. Zaloguj się ponownie."
+                )
+            }
+        }
+        compose.onNodeWithText("Twoja sesja eduVULCAN wygasła. Zaloguj się ponownie.").assertExists()
+    }
 }

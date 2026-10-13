@@ -98,6 +98,7 @@ class SettingsRepositoryImpl internal constructor(
         val AUTO_DND_ENABLED = booleanPreferencesKey("auto_dnd_enabled")
         val LIVE_BELL_NOTIFICATION_ENABLED = booleanPreferencesKey("live_bell_notification_enabled")
         val DASHBOARD_CARDS_ORDER = stringPreferencesKey("dashboard_cards_order")
+        val ATTENDANCE_TARGET_PERCENT = intPreferencesKey("attendance_target_percent")
         val LAST_SEEN_VERSION = intPreferencesKey("last_seen_version_code")
         val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
         val GROUPS_CONFIGURED_FOR = stringPreferencesKey("groups_configured_for")
@@ -293,6 +294,16 @@ class SettingsRepositoryImpl internal constructor(
     override suspend fun setDashboardCardsOrder(order: String) {
         safeEdit {
             it[Keys.DASHBOARD_CARDS_ORDER] = order
+        }
+    }
+
+    override val attendanceTargetPercent: Flow<Int> = prefs.map {
+        it[Keys.ATTENDANCE_TARGET_PERCENT] ?: 75
+    }.distinctUntilChanged()
+
+    override suspend fun setAttendanceTargetPercent(percent: Int) {
+        safeEdit {
+            it[Keys.ATTENDANCE_TARGET_PERCENT] = percent.coerceIn(50, 95)
         }
     }
 

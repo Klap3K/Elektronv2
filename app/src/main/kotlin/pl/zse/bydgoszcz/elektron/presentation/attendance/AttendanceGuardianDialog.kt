@@ -59,6 +59,7 @@ fun AttendanceGuardianDialog(
 ) {
     val overall by viewModel.overallAttendance.collectAsStateWithLifecycle()
     val simulation by viewModel.simulationState.collectAsStateWithLifecycle()
+    val targetThreshold by viewModel.targetThresholdPercent.collectAsStateWithLifecycle()
     val vulcanAccount by viewModel.vulcanAccount.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     var showLoginDialog by remember { mutableStateOf(false) }
@@ -97,7 +98,13 @@ fun AttendanceGuardianDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // Karta ogólnej frekwencji
-                    OverallCard(data, simulation)
+                    OverallCard(data, simulation, targetThreshold)
+
+                    // Konfiguracja docelowego progu
+                    TargetThresholdSection(
+                        currentTarget = targetThreshold,
+                        onTargetChange = { viewModel.setTargetThresholdPercent(it) }
+                    )
 
                     // Symulator opuszczeń
                     SimulatorSection(
@@ -120,7 +127,7 @@ fun AttendanceGuardianDialog(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         items(data.subjects, key = { it.subject }) { subj ->
-                            SubjectRow(subj, simulation.simulatedMissedHours)
+                            SubjectRow(subj, simulation.simulatedMissedHours, targetThreshold)
                         }
                     }
                 }
@@ -156,13 +163,66 @@ fun AttendanceGuardianDialog(
 }
 
 @Composable
-private fun OverallCard(data: OverallAttendance, simulation: AttendanceViewModel.SimulationState) {
+private fun TargetThresholdSection(
+    currentTarget: Int,
+    onTargetChange: (Int) -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Twój cel frekwencji:",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "$currentTarget%",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            listOf(50, 60, 70, 75, 80, 85, 90).forEach { pct ->
+                val label = if (pct == 50) "50% (min)" else if (pct == 75) "75% (zalecany)" else "$pct%"
+                FilterChip(
+                    selected = currentTarget == pct,
+                    onClick = { onTargetChange(pct) },
+                    label = { Text(label, fontSize = 12.sp) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverallCard(
+    data: OverallAttendance,
+    simulation: AttendanceViewModel.SimulationState,
+    targetThreshold: Int
+) {
     val simulated = simulation.simulatedMissedHours > 0
-    val displayPct = if (simulated) simulation.simulatedOverallPercentage ?: data.percentage else data.percentage
+    val displayPct = if (simulated) (simulation.simulatedOverallPercentage ?: data.percentage).toDouble() else data.percentage.toDouble()
+
+    val balance = AttendanceThresholdCalculator.calculateBalance(
+        presentHours = data.presentCount,
+        absentHours = data.absentCount + simulation.simulatedMissedHours,
+        targetThresholdPercent = targetThreshold
+    )
 
     val color = when {
-        displayPct < 50f -> MaterialTheme.colorScheme.error
-        displayPct < 65f -> Color(0xFFF57C00) // Ostrzegawczy pomarańczowy
+        balance.isCritical -> MaterialTheme.colorScheme.error
+        balance.isBelowTarget -> Color(0xFFF57C00) // Poniżej celu
         else -> Color(0xFF2E7D32) // Bezpieczny zielony
     }
 
@@ -192,7 +252,7 @@ private fun OverallCard(data: OverallAttendance, simulation: AttendanceViewModel
 
             Spacer(Modifier.height(6.dp))
             LinearProgressIndicator(
-                progress = { (displayPct / 100f).coerceIn(0f, 1f) },
+                progress = { (displayPct / 100.0).toFloat().coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp),
@@ -202,47 +262,36 @@ private fun OverallCard(data: OverallAttendance, simulation: AttendanceViewModel
             )
 
             Spacer(Modifier.height(8.dp))
-            val safeMiss = data.maxMissableHours(0.50f)
-            val recover = data.hoursNeededToRecover(0.50f)
-
-            if (data.percentage >= 50f) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.CheckCircle,
-                        contentDescription = null,
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Możesz opuścić jeszcze $safeMiss godz. przed progiem 50%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium
-                    )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val icon = when {
+                    balance.isCritical -> Icons.Filled.Warning
+                    balance.isBelowTarget -> Icons.Filled.Info
+                    else -> Icons.Filled.CheckCircle
                 }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Zagrożenie: musisz być obecny na $recover godz., by osiągnąć 50%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold
-                    )
+                val iconTint = when {
+                    balance.isCritical -> MaterialTheme.colorScheme.error
+                    balance.isBelowTarget -> Color(0xFFF57C00)
+                    else -> Color(0xFF2E7D32)
                 }
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    balance.fullSummary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (balance.isCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontWeight = if (balance.isCritical) FontWeight.Bold else FontWeight.Medium
+                )
             }
 
             if (simulated) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Symulacja: +${simulation.simulatedMissedHours} opuszczonych godzin (spadek o ${String.format(Locale.US, "%.1f%%", data.percentage - displayPct)})",
+                    "Symulacja: +${simulation.simulatedMissedHours} opuszczonych godzin (spadek o ${String.format(Locale.US, "%.1f%%", data.percentage - displayPct.toFloat())})",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -284,11 +333,21 @@ private fun SimulatorSection(
 }
 
 @Composable
-private fun SubjectRow(subj: SubjectAttendance, simulatedMissedHours: Int) {
-    val displayPct = if (simulatedMissedHours > 0) subj.simulate(simulatedAbsentHours = simulatedMissedHours) else subj.percentage
+private fun SubjectRow(
+    subj: SubjectAttendance,
+    simulatedMissedHours: Int,
+    targetThreshold: Int
+) {
+    val simulatedAbsent = subj.absentCount + simulatedMissedHours
+    val balance = AttendanceThresholdCalculator.calculateBalance(
+        presentHours = subj.presentCount,
+        absentHours = simulatedAbsent,
+        targetThresholdPercent = targetThreshold
+    )
+    val displayPct = balance.currentPercentage
     val color = when {
-        displayPct < 50f -> MaterialTheme.colorScheme.error
-        displayPct < 65f -> Color(0xFFF57C00)
+        balance.isCritical -> MaterialTheme.colorScheme.error
+        balance.isBelowTarget -> Color(0xFFF57C00)
         else -> Color(0xFF2E7D32)
     }
 
@@ -322,7 +381,7 @@ private fun SubjectRow(subj: SubjectAttendance, simulatedMissedHours: Int) {
 
             Spacer(Modifier.height(4.dp))
             LinearProgressIndicator(
-                progress = { (displayPct / 100f).coerceIn(0f, 1f) },
+                progress = { (displayPct / 100.0).toFloat().coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(5.dp),
@@ -334,21 +393,23 @@ private fun SubjectRow(subj: SubjectAttendance, simulatedMissedHours: Int) {
             Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Obecności: ${subj.presentCount} / ${subj.totalHours} h",
+                    "Obecności: ${subj.presentCount} / ${subj.presentCount + simulatedAbsent} h",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                val missable = subj.maxMissableHours(0.50f)
-                val needed = subj.hoursNeededToRecover(0.50f)
-                val limitText = if (displayPct >= 50f) "Zapas: $missable h" else "Do 50%: +$needed h"
                 Text(
-                    limitText,
+                    balance.shortSummary,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (displayPct >= 50f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    color = when {
+                        balance.isCritical -> MaterialTheme.colorScheme.error
+                        balance.isBelowTarget -> Color(0xFFF57C00)
+                        else -> MaterialTheme.colorScheme.primary
+                    }
                 )
             }
         }

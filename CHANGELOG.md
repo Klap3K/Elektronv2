@@ -4,6 +4,21 @@ Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
+## [2.1.1] - 2026-10-13 (48)
+
+Szczegóły: [release-notes/2.1.1.md](release-notes/2.1.1.md).
+
+- **Konfigurowalny próg docelowy w Strażniku Frekwencji:**
+  - Dodano możliwość ustawienia własnego docelowego progu obecności (od 50% do 95%, domyślnie bezpieczne 75%) w Ustawieniach oraz bezpośrednio w oknie Strażnika Frekwencji.
+  - Podwójna ocena stanu frekwencji: natychmiastowe wykrywanie zagrożenia nieklasyfikowaniem (< 50%) oraz monitorowanie bezpieczeństwa względem celu użytkownika.
+- **Precyzyjny wskaźnik bilansu godzin (`AttendanceBalance`):**
+  - Wyliczanie dokładnej liczby godzin, które można bezpiecznie opuścić przed spadkiem poniżej celu (`maxMissableToTarget`) lub liczby godzin obecności z rzędu potrzebnych do osiągnięcia celu (`recoveryNeededToTarget`).
+  - Czytelny bilans przy każdym przedmiocie w liście przedmiotów (`Zapas: X h` / `Do 75%: +Y h (zapas: Z h do 50%)`).
+- **Karta Strażnika Frekwencji na pulpicie:**
+  - Prezentacja bilansu godzin do celu bezpośrednio na karcie strony głównej bez konieczności otwierania okna szczegółów.
+- **Czytelna obsługa wygasłej sesji eduVULCAN:**
+  - Wyraźny komunikat informacyjny o wygaśnięciu sesji i konieczności ponownego zalogowania w oknie logowania oraz w Ustawieniach.
+
 ## [2.1.0] - 2026-10-13 (47)
 
 Szczegóły: [release-notes/2.1.0.md](release-notes/2.1.0.md).
