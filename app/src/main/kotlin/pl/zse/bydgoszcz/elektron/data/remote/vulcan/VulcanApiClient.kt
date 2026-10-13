@@ -68,10 +68,11 @@ class VulcanApiClient @Inject constructor(
             // 1. Odświeżenie kontekstu na serwerze uczen.eduvulcan.pl (zapobiega błędom HTTP 403)
             warmUpAndVerifyContext(baseUrl, cookies)
 
-            // 2. Pobranie listy sprawdzianów i zadań domowych z okna [-14 dni .. +65 dni]
+            // 2. Pobranie listy sprawdzianów, prac klasowych, kartkówek i zadań domowych z szerokiego okna semestralnego
             val now = LocalDate.now()
-            val dataOd = "${now.minusDays(14)}T00:00:00.000Z"
-            val dataDo = "${now.plusDays(65)}T23:59:59.999Z"
+            val startDate = minOf(now.withDayOfMonth(1).minusDays(1), now.minusDays(60))
+            val dataOd = "${startDate}T00:00:00.000Z"
+            val dataDo = "${now.plusDays(120)}T23:59:59.999Z"
 
             val listUrl = "$baseUrl/api/SprawdzianyZadaniaDomowe".toHttpUrlOrNull()!!
                 .newBuilder()
@@ -106,88 +107,197 @@ class VulcanApiClient @Inject constructor(
                 return Result.success(emptyList())
             }
 
-            // Obsługa zarówno tablicy JSON z eduVULCAN, jak i starszego formatu obiektowego
-            if (trimmed.startsWith("{")) {
-                return Result.success(parseLegacyOrGroupedExamsJson(trimmed))
+            val events = parseEduVulcanEventsJson(trimmed) { detailEndpoint, itemId ->
+                fetchDetailJson(baseUrl, detailEndpoint, key, itemId, cookies)
             }
-
-            val itemsArray = runCatching { JSONArray(trimmed) }.getOrNull()
                 ?: return Result.failure(EduVulcanSessionExpiredException("Nieprawidłowa odpowiedź terminarza eduVULCAN."))
 
-            val events = mutableListOf<SchoolEvent>()
-
-            for (i in 0 until itemsArray.length()) {
-                val item = itemsArray.optJSONObject(i) ?: continue
-                val itemId = item.opt("id")?.toString()?.takeIf { it.isNotBlank() && it != "null" } ?: continue
-                val typInt = item.optInt("typ", 1)
-
-                // Pobieramy szczegóły wpisu (SprawdzianSzczegoly / ZadanieDomoweSzczegoly)
-                val detailEndpoint = if (typInt == 4) "ZadanieDomoweSzczegoly" else "SprawdzianSzczegoly"
-                val detailJson = fetchDetailJson(baseUrl, detailEndpoint, key, itemId, cookies)
-
-                val dataRaw = detailJson?.optString("terminOdpowiedzi")?.takeIf { it.isNotBlank() && it != "null" }
-                    ?: item.optString("terminOdpowiedzi").takeIf { it.isNotBlank() && it != "null" }
-                    ?: detailJson?.optString("data")?.takeIf { it.isNotBlank() && it != "null" }
-                    ?: item.optString("data")
-
-                val date = parseDateOrNull(dataRaw) ?: continue
-
-                val subject = (detailJson?.optString("przedmiotNazwa")?.takeIf { it.isNotBlank() && it != "null" }
-                    ?: item.optString("przedmiotNazwa").takeIf { it.isNotBlank() && it != "null" }
-                    ?: "").trim()
-
-                val teacher = (detailJson?.optString("nauczycielImieNazwisko")?.takeIf { it.isNotBlank() && it != "null" }
-                    ?: item.optString("nauczycielImieNazwisko").takeIf { it.isNotBlank() && it != "null" }
-                    ?: "").trim()
-
-                val rawOpis = detailJson?.optString("opis")?.takeIf { it.isNotBlank() && it != "null" }
-                    ?: detailJson?.optString("temat")?.takeIf { it.isNotBlank() && it != "null" }
-                    ?: detailJson?.optString("tresc")?.takeIf { it.isNotBlank() && it != "null" }
-                    ?: item.optString("opis").takeIf { it.isNotBlank() && it != "null" }
-                    ?: item.optString("temat").takeIf { it.isNotBlank() && it != "null" }
-                    ?: ""
-
-                val cleanOpis = stripHtml(rawOpis)
-
-                val (typeLabel, eventType) = when (typInt) {
-                    1 -> "Sprawdzian" to SchoolEventType.EXAM
-                    2 -> "Kartkówka" to SchoolEventType.QUIZ
-                    3 -> "Klasówka" to SchoolEventType.EXAM
-                    4 -> "Zadanie domowe" to SchoolEventType.HOMEWORK
-                    else -> "Wydarzenie" to SchoolEventType.OTHER
-                }
-
-                val title = if (subject.isNotBlank()) "$typeLabel: $subject" else typeLabel
-                val fullDescription = buildString {
-                    if (cleanOpis.isNotBlank()) append(cleanOpis)
-                    if (teacher.isNotBlank()) {
-                        if (isNotEmpty()) append("\n")
-                        append("Nauczyciel: ").append(teacher)
-                    }
-                }
-
-                events.add(
-                    SchoolEvent(
-                        id = "eduvulcan_$itemId",
-                        title = title,
-                        description = fullDescription.ifBlank { null },
-                        type = eventType,
-                        subject = subject.ifBlank { null },
-                        date = date,
-                        timeFrom = null,
-                        timeTo = null,
-                        location = null,
-                        rawSummary = "$title $subject $cleanOpis"
-                    )
-                )
-            }
-
-            return Result.success(events.distinctBy { it.id })
+            return Result.success(events)
         } catch (e: EduVulcanSessionExpiredException) {
             return Result.failure(e)
         } catch (e: Exception) {
             return Result.failure(e)
         }
+    }
+
+    internal fun parseEduVulcanEventsJson(
+        trimmed: String,
+        detailProvider: (endpoint: String, itemId: String) -> JSONObject? = { _, _ -> null }
+    ): List<SchoolEvent>? {
+        if (trimmed.isBlank()) return emptyList()
+
+        // Obsługa zarówno tablicy JSON z eduVULCAN, jak i obiektu opakowującego
+        val itemsArray: JSONArray = when {
+            trimmed.startsWith("[") -> runCatching { JSONArray(trimmed) }.getOrNull() ?: return null
+            trimmed.startsWith("{") -> {
+                val obj = runCatching { JSONObject(trimmed) }.getOrNull() ?: return null
+                obj.optJSONArray("sprawdzianyZadaniaDomowe")
+                    ?: obj.optJSONArray("sprawdziany")
+                    ?: obj.optJSONArray("items")
+                    ?: obj.optJSONArray("lista")
+                    ?: return parseLegacyOrGroupedExamsJson(trimmed)
+            }
+            else -> return null
+        }
+
+        val events = mutableListOf<SchoolEvent>()
+
+        for (i in 0 until itemsArray.length()) {
+            val item = itemsArray.optJSONObject(i) ?: continue
+            val rawItemId = item.opt("id")?.toString()?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.opt("idSprawdzian")?.toString()?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.opt("idZadanieDomowe")?.toString()?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.opt("Id")?.toString()?.takeIf { it.isNotBlank() && it != "null" }
+            val itemId = rawItemId ?: "idx_$i"
+
+            val listTyp = item.optInt("typ", -1).takeIf { it > 0 }
+                ?: item.optInt("rodzaj", -1).takeIf { it > 0 }
+                ?: item.optInt("typSprawdzianu", -1).takeIf { it > 0 }
+                ?: item.optInt("Rodzaj", -1).takeIf { it > 0 }
+                ?: 1
+
+            val listTypeHints = listOf(
+                item.optString("typNazwa"),
+                item.optString("rodzajNazwa"),
+                item.optString("kategoria"),
+                item.optString("typ").takeIf { it.toIntOrNull() == null }.orEmpty()
+            ).joinToString(" ").lowercase(Locale.ROOT)
+
+            val isHomework = listTyp == 4 || listTypeHints.contains("domow") || listTypeHints.contains("zadanie")
+
+            // Pobieramy szczegóły wpisu (SprawdzianSzczegoly / ZadanieDomoweSzczegoly)
+            val detailEndpoint = if (isHomework) "ZadanieDomoweSzczegoly" else "SprawdzianSzczegoly"
+            val detailJson = if (rawItemId != null) {
+                detailProvider(detailEndpoint, rawItemId)
+            } else null
+
+            // Dla sprawdzianów, prac klasowych i kartkówek priorytetem jest pole "data" (data sprawdzianu),
+            // natomiast dla zadań domowych "terminOdpowiedzi" (termin oddania zadania).
+            // Każde pole sprawdzamy przez parseDateOrNull (odrzuca m.in. C# DateTime.MinValue "0001-01-01").
+            val dateCandidates = if (isHomework) {
+                listOf(
+                    detailJson?.optString("terminOdpowiedzi"),
+                    item.optString("terminOdpowiedzi"),
+                    detailJson?.optString("termin"),
+                    item.optString("termin"),
+                    detailJson?.optString("data"),
+                    item.optString("data"),
+                    detailJson?.optString("Data"),
+                    item.optString("Data")
+                )
+            } else {
+                listOf(
+                    detailJson?.optString("data"),
+                    item.optString("data"),
+                    detailJson?.optString("dataSprawdzianu"),
+                    item.optString("dataSprawdzianu"),
+                    detailJson?.optString("termin"),
+                    item.optString("termin"),
+                    detailJson?.optString("Data"),
+                    item.optString("Data"),
+                    detailJson?.optString("terminOdpowiedzi"),
+                    item.optString("terminOdpowiedzi")
+                )
+            }
+
+            val date = dateCandidates.firstNotNullOfOrNull { parseDateOrNull(it) } ?: continue
+
+            val subject = extractSubjectName(detailJson).ifBlank { extractSubjectName(item) }
+
+            val teacher = (detailJson?.optString("nauczycielImieNazwisko")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("nauczycielImieNazwisko").takeIf { it.isNotBlank() && it != "null" }
+                ?: detailJson?.optString("nauczyciel")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("nauczyciel").takeIf { it.isNotBlank() && it != "null" }
+                ?: detailJson?.optString("prowadzacy")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("prowadzacy").takeIf { it.isNotBlank() && it != "null" }
+                ?: detailJson?.optString("pracownik")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("pracownik").takeIf { it.isNotBlank() && it != "null" }
+                ?: "").trim()
+
+            val rawOpis = detailJson?.optString("opis")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: detailJson?.optString("temat")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: detailJson?.optString("tresc")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: detailJson?.optString("zagadnienia")?.takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("opis").takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("temat").takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("tresc").takeIf { it.isNotBlank() && it != "null" }
+                ?: ""
+
+            val cleanOpis = stripHtml(rawOpis)
+
+            val detailTyp = detailJson?.optInt("rodzaj", -1)?.takeIf { it in 1..4 }
+                ?: detailJson?.optInt("typ", -1)?.takeIf { it in 1..4 }
+                ?: detailJson?.optInt("typSprawdzianu", -1)?.takeIf { it in 1..4 }
+                ?: detailJson?.optInt("rodzajSprawdzianu", -1)?.takeIf { it in 1..4 }
+
+            val effectiveTyp = if (isHomework) 4 else (detailTyp ?: listTyp)
+
+            val allTypeHints = listOf(
+                listTypeHints,
+                detailJson?.optString("typNazwa").orEmpty(),
+                detailJson?.optString("rodzajNazwa").orEmpty(),
+                detailJson?.optString("kategoria").orEmpty(),
+                detailJson?.optString("kategoriaNazwa").orEmpty()
+            ).joinToString(" ").lowercase(Locale.ROOT)
+
+            val lowerOpis = cleanOpis.lowercase(Locale.ROOT)
+
+            val (typeLabel, eventType) = when {
+                effectiveTyp == 4 || isHomework -> "Zadanie domowe" to SchoolEventType.HOMEWORK
+                effectiveTyp == 2 || allTypeHints.contains("kartk") -> "Kartkówka" to SchoolEventType.QUIZ
+                effectiveTyp == 3 ||
+                    allTypeHints.contains("praca klasowa") ||
+                    allTypeHints.contains("klasówk") ||
+                    allTypeHints.contains("klasowk") ||
+                    lowerOpis.startsWith("praca klasowa") ||
+                    lowerOpis.startsWith("klasówka") -> "Praca klasowa" to SchoolEventType.EXAM
+                else -> "Sprawdzian" to SchoolEventType.EXAM
+            }
+
+            val title = if (subject.isNotBlank()) "$typeLabel: $subject" else typeLabel
+            val fullDescription = buildString {
+                if (cleanOpis.isNotBlank()) append(cleanOpis)
+                if (teacher.isNotBlank()) {
+                    if (isNotEmpty()) append("\n")
+                    append("Nauczyciel: ").append(teacher)
+                }
+            }
+
+            events.add(
+                SchoolEvent(
+                    id = "eduvulcan_${effectiveTyp}_${itemId}_${date}",
+                    title = title,
+                    description = fullDescription.ifBlank { null },
+                    type = eventType,
+                    subject = subject.ifBlank { null },
+                    date = date,
+                    timeFrom = null,
+                    timeTo = null,
+                    location = null,
+                    rawSummary = "$title $subject $cleanOpis"
+                )
+            )
+        }
+
+        return events.distinctBy { it.id }
+    }
+
+    private fun extractSubjectName(json: JSONObject?): String {
+        if (json == null) return ""
+        for (key in listOf("przedmiotNazwa", "nazwaPrzedmiotu", "PrzedmiotNazwa", "Nazwa")) {
+            val v = json.optString(key).trim()
+            if (v.isNotBlank() && v != "null") return v
+        }
+        val pObj = json.optJSONObject("przedmiot") ?: json.optJSONObject("Przedmiot")
+        if (pObj != null) {
+            val name = pObj.optString("nazwa").ifBlank { pObj.optString("Nazwa") }.trim()
+            if (name.isNotBlank() && name != "null") return name
+        }
+        for (key in listOf("przedmiot", "Przedmiot")) {
+            val v = json.optString(key).trim()
+            if (v.isNotBlank() && v != "null" && !v.startsWith("{")) return v
+        }
+        return ""
     }
 
     /**
@@ -666,7 +776,11 @@ class VulcanApiClient @Inject constructor(
             val res = okHttp.newCall(req).execute()
             if (res.isSuccessful) {
                 val body = res.body?.string().orEmpty().trim()
-                if (body.startsWith("{")) JSONObject(body) else null
+                when {
+                    body.startsWith("{") -> JSONObject(body)
+                    body.startsWith("[") -> JSONArray(body).optJSONObject(0)
+                    else -> null
+                }
             } else null
         }.getOrNull()
     }
@@ -1043,6 +1157,7 @@ class VulcanApiClient @Inject constructor(
     private fun parseDateOrNull(str: String?): LocalDate? {
         if (str.isNullOrBlank()) return null
         val clean = str.substringBefore('T').substringBefore(' ').trim()
+        if (clean.isBlank() || clean.equals("null", ignoreCase = true)) return null
         val formatters = listOf(
             DateTimeFormatter.ISO_LOCAL_DATE,
             DateTimeFormatter.ofPattern("dd.MM.yyyy"),
@@ -1051,7 +1166,7 @@ class VulcanApiClient @Inject constructor(
         )
         for (fmt in formatters) {
             val date = runCatching { LocalDate.parse(clean, fmt) }.getOrNull()
-            if (date != null) return date
+            if (date != null && date.year in 2020..2100) return date
         }
         return null
     }

@@ -468,23 +468,39 @@ private fun DayEventsCard(events: List<pl.zse.bydgoszcz.elektron.domain.model.Sc
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
             Text(
-                "Wydarzenia dnia (${events.size})",
+                "Sprawdziany, prace klasowe i zadania w tym dniu (${events.size})",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             events.forEach { ev ->
-                Spacer(Modifier.height(3.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.height(4.dp))
+                Column {
                     val icon = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) "📝 " else if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ) "📄 " else "📌 "
+                    val labelColor = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    }
                     Text(
                         "$icon${ev.title}",
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontWeight = FontWeight.Bold,
+                        color = labelColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    ev.description?.lineSequence()?.firstOrNull { !it.startsWith("Nauczyciel:", ignoreCase = true) }
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { topic ->
+                            Text(
+                                topic,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                 }
             }
         }
@@ -851,13 +867,24 @@ private fun LessonRow(
                 schoolEvents.forEach { ev ->
                     val evColor = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                     val icon = if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM) "📝" else if (ev.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ) "📄" else "📌"
+                    val topicLine = ev.description?.lineSequence()
+                        ?.firstOrNull { !it.startsWith("Nauczyciel:", ignoreCase = true) }
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+                    val badgeText = if (topicLine != null) {
+                        "$icon ${ev.badgeLabel()}: $topicLine"
+                    } else if (ev.title.startsWith(ev.badgeLabel(), ignoreCase = true)) {
+                        "$icon ${ev.title}"
+                    } else {
+                        "$icon ${ev.badgeLabel()}: ${ev.title}"
+                    }
                     Surface(
                         shape = RoundedCornerShape(6.dp),
                         color = evColor.copy(alpha = 0.14f),
                         modifier = Modifier.padding(top = 2.dp)
                     ) {
                         Text(
-                            "$icon ${ev.badgeLabel()}: ${ev.title}",
+                            badgeText,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = evColor,

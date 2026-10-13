@@ -205,7 +205,12 @@ class TimetableViewModel @Inject constructor(
             try {
                 if (settings.selectedClassId.first() == null) return@launch
                 val outcome = coordinator.sync(
-                    SyncRequest.of(SyncOutcome.TIMETABLE, SyncOutcome.SUBSTITUTIONS, anchorDate = anchor.value)
+                    SyncRequest.of(
+                        SyncOutcome.TIMETABLE,
+                        SyncOutcome.SUBSTITUTIONS,
+                        SyncOutcome.CALENDAR,
+                        anchorDate = anchor.value
+                    )
                 )
                 // Komunikat na ekranie planu (raz); przerwane zmianą klasy - bez komunikatu.
                 if (!outcome.interrupted) _refreshMessage.value = SyncOutcome.errorMessage(outcome.failures)

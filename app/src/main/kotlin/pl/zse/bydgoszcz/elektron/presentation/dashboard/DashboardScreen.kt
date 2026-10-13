@@ -107,12 +107,14 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transitSettings by transitViewModel.settings.collectAsStateWithLifecycle()
     val upcomingEvents by calendarViewModel.upcomingEvents.collectAsStateWithLifecycle()
+    val semesterEvents by calendarViewModel.semesterEvents.collectAsStateWithLifecycle()
     val gradeSummaries by gradesViewModel.subjectSummaries.collectAsStateWithLifecycle()
     val overallGradesAvg by gradesViewModel.overallAverage.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     var showAttendanceDialog by rememberSaveable { mutableStateOf(false) }
     var showGradesDialog by rememberSaveable { mutableStateOf(false) }
+    var showExamsDialog by rememberSaveable { mutableStateOf(false) }
     var showDutyConfigDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showAttendanceDialog) {
@@ -124,6 +126,13 @@ fun DashboardScreen(
         pl.zse.bydgoszcz.elektron.presentation.grades.GradesDialog(
             onDismiss = { showGradesDialog = false },
             viewModel = gradesViewModel
+        )
+    }
+    if (showExamsDialog) {
+        pl.zse.bydgoszcz.elektron.presentation.calendar.ExamsDialog(
+            onDismiss = { showExamsDialog = false },
+            onOpenDay = { date -> onOpenTimetable(date) },
+            viewModel = calendarViewModel
         )
     }
     if (showDutyConfigDialog) {
@@ -262,12 +271,18 @@ fun DashboardScreen(
                     }
                 }
 
-                if (upcomingEvents.isNotEmpty()) {
+                if (upcomingEvents.isNotEmpty() || semesterEvents.isNotEmpty()) {
                     item(key = "h_events") {
-                        SectionTitle("Sprawdziany i wydarzenia (${upcomingEvents.size})", Icons.Outlined.CalendarMonth)
+                        val countLabel = if (upcomingEvents.isNotEmpty()) upcomingEvents.size else semesterEvents.size
+                        SectionTitle("Sprawdziany, prace klasowe i zadania ($countLabel)", Icons.Outlined.CalendarMonth)
                     }
                     item(key = "events_card") {
-                        UpcomingEventsCard(upcomingEvents) { date -> onOpenTimetable(date) }
+                        UpcomingEventsCard(
+                            events = upcomingEvents.ifEmpty { semesterEvents.takeLast(5) },
+                            totalCount = semesterEvents.size,
+                            onOpenDay = { date -> onOpenTimetable(date) },
+                            onOpenAll = { showExamsDialog = true }
+                        )
                     }
                 }
 
@@ -569,15 +584,32 @@ private fun AnnouncementRow(a: Announcement, modifier: Modifier = Modifier, onCl
 @Composable
 private fun UpcomingEventsCard(
     events: List<pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent>,
-    onOpenDay: (java.time.LocalDate) -> Unit
+    totalCount: Int = events.size,
+    onOpenDay: (java.time.LocalDate) -> Unit,
+    onOpenAll: () -> Unit = {}
 ) {
+    // Zawsze pokazuj sprawdziany, prace klasowe i kartkówki w pierwszej kolejności,
+    // żeby nie zostały wypchnięte przez dużą liczbę zadań domowych:
+    val shownEvents = remember(events) {
+        val examsAndQuizzes = events.filter {
+            it.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM ||
+                it.type == pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ
+        }.take(6)
+        val remainingSlots = (8 - examsAndQuizzes.size).coerceAtLeast(2)
+        val others = events.filter {
+            it.type != pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.EXAM &&
+                it.type != pl.zse.bydgoszcz.elektron.domain.model.SchoolEventType.QUIZ
+        }.take(remainingSlots)
+        (examsAndQuizzes + others).distinctBy { it.id }.sortedBy { it.date }.take(8)
+    }
+
     ElektronCard {
         Column(Modifier.padding(vertical = 4.dp)) {
             val plLocale = java.util.Locale("pl", "PL")
             val dateFmt = DateTimeFormatter.ofPattern("EEEE, dd.MM", plLocale)
             val today = java.time.LocalDate.now()
 
-            events.take(5).forEachIndexed { index, ev ->
+            shownEvents.forEachIndexed { index, ev ->
                 if (index > 0) androidx.compose.material3.HorizontalDivider(
                     Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -615,9 +647,9 @@ private fun UpcomingEventsCard(
                         }
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            ev.title,
+                            ev.subject?.takeIf { it.isNotBlank() } ?: ev.title,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -626,7 +658,7 @@ private fun UpcomingEventsCard(
                                 it,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
@@ -640,6 +672,32 @@ private fun UpcomingEventsCard(
                         )
                     }
                 }
+            }
+
+            androidx.compose.material3.HorizontalDivider(
+                Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pressable { onOpenAll() }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Pokaż wszystkie sprawdziany, prace klasowe i zadania",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "($totalCount) ›",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

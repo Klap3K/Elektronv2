@@ -74,23 +74,22 @@ class GradesViewModel @Inject constructor(
                     _statusMessage.value = "Najpierw zaloguj się do konta eduVULCAN."
                     return@launch
                 }
-                // Odśwież sesję i pobierz oceny
-                val res = gradeRepository.syncFromEduVulcan(account)
-                res.fold(
-                    onSuccess = { count ->
-                        _statusMessage.value = "Zaimportowano $count ocen z dziennika eduVULCAN."
-                    },
-                    onFailure = {
-                        // Spróbuj pełnej synchronizacji z automatycznym odświeżeniem sesji w CalendarRepository
-                        val fullSync = calendarRepository.sync()
-                        if (fullSync.isSuccess) {
-                            val totalNow = gradeRepository.grades.first().count { g -> g.value.isNotBlank() }
-                            _statusMessage.value = "Zsynchronizowano oceny z eduVULCAN (łącznie: $totalNow)."
-                        } else {
+                // Pełna synchronizacja w CalendarRepository odświeża zarówno sesję, oceny, jak i sprawdziany/prace klasowe/frekwencję
+                val fullSync = calendarRepository.sync()
+                if (fullSync.isSuccess) {
+                    val totalNow = gradeRepository.grades.first().count { g -> g.value.isNotBlank() }
+                    _statusMessage.value = "Zaimportowano $totalNow ocen oraz zsynchronizowano sprawdziany z eduVULCAN."
+                } else {
+                    val res = gradeRepository.syncFromEduVulcan(account)
+                    res.fold(
+                        onSuccess = { count ->
+                            _statusMessage.value = "Zaimportowano $count ocen z dziennika eduVULCAN."
+                        },
+                        onFailure = {
                             _statusMessage.value = it.localizedMessage ?: "Błąd importu ocen z eduVULCAN"
                         }
-                    }
-                )
+                    )
+                }
             } finally {
                 _isSyncing.value = false
             }

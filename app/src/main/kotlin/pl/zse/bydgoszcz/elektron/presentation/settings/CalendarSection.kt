@@ -59,6 +59,7 @@ internal fun CalendarSection(
 
     var showEduVulcanLoginDialog by remember { mutableStateOf(false) }
     var showGradesDialog by remember { mutableStateOf(false) }
+    var showExamsDialog by remember { mutableStateOf(false) }
     var showAppBridgeDialog by remember { mutableStateOf(false) }
     var showUrlDialog by remember { mutableStateOf(false) }
 
@@ -79,7 +80,7 @@ internal fun CalendarSection(
     GroupedSection(
         title = "Dziennik eduVULCAN (Oceny, Sprawdziany, Frekwencja)",
         icon = Icons.Outlined.CalendarMonth,
-        footer = "Zaloguj się swoim loginem i hasłem do eduVULCAN lub włącz przechwytywanie danych z zainstalowanej na telefonie aplikacji eduVULCAN. Oceny, sprawdziany, kartkówki i frekwencja trafią bezpośrednio do aplikacji."
+        footer = "Zaloguj się swoim loginem i hasłem do eduVULCAN lub włącz przechwytywanie danych z zainstalowanej na telefonie aplikacji eduVULCAN. Oceny, sprawdziany, prace klasowe, kartkówki i frekwencja trafią bezpośrednio do aplikacji."
     ) {
         val isConnected = vulcanAccount != null
 
@@ -120,6 +121,14 @@ internal fun CalendarSection(
 
             RowDivider()
             ActionRow(
+                label = "Sprawdziany, prace klasowe i zadania domowe",
+                supporting = "Przeglądaj wszystkie zaimportowane sprawdziany, prace klasowe, kartkówki i zadania",
+                trailingChevron = true,
+                onClick = { showExamsDialog = true }
+            )
+
+            RowDivider()
+            ActionRow(
                 label = "Oceny i średnia (Import ocen z eduVULCAN)",
                 supporting = "Przeglądaj zaimportowane oceny cząstkowe, wagi i średnie",
                 trailingChevron = true,
@@ -142,13 +151,21 @@ internal fun CalendarSection(
         } else {
             ActionRow(
                 label = if (isRegistering) "Łączenie z kontem eduVULCAN…" else "Zaloguj się do eduVULCAN (Login i Hasło)",
-                supporting = "Pobierz oceny, sprawdziany, kartkówki, zadania domowe i frekwencję",
+                supporting = "Pobierz oceny, sprawdziany, prace klasowe, kartkówki, zadania domowe i frekwencję",
                 enabled = !isRegistering,
                 trailingChevron = !isRegistering,
                 trailing = if (isRegistering) {
                     @Composable { CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) }
                 } else null,
                 onClick = { showEduVulcanLoginDialog = true }
+            )
+
+            RowDivider()
+            ActionRow(
+                label = "Sprawdziany, prace klasowe i zadania domowe",
+                supporting = "Przeglądaj zaimportowane sprawdziany, prace klasowe, kartkówki i zadania",
+                trailingChevron = true,
+                onClick = { showExamsDialog = true }
             )
 
             RowDivider()
@@ -217,6 +234,13 @@ internal fun CalendarSection(
                 onClick = onClear
             )
         }
+    }
+
+    // --- Dialog sprawdzianów, prac klasowych i zadań domowych ---
+    if (showExamsDialog) {
+        pl.zse.bydgoszcz.elektron.presentation.calendar.ExamsDialog(
+            onDismiss = { showExamsDialog = false }
+        )
     }
 
     // --- Dialog ocen ---

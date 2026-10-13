@@ -43,8 +43,13 @@ class CalendarViewModel @Inject constructor(
     val lastSyncError: StateFlow<String?> = repository.lastSyncError
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    val upcomingEvents: StateFlow<List<SchoolEvent>> = repository.observeUpcomingEvents(limit = 10)
+    val upcomingEvents: StateFlow<List<SchoolEvent>> = repository.observeUpcomingEvents(limit = 30)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val semesterEvents: StateFlow<List<SchoolEvent>> = repository.observeEventsForRange(
+        from = LocalDate.now().minusDays(60),
+        to = LocalDate.now().plusDays(150)
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun eventsForDate(date: LocalDate): Flow<List<SchoolEvent>> =
         repository.observeEventsForDate(date)

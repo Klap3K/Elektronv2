@@ -10,22 +10,22 @@ import java.time.LocalTime
 class SchoolEventTest {
 
     @Test
-    fun matchesLessonBySubject() {
-        val event = SchoolEvent(
-            id = "1",
-            title = "Sprawdzian: Matematyka",
-            description = null,
+    fun matchesLessonBySubjectAndZseAbbreviations() {
+        val polishClassTest = SchoolEvent(
+            id = "ev_1",
+            title = "Praca klasowa: Język polski",
+            description = "Romantyzm – lektury",
             type = SchoolEventType.EXAM,
-            subject = "Matematyka",
+            subject = "Język polski",
             date = LocalDate.of(2026, 10, 15),
             timeFrom = null,
             timeTo = null,
             location = null,
-            rawSummary = "Sprawdzian: Matematyka"
+            rawSummary = "Praca klasowa: Język polski"
         )
 
-        val matchingLesson = Lesson(
-            id = "lesson-1",
+        val zsePolishLesson = Lesson(
+            id = "lesson-pl",
             classId = "o26",
             className = "3TI",
             date = LocalDate.of(2026, 10, 15),
@@ -34,20 +34,32 @@ class SchoolEventTest {
             timeFrom = LocalTime.of(8, 50),
             timeTo = LocalTime.of(9, 35),
             groups = listOf(
-                LessonGroup("matematyka", "JK", null, "Jan Kowalski", "204", null, null, null)
+                LessonGroup("j.polski", "JK", null, "Jan Kowalski", "204", null, null, null)
             ),
             note = null,
             substitution = null
         )
 
-        val nonMatchingLesson = matchingLesson.copy(
+        val zseEnglishLesson = zsePolishLesson.copy(
             groups = listOf(
-                LessonGroup("język angielski", "AB", null, "Anna B", "101", null, null, null)
+                LessonGroup("ang-1/2", "AB", null, "Anna B", "101", null, null, null)
             )
         )
 
-        assertTrue(event.matchesLesson(matchingLesson))
-        assertFalse(event.matchesLesson(nonMatchingLesson))
+        assertTrue(polishClassTest.matchesLesson(zsePolishLesson))
+        assertFalse(polishClassTest.matchesLesson(zseEnglishLesson))
+        assertEquals("Praca klasowa", polishClassTest.badgeLabel())
+
+        // Sprawdzenie typowych skrótów planu Optivum ZSE Bydgoszcz vs pełnych nazw w eduVULCAN
+        assertTrue(SchoolEvent.subjectsMatch("Język angielski", "j.angielski-1/2"))
+        assertTrue(SchoolEvent.subjectsMatch("Język angielski", "ang-2/2"))
+        assertTrue(SchoolEvent.subjectsMatch("Język niemiecki", "niem-1/2"))
+        assertTrue(SchoolEvent.subjectsMatch("Wychowanie fizyczne", "wf-j1"))
+        assertTrue(SchoolEvent.subjectsMatch("Matematyka", "r_matematyka"))
+        assertTrue(SchoolEvent.subjectsMatch("Historia i teraźniejszość", "hit"))
+        assertTrue(SchoolEvent.subjectsMatch("Pracownia programowania obiektowego", "prac.prog.-1/2"))
+        assertTrue(SchoolEvent.subjectsMatch("Sieci komputerowe", "sieci komp.-1/2"))
+        assertFalse(SchoolEvent.subjectsMatch("Matematyka", "Fizyka"))
     }
 
     @Test
@@ -91,7 +103,10 @@ class SchoolEventTest {
     @Test
     fun badgeLabelsAreAccurate() {
         assertEquals("Sprawdzian", SchoolEventType.EXAM.let {
-            SchoolEvent("1", "T", null, it, null, LocalDate.now(), null, null, null, "T").badgeLabel()
+            SchoolEvent("1", "Sprawdzian: Fizyka", null, it, "Fizyka", LocalDate.now(), null, null, null, "Sprawdzian").badgeLabel()
+        })
+        assertEquals("Praca klasowa", SchoolEventType.EXAM.let {
+            SchoolEvent("1b", "Praca klasowa: Matematyka", null, it, "Matematyka", LocalDate.now(), null, null, null, "Praca klasowa").badgeLabel()
         })
         assertEquals("Kartkówka", SchoolEventType.QUIZ.let {
             SchoolEvent("2", "T", null, it, null, LocalDate.now(), null, null, null, "T").badgeLabel()
