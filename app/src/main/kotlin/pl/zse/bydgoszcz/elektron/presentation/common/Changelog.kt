@@ -5,6 +5,11 @@ object Changelog {
     data class Entry(val versionCode: Int, val versionName: String, val items: List<String>)
 
     val entries: List<Entry> = listOf(
+        Entry(43, "2.0.6", listOf(
+            "Odliczanie do wydarzeń (Wakacje, 100-dniówka, Egzaminy) z licznikiem dni szkolnych i Material 3 kalendarzem",
+            "Auto DND: automatyczne wyciszanie na lekcjach i przywracanie profilu dźwięku na przerwach w tle",
+            "Wbudowane pobieranie aktualizacji i instalator jednym kliknięciem bez wychodzenia do przeglądarki"
+        )),
         Entry(38, "2.0.1", listOf(
             "Osobny identyfikator pakietu (pl.zse.bydgoszcz.elektron.vulcan) — instalacja obok oryginalnej aplikacji",
             "Zmiana nazwy aplikacji na Elektron-Vulcan oraz nowa ikona aplikacji i logo"
@@ -128,8 +133,8 @@ object Changelog {
             versionName = "1.0.0-rc1",
             items = listOf(
                 "Nowy widok tygodnia: siatka z godzinami i pięcioma dniami, szczegóły lekcji po dotknięciu",
-                "Raport błędu z logami: kopiowanie, wysłanie e-mailem do dewelopera albo zgłoszenie na GitHubie",
-                "Kontakt z deweloperem: kontakt.elektron@pm.me (Ustawienia → O aplikacji)",
+                "Raport błędu z logami: kopiowanie albo zgłoszenie na GitHubie",
+                "Zgłaszanie uwag i problemów (Ustawienia → O aplikacji)",
                 "Sprawdzanie aktualizacji w osobnej sekcji Ustawień",
                 "Gdy nie uda się odświeżyć planu albo zastępstw, aplikacja to pokazuje",
                 "Czas do końca lekcji i przerwy aktualny od razu po powrocie do aplikacji",

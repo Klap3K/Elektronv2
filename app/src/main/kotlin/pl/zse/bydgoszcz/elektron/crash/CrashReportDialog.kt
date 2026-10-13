@@ -157,9 +157,9 @@ fun openEmail(context: Context, subject: String): Boolean {
 
 /** Pusta wiadomość do dewelopera (adres kontaktowy w "O aplikacji"). */
 fun openContactEmail(context: Context): Boolean {
-    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${CrashReport.CONTACT_EMAIL}?subject=${Uri.encode("eLektron")}"))
+    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${CrashReport.CONTACT_EMAIL}?subject=${Uri.encode("Elektron-Vulcan")}"))
         .putExtra(Intent.EXTRA_EMAIL, arrayOf(CrashReport.CONTACT_EMAIL))
-        .putExtra(Intent.EXTRA_SUBJECT, "eLektron")
+        .putExtra(Intent.EXTRA_SUBJECT, "Elektron-Vulcan")
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     return try {
         context.startActivity(intent); true

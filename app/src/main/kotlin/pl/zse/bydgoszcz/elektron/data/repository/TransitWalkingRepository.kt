@@ -97,7 +97,7 @@ class TransitWalkingRepository internal constructor(private val client: OkHttpCl
                 val coords = listOf("${SchoolTransit.LONGITUDE},${SchoolTransit.LATITUDE}") + missing.map { "${it.longitude},${it.latitude}" }
                 val url = "https://routing.openstreetmap.de/routed-foot/table/v1/foot/${coords.joinToString(";")}?sources=0&destinations=${(1..missing.size).joinToString(";")}&annotations=duration,distance"
                 val request = Request.Builder().url(url)
-                    .header("User-Agent", "eLektron/${BuildConfig.VERSION_NAME} (+https://github.com/stasolejnik/elektron)")
+                    .header("User-Agent", "Elektron-Vulcan/${BuildConfig.VERSION_NAME} (+https://github.com/Klap3K/Elektronv2)")
                     .header("Accept", "application/json").build()
                 val json = client.newCall(request).readCancellable {
                     if (!it.isSuccessful) throw IOException("Trasa piesza: HTTP ${it.code}")

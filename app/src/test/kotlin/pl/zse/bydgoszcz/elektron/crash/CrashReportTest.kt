@@ -11,7 +11,7 @@ class CrashReportTest {
 
     @Test fun headerAndStack() {
         val r = report()
-        assertTrue(r.startsWith("eLektron 0.6.0-alpha (13, gms)\nAndroid 15 (API 35), Xiaomi 2201117TY"))
+        assertTrue(r.startsWith("Elektron-Vulcan 0.6.0-alpha (13, gms)\nAndroid 15 (API 35), Xiaomi 2201117TY"))
         assertTrue(r.contains("at pl.zse.A.b(A.kt:10)"))
     }
 
@@ -27,14 +27,14 @@ class CrashReportTest {
 
     @Test fun issueUrlIsEncodedAndBounded() {
         val url = CrashReport.issueUrl(report("java.lang.Error: zażółć\n" + "\tat x.Y.z(Y.kt:1)\n".repeat(2000)))
-        assertTrue(url.startsWith("https://github.com/stasolejnik/elektron/issues/new?title=Awaria"))
+        assertTrue(url.startsWith("https://github.com/Klap3K/Elektronv2/issues/new?title=Awaria"))
         assertTrue(!url.contains(' ') && !url.contains('\n'))
         assertTrue(url.length < 8_000)   // GitHub odrzuca dłuższe adresy
     }
 
     @Test fun feedbackUrlContainsDeviceInfo() {
         val url = CrashReport.feedbackUrl("0.6.0-alpha", 13, "foss", "14", 34, "Google Pixel 7")
-        assertTrue(url.startsWith("https://github.com/stasolejnik/elektron/issues/new?body="))
+        assertTrue(url.startsWith("https://github.com/Klap3K/Elektronv2/issues/new?body="))
         assertTrue(url.contains("Pixel%207"))
         assertTrue(url.contains("foss"))
     }
@@ -50,13 +50,13 @@ class CrashReportTest {
 
     @Test fun mailtoGoesToContactAddressAndIsBounded() {
         val uri = CrashReport.mailtoUri("eLektron: test", "x".repeat(20_000))
-        assertTrue(uri.startsWith("mailto:kontakt.elektron@pm.me?subject=eLektron%3A%20test&body="))
+        assertTrue(uri.startsWith("mailto:klap3k@users.noreply.github.com?subject=eLektron%3A%20test&body="))
         assertTrue(uri.length < 20_000)
     }
 
     @Test fun feedbackWithoutCrashHasPlainSubject() {
         val r = CrashReport.format("1.0.0-rc1", 20, "foss", "14", 34, "X", "t", "", logs = "linia")
-        assertEquals("eLektron: zgłoszenie problemu", CrashReport.emailSubject(r))
+        assertEquals("Elektron-Vulcan: zgłoszenie problemu", CrashReport.emailSubject(r))
     }
 
     @Test fun logsWithoutSystemNoise() {
@@ -85,7 +85,7 @@ class CrashReportTest {
 
     @Test fun headerLinesAreSeparate() {
         val r = CrashReport.format("1.0.0-rc1", 20, "gms", "17", 37, "Google Pixel 9a", "t", "")
-        assertEquals("eLektron 1.0.0-rc1 (20, gms)", r.lines()[0])
+        assertEquals("Elektron-Vulcan 1.0.0-rc1 (20, gms)", r.lines()[0])
         assertEquals("Android 17 (API 37), Google Pixel 9a", r.lines()[1])
     }
 }

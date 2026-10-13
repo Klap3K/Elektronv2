@@ -4,28 +4,30 @@
 
 # Elektron-Vulcan
 
-**Plan lekcji, zastępstwa, ogłoszenia, odjazdy oraz pełna integracja z Dziennikiem VULCAN (Hebe API / terminarz) w nowoczesnej aplikacji na Androida dla uczniów ZSE w Bydgoszczy.**
+**Nowoczesna aplikacja na Androida dla uczniów ZSE w Bydgoszczy – plan lekcji, zastępstwa, ogłoszenia, odjazdy, terminarz sprawdzianów z Dziennika VULCAN, Strażnik Frekwencji oraz inteligentne funkcje szkolne.**
 
 [![Licencja: GPL v3+](https://img.shields.io/badge/licencja-GPL--3.0--or--later-blue)](LICENSE)
 ![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-[![VULCAN API](https://img.shields.io/badge/VULCAN-Hebe%20API%20%2B%20iCal-blueviolet)](#funkcje)
+[![VULCAN API](https://img.shields.io/badge/VULCAN-Hebe%20API%20%2B%20iCal-blueviolet)](#główne-funkcje)
+[![Pobierz APK](https://img.shields.io/badge/Wydanie-v2.0.6-success?logo=android&logoColor=white)](https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6)
 
-[**Poradnik VULCAN (Jak podłączyć konto)**](PORADNIK_VULCAN.md) • [**Raport Audytu i Poprawek**](AUDYT_PROJEKTU.md)
+[**Pobierz najnowszą wersję (v2.0.6)**](https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6) • [**Poradnik VULCAN**](PORADNIK_VULCAN.md) • [**Polityka Prywatności**](PRYWATNOSC.md) • [**Zgłoś błąd / Sugestie**](https://github.com/Klap3K/Elektronv2/issues/new)
 
 </div>
 
+---
+
 ## O projekcie Elektron-Vulcan
 
-**Elektron-Vulcan** to rozwinięcie i rozbudowana wersja aplikacji dla uczniów Zespołu Szkół Elektronicznych w Bydgoszczy. Aplikacja zbiera w jednym miejscu wszystkie kluczowe informacje szkolne: plan Twojej klasy i grup, zastępstwa, ogłoszenia ze strony szkoły, połączenia komunikacji miejskiej, a także **pełny terminarz sprawdzianów, kartkówek i prac domowych importowany bezpośrednio z Dziennika VULCAN**.
+**Elektron-Vulcan** to zaawansowana, w pełni otwartoźródłowa aplikacja mobilna stworzona z myślą o uczniach Zespołu Szkół Elektronicznych w Bydgoszczy. Aplikacja gromadzi w jednym, przejrzystym miejscu wszystkie informacje niezbędne w szkolnej codzienności: od planu lekcji i zmian sal, przez ogłoszenia i rozkłady odjazdów ZDMiKP, aż po **pełną integrację z Dziennikiem VULCAN (Hebe API)** oraz narzędzia wspomagające naukę i organizację roku szkolnego.
 
-### Geneza i inspiracja
-* Projekt jest bezpośrednio inspirowany projektem **[Atom](https://github.com/kacpergorka/atom)** autorstwa **[Kacpra Górki](https://github.com/kacpergorka)** z GitHuba (stworzonym na systemy Apple iOS/macOS).
-* Baza kodu Androida wywodzi się z otwartoźródłowego projektu [eLektron](https://github.com/stasolejnik/elektron) Stanisława Olejnika.
-* **Elektron-Vulcan** wzbogaca ten ekosystem o:
-  - 🎓 **Oficjalne API mobilne VULCAN (Hebe API):** Bezpieczne logowanie urządzeniem mobilnym (Token, Symbol, PIN / kod QR), generowanie kryptograficznych kluczy RSA-2048 i certyfikatów X.509 DER, podpisywanie zapytań HTTP nagłówkiem `Signature`.
-  - 📅 **Inteligentny Terminarz:** Automatyczne parowanie sprawdzianów i kartkówek z konkretnymi lekcjami w planie dnia oraz w siatce tygodnia.
-  - 🔄 **Cykliczna synchronizacja w tle:** Odświeżanie danych co 15 minut (WorkManager + SyncCoordinator) oraz przy geście *Pull-to-refresh*.
-  - 🛡️ **Kompleksowy audyt bezpieczeństwa:** Brak przechowywania zbędnych haseł/PIN-ów, wykluczenie kluczy prywatnych z chmury Google Cloud Backup, transakcyjna atomowość bazy Room oraz odporność na przesunięcia stref czasowych UTC.
+### Najważniejsze atuty
+- 🎓 **Oficjalne API mobilne VULCAN (Hebe API):** Bezpieczne łączenie z kontem eduVULCAN / UONET+ za pomocą Tokenu, Symbolu i PIN-u lub skanu kodu QR. Klucze kryptograficzne RSA-2048 i certyfikaty generowane lokalnie na Twoim urządzeniu.
+- 📅 **Zintegrowany Terminarz:** Sprawdziany, kartkówki i zadania domowe są automatycznie parowane z konkretnymi godzinami lekcji w planie dnia, w siatce tygodnia oraz na widżetach.
+- 🔕 **Auto DND (Wyciszanie w trakcie lekcji):** Automatyczne wyciszanie telefonu podczas trwania realnych zajęć i natychmiastowe przywracanie profilu dźwięku na przerwach w tle (`AlarmManager.setExactAndAllowWhileIdle`).
+- ⏳ **Licznik i Odliczanie do wydarzeń:** Dynamiczne odliczanie do wakacji, ferii, egzaminów zawodowych lub 100-dniówki z wyliczaniem **dni szkolnych (pon–pt)**.
+- 🛡️ **Strażnik Frekwencji (Attendance Guardian):** Matematyczny kalkulator wyliczający dopuszczalne nieobecności przed spadkiem poniżej ustawowego progu 50% oraz interaktywny symulator opuszczeń.
+- ⚡ **Wbudowane aktualizacje 1 kliknięciem:** Sprawdzanie wydań w tle, pobieranie APK wewnątrz aplikacji i natychmiastowe uruchomienie instalatora systemowego bez odinstalowywania.
 
 ---
 
@@ -48,67 +50,82 @@
 
 ## Główne Funkcje
 
-- **Terminarz i Dziennik VULCAN:**
-  - Import sprawdzianów, kartkówek, testów i prac domowych bezpośrednio z eduVULCAN / UONET+.
-  - Logowanie za pomocą jednorazowego kodu (Token, Symbol, PIN) lub wklejenia zawartości kodu QR.
-  - Opcjonalne wsparcie dla zewnętrznych subskrypcji kalendarza iCal (`.ics` / `webcal://`).
-  - Sprawdź szczegółowy przewodnik: [**PORADNIK_VULCAN.md**](PORADNIK_VULCAN.md).
-- **🛡️ Strażnik Frekwencji (Attendance Guardian):**
-  - Obliczanie procentu frekwencji ogółem oraz per przedmiot.
-  - Matematyczny algorytm wyliczający ile lekcji uczeń może jeszcze opuścić przed spadkiem poniżej ustawowego progu 50% (lub progu ostrzegawczego).
-  - Wskaźnik liczby obecności z rzędu potrzebnych do powrotu powyżej progu dla przedmiotów zagrożonych.
-  - Interaktywny symulator opuszczeń (+1h, +2h, +4h, +8h) z natychmiastowym przeliczaniem nowej frekwencji.
-- **🧹 Dyżurny Klasowy na Ekranie Głównym:**
-  - Karta dyżurnego informująca, kiedy uczeń ma dyżur w klasie (wyróżnienie gdy dzisiaj / w tym tygodniu / za X dni).
-  - Automatyczna rotacja par uczniów według numeru z dziennika i tygodnia roku szkolnego.
-  - Lista codziennych obowiązków dyżurnego (tablica, wietrzenie sali, pomoc nauczycielowi).
-- **✏️ Własne Aktywności i Plany Użytkownika:**
-  - Możliwość dodawania własnych zadań (nauka, korepetycje, treningi, projekty) do terminarza i planu lekcji.
-  - Pełne zarządzanie (CRUD), godziny od-do, notatki oraz odhaczanie ukończonych zadań bezpośrednio z widoku dnia i pulpitu.
-- **Plan lekcji:**
-  - Widok pojedynczego dnia i pełnej siatki tygodnia zintegrowany z zastępstwami oraz plakietkami sprawdzianów (`📝 Sprawdzian`, `📄 Kartkówka`, `📌 Wydarzenie`).
-  - Filtrowanie grup zajęciowych (języki obce, WF, przedmioty zawodowe).
-- **Zastępstwa:**
-  - Natychmiastowy podgląd zmian dotyczących Twojej klasy i grup, z uwzględnieniem sal i nauczycieli zastępujących.
-- **Notatki i Przypomnienia:**
-  - Możliwość dodawania własnych notatek do lekcji z powiadomieniem przed zajęciami lub dzień wcześniej.
-- **Odjazdy ze szkoły (ZDMiKP Bydgoszcz):**
-  - Rozkłady jazdy i czas dojścia pieszego z ul. Karłowicza 20 na pobliskie przystanki (bez użycia GPS).
-- **Ogłoszenia szkolne:**
-  - Archiwum wiadomości ze strony zse.bydgoszcz.pl z trybem offline i ulubionymi.
-- **Widżety i Szybki Dostęp:**
-  - Widżety Glance na ekran główny (*Następna lekcja*, *Plan dnia*, *Zastępstwa*) z bezpośrednim wyświetlaniem zaplanowanych sprawdzianów i kartkówek (`📝`, `📄`).
-- **Personalizacja:**
-  - Dynamiczne kolory Material You (Android 12+), ciemny motyw, własne kolory i skróty przedmiotów.
+### 🎓 Terminarz i Dziennik VULCAN
+- Import sprawdzianów, kartkówek, prac klasowych i prac domowych bezpośrednio z eduVULCAN / UONET+.
+- Logowanie jednorazowym kodem dostępu (Token, Symbol, PIN) lub poprzez zawartość kodu QR.
+- Obsługa zewnętrznych subskrypcji kalendarza iCal (`.ics` / `webcal://`).
+- Zobacz przewodnik konfiguracji: [**PORADNIK_VULCAN.md**](PORADNIK_VULCAN.md).
 
+### 🔕 Auto DND – Automatyczne wyciszanie na lekcjach
+- Telefon automatycznie przełącza się w tryb cichy / Nie Przeszkadzać wyłącznie w trakcie Twoich lekcji.
+- Natychmiastowe przywracanie profilu dźwięku (normalny, wibracje, cichy) na dzwonek oznaczający przerwę, w okienkach oraz po zakończeniu zajęć.
+- Działa całkowicie w tle – nawet przy zablokowanym telefonie w kieszeni.
+
+### ⏳ Odliczanie do wydarzeń (Countdown)
+- Karta na ekranie głównym oraz konfiguracja w Ustawieniach.
+- Predefiniowane szybkie presety: *Koniec roku szkolnego / Wakacje*, *Ferie zimowe*, *Egzamin zawodowy*, *100-dniówka*, *Rozpoczęcie roku*.
+- Wybór dowolnej własnej daty z kalendarza Material 3 `DatePickerDialog` oraz własnego tytułu.
+- Wyliczanie zarówno liczby wszystkich dni, jak i **dni szkolnych (poniedziałek–piątek)** z poprawną gramatyką języka polskiego.
+
+### 🛡️ Strażnik Frekwencji (Attendance Guardian)
+- Wyliczanie frekwencji ogółem oraz dla każdego przedmiotu z osobna.
+- Algorytm obliczający, ile lekcji uczeń może jeszcze opuścić przed spadkiem poniżej 50% lub progu ostrzegawczego.
+- Wskaźnik liczby kolejnych obecności potrzebnych do poprawy frekwencji.
+- Interaktywny symulator opuszczeń (+1h, +2h, +4h, +8h) z podglądem na żywo.
+
+### 🧹 Karta Dyżurnego Klasowego
+- Informacja na ekranie głównym o nadchodzącym dyżurze (dzisiaj, w tym tygodniu, za X dni).
+- Automatyczna rotacja par uczniów według numerka z dziennika lekcyjnego.
+- Lista codziennych zadań dyżurnego (tablica, wietrzenie sali, pomoc nauczycielowi).
+
+### ✏️ Własne Plany i Aktywności
+- Możliwość wprowadzania własnych zadań (nauka, korepetycje, projekty, treningi) bezpośrednio do widoku dnia.
+- Obsługa godzin od-do, notatek, oznaczania zadań jako ukończone oraz usuwania.
+
+### 📅 Plan lekcji i Zastępstwa
+- Widok pojedynczego dnia oraz pełnej siatki tygodnia zintegrowany z zastępstwami i etykietami sprawdzianów (`📝 Sprawdzian`, `📄 Kartkówka`, `📌 Wydarzenie`).
+- Filtrowanie grup zajęciowych (języki, informatyka, WF).
+- Natychmiastowy podgląd sal zastępczych i nauczycieli zastępujących.
+
+### 🚍 Odjazdy ze szkoły (ZDMiKP Bydgoszcz)
+- Rzeczywiste rozkłady jazdy i czas dojścia pieszego z ul. Karłowicza 20 na okoliczne przystanki (bez używania GPS).
+
+### 📢 Ogłoszenia szkolne
+- Wiadomości ze strony zse.bydgoszcz.pl z trybem offline i zapisywaniem do ulubionych.
+
+### 📱 Widżety Glance na pulpit
+- Widżety *Następna lekcja*, *Plan dnia* oraz *Zastępstwa* ze wskaźnikami nadchodzących sprawdzianów.
+
+### ⚡ Wygodne aktualizacje
+- Powiadomienie o nowej wersji i instalacja 1 kliknięciem bezpośrednio w aplikacji – nowa wersja instaluje się na starą bez utraty konfiguracji i danych.
 
 ---
 
 ## Bezpieczeństwo i Prywatność
 
-Projekt został poddany rygorystycznemu audytowi technicznemu (zobacz [**AUDYT_PROJEKTU.md**](AUDYT_PROJEKTU.md)):
-1. **Brak loginu i hasła głównego:** Rejestracja w VULCAN opiera się na mechanizmie urządzeń mobilnych – aplikacja nie pyta i nie przechowuje Twojego hasła do konta Vulcan.
-2. **Klucz prywatny RSA na urządzeniu:** Klucz kryptograficzny generowany jest lokalnie na telefonie i nigdy nie jest wysyłany na zewnętrzne serwery.
-3. **Brak wycieków do Google Drive:** Baza danych oraz pliki poświadczeń są wykluczone z mechanizmu Google Cloud Backup.
-4. **Prywatność:** Aplikacja nie posiada modułów śledzących, analityki ani reklam. Szczegóły: [PRYWATNOSC.md](PRYWATNOSC.md).
+Aplikacja została zaprojektowana z najwyższą dbałością o bezpieczeństwo danych i prywatność użytkownika:
+1. **Brak loginu i hasła do serwera:** Rejestracja w VULCAN opiera się na mechanizmie urządzeń mobilnych – aplikacja nie przetwarza ani nie zapisuje Twojego hasła głównego.
+2. **Klucz prywatny RSA w urządzeniu:** Klucz kryptograficzny generowany jest lokalnie na Twoim smartfonie i nigdy nie opuszcza urządzenia.
+3. **Brak wycieków do chmury:** Baza danych oraz pliki autoryzacji są wykluczone z mechanizmu Google Cloud Backup.
+4. **Prywatność:** Brak trackerów, analityki, profilowania i reklam. Szczegóły: [PRYWATNOSC.md](PRYWATNOSC.md).
 
 ---
 
-## Dla Twórców i Rozwijających (Kompilacja)
+## Informacje dla programistów (Budowanie ze źródeł)
 
 Projekt wykorzystuje nowoczesny stos technologiczny Androida:
-* **Język:** Kotlin 2.0+ (korutyny, Flow)
+* **Język:** Kotlin 2.0+ (Coroutines, Flow)
 * **UI:** Jetpack Compose, Material 3
 * **Architektura:** Clean Architecture + MVI/MVVM, Dagger Hilt
-* **Baza Danych:** Room Database v4 (z atomowymi migracjami)
-* **Zadania w tle:** WorkManager, Glance Widgets
-* **Sieć i Krypto:** OkHttp, Jsoup, Java Cryptography Architecture (RSA 2048, X.509 DER)
+* **Baza Danych:** Room Database v5 (z atomowymi migracjami)
+* **Zadania w tle:** WorkManager, Glance Widgets, AlarmManager
+* **Sieć i Krypto:** OkHttp 4, Jsoup, Java Cryptography Architecture (RSA 2048, X.509 DER)
 
-Wymagania: JDK 17+ oraz Android SDK (minSdk 26, targetSdk 35).
+Wymagania: JDK 17+ (zalecane JDK 21) oraz Android SDK (minSdk 26, targetSdk 35).
 
-Kompilacja wariantu FOSS:
+Kompilacja wariantu instalacyjnego FOSS:
 ```sh
-./gradlew :app:assembleFossDebug
+./gradlew :app:assembleFossRelease
 ```
 
 Uruchomienie testów jednostkowych:
@@ -120,5 +137,5 @@ Uruchomienie testów jednostkowych:
 
 ## Licencja
 
-Projekt objęty jest licencją [GNU General Public License v3.0 or later](LICENSE).
-Podziękowania dla Kacpra Górki (autor projektu [Atom](https://github.com/kacpergorka/atom)) za inspirację interfejsem oraz dla Stanisława Olejnika za pierwotną bazę projektu [eLektron](https://github.com/stasolejnik/elektron).
+Projekt udostępniany jest na warunkach otwartoźródłowej licencji [GNU General Public License v3.0 lub nowszej](LICENSE).
+Inspiracją dla pierwotnego interfejsu był projekt Atom autorstwa Kacpra Górki.

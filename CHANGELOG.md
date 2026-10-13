@@ -1,8 +1,26 @@
 # Changelog
 
-Wszystkie istotne zmiany w eLektronie. Format oparty na
+Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
+
+## [2.0.6] - 2026-10-13 (43)
+
+Szczegóły: [release-notes/2.0.6.md](release-notes/2.0.6.md).
+
+- **Odliczanie do wydarzeń:** Wybór własnej daty przez Material 3 Date Picker, presety (Wakacje, 100-dniówka, Egzaminy), licznik dni ogółem oraz dni szkolnych (poniedziałek–piątek).
+- **Auto DND (Wyciszanie na lekcjach):** Automatyczne wyciszanie w kieszeni podczas lekcji w tle (`AlarmManager.setExactAndAllowWhileIdle`) i przywracanie profilu dźwięku na przerwach.
+- **Wbudowane aktualizacje 1 kliknięciem:** Sprawdzanie wydań co 4h w tle przez `SyncWorker`, pobieranie paczki APK z paskiem postępu bezpośrednio w aplikacji i uruchomienie instalatora systemowego bez usuwania danych.
+
+## [2.0.0] - 2026-10-12 (40)
+
+Szczegóły: [release-notes/2.0.0.md](release-notes/2.0.0.md).
+
+- **Integracja z Dziennikiem VULCAN (Hebe API):** Logowanie jednorazowym kodem dostępu lub kodem QR, kryptografia RSA-2048 i certyfikaty X.509, import sprawdzianów, kartkówek i prac domowych.
+- **Strażnik Frekwencji:** Kalkulator dopuszczalnych opuszczeń, wskaźnik zagrożeń, symulator opuszczeń.
+- **Karta Dyżurnego:** Automatyczna rotacja par uczniów według numerka z dziennika.
+- **Własne Aktywności:** Dodawanie własnych zadań i notatek do planu dnia.
+- **Widżety Glance:** Odznaki sprawdzianów i kartkówek w widżetach planu dnia i następnej lekcji.
 
 ## [1.0.1-beta1] - 2026-10-11 (36)
 
@@ -220,11 +238,9 @@ Pierwsza wersja kandydująca do wydania 1.0.0.
   linia bieżącej godziny, przewijanie w pionie. Dotknięcie lekcji (także w widoku dnia) otwiera
   szczegóły: dzień, godziny, przedmiot, grupa, sala, nauczyciel, zastępstwo.
 - Raport błędu z surowymi logami (po awarii i z „Zgłoś problem” w Ustawieniach): przewijany
-  podgląd, „Kopiuj logi”, „Zgłoś przez e-mail” (raport trafia do schowka, a wiadomość do
-  kontakt.elektron@pm.me prosi o jego wklejenie - programy pocztowe ucinały długie treści)
-  i „Zgłoś na GitHubie”. Raport zawiera ślad stosu, wątek, stan synchronizacji, stan powiadomień,
+  podgląd, „Kopiuj logi”, „Zgłoś na GitHubie”. Raport zawiera ślad stosu, wątek, stan synchronizacji, stan powiadomień,
   baterii i sieci oraz ostatnie logi aplikacji (bez szumu systemowego).
-- Kontakt z deweloperem: kontakt.elektron@pm.me (Ustawienia → O aplikacji, README, polityka
+- Zgłaszanie problemów i kontakt poprzez GitHub Issues (Ustawienia → O aplikacji, README, polityka
   prywatności).
 - Tryb dewelopera: symulacja zastępstwa, odwołania lekcji, ogłoszenia (z powiadomieniami)
   i awarii aplikacji, raport błędu, usuwanie symulacji.
@@ -444,14 +460,7 @@ Pierwsza wersja beta: zestaw funkcji zamrożony do wydania 1.0, dalsze wersje 0.
 
 Starsze wersje (0.1.0 - 0.3.1-alpha) nie są opisane w tym pliku.
 
-[1.0.0-rc3]: https://github.com/stasolejnik/elektron/releases/tag/v1.0.0-rc3
-[1.0.0-rc2]: https://github.com/stasolejnik/elektron/releases/tag/v1.0.0-rc2
-[1.0.0-rc1]: https://github.com/stasolejnik/elektron/releases/tag/v1.0.0-rc1
-[0.6.6-beta]: https://github.com/stasolejnik/elektron/releases/tag/v0.6.6-beta
-[0.6.5-beta]: https://github.com/stasolejnik/elektron/releases/tag/v0.6.5-beta
-[0.6.4-beta]: https://github.com/stasolejnik/elektron/releases/tag/v0.6.4-beta
-[0.6.3-beta]: https://github.com/stasolejnik/elektron/releases/tag/v0.6.3-beta
-[0.6.2-beta]: https://github.com/stasolejnik/elektron/releases/tag/v0.6.2-beta
-[0.6.1-beta]: https://github.com/stasolejnik/elektron/releases/tag/v0.6.1-beta
-[0.6.0-beta]: https://github.com/stasolejnik/elektron/releases/tag/v0.6.0-beta
-[0.5.0-alpha]: https://github.com/stasolejnik/elektron/releases/tag/v0.5.0-alpha
+[2.0.6]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6
+[2.0.0]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.0
+[1.0.1-beta1]: https://github.com/Klap3K/Elektronv2/releases/tag/v1.0.1-beta1
+[1.0.0]: https://github.com/Klap3K/Elektronv2/releases/tag/v1.0.0

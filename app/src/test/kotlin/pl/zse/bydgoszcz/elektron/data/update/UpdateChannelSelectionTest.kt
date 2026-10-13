@@ -6,7 +6,7 @@ import pl.zse.bydgoszcz.elektron.domain.model.UpdateChannel
 
 class UpdateChannelSelectionTest {
     private fun release(tag: String, prerelease: Boolean = false, draft: Boolean = false) =
-        GitHubRelease(tag, "https://github.com/stasolejnik/elektron/releases/tag/$tag", draft, prerelease)
+        GitHubRelease(tag, "https://github.com/Klap3K/Elektronv2/releases/tag/$tag", draft, prerelease)
 
     private val releases = listOf(
         release("v1.0.0"),
@@ -41,7 +41,7 @@ class UpdateChannelSelectionTest {
     }
 
     @Test fun recordSavedBeforeChannelsIsTreatedAsPrerelease() {
-        val old = UpdateRepositoryImpl.decode("1.0.1\nhttps://github.com/stasolejnik/elektron/releases/tag/v1.0.1\n\n\n0")!!
+        val old = UpdateRepositoryImpl.decode("1.0.1\nhttps://github.com/Klap3K/Elektronv2/releases/tag/v1.0.1\n\n\n0")!!
         assertTrue(old.prerelease)
         assertFalse(UpdateChannel.STABLE.accepts(old.versionName, old.prerelease))
     }

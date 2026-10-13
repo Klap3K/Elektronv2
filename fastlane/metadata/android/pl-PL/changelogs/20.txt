@@ -1,1 +1,1 @@
-Wersja kandydująca 1.0.0: nowy widok tygodnia (siatka z godzinami, szczegóły lekcji po dotknięciu), raport błędu z logami i kontakt kontakt.elektron@pm.me, komunikaty przy nieudanym odświeżeniu, poprawki.
+Wersja kandydująca 1.0.0: nowy widok tygodnia (siatka z godzinami, szczegóły lekcji po dotknięciu), raport błędu z logami, komunikaty przy nieudanym odświeżeniu, poprawki.

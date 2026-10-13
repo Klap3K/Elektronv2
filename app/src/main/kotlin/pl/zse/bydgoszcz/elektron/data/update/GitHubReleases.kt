@@ -24,10 +24,7 @@ data class GitHubRelease(
 object GitHubReleases {
 
     const val REPO_RELEASES_PAGE = "https://github.com/Klap3K/Elektronv2/releases"
-    private val ALLOWED_RELEASE_PAGES = listOf(
-        REPO_RELEASES_PAGE,
-        "https://github.com/stasolejnik/elektron/releases"
-    )
+    private val ALLOWED_RELEASE_PAGES = listOf(REPO_RELEASES_PAGE)
     private val SHA256_HEX = Regex("^[0-9a-f]{64}$")
 
     fun parse(json: String): List<GitHubRelease> {

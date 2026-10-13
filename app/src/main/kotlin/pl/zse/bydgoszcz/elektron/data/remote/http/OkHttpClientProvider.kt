@@ -24,7 +24,7 @@ object OkHttpClientProvider {
             level = if (debug) HttpLoggingInterceptor.Level.BASIC
             else HttpLoggingInterceptor.Level.NONE
         }
-        val userAgent = "eLektron/$versionName (+https://github.com/stasolejnik/elektron)"
+        val userAgent = "Elektron-Vulcan/$versionName (+https://github.com/Klap3K/Elektronv2)"
         return OkHttpClient.Builder()
             .cache(Cache(File(cacheDir, "http"), CACHE_SIZE_BYTES))
             .addInterceptor(HeaderInterceptor(userAgent))
@@ -53,7 +53,7 @@ object OkHttpClientProvider {
      *  - cache HTTP (plik APK nie ma tam czego szukać).
      */
     fun createDownloadClient(base: OkHttpClient, versionName: String): OkHttpClient {
-        val userAgent = "eLektron/$versionName (+https://github.com/stasolejnik/elektron)"
+        val userAgent = "Elektron-Vulcan/$versionName (+https://github.com/Klap3K/Elektronv2)"
         return base.newBuilder()
             .apply {
                 interceptors().clear()

@@ -23,7 +23,7 @@ class TransitWalkingRepositoryTest {
         val client = OkHttpClient.Builder().addInterceptor { chain ->
             requests++
             assertEquals("routing.openstreetmap.de", chain.request().url.host)
-            assertTrue(chain.request().header("User-Agent")!!.startsWith("eLektron/"))
+            assertTrue(chain.request().header("User-Agent")!!.startsWith("Elektron-Vulcan/"))
             assertEquals("1;2", chain.request().url.queryParameter("destinations"))
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")
                 .body("""{"code":"Ok","sources":[{"distance":0}],"destinations":[{"distance":0},{"distance":1}],"durations":[[192,301]],"distances":[[240.2,400]]}""".toResponseBody("application/json".toMediaType())).build()

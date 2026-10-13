@@ -1,8 +1,8 @@
-# Polityka prywatności - eLektron
+# Polityka prywatności - Elektron-Vulcan
 
 Ostatnia aktualizacja: październik 2026
 
-eLektron to nieoficjalna aplikacja z planem lekcji, zastępstwami i ogłoszeniami
+Elektron-Vulcan to nieoficjalna aplikacja z planem lekcji, zastępstwami, terminarzem VULCAN i ogłoszeniami
 Zespołu Szkół Elektronicznych w Bydgoszczy. Poniżej opisujemy, jakie dane przetwarza.
 
 ## W skrócie
@@ -120,8 +120,7 @@ o imię, nazwisko, adres e-mail ani numer telefonu i nie tworzy profili użytkow
 
 ## Kod źródłowy i kontakt
 
-eLektron jest wolnym oprogramowaniem - każdy może sprawdzić, co robi aplikacja:
-https://github.com/stasolejnik/elektron
+Elektron-Vulcan jest wolnym oprogramowaniem – kod źródłowy jest publicznie dostępny:
+https://github.com/Klap3K/Elektronv2
 
-Kontakt z deweloperem: **kontakt.elektron@pm.me**
-Zgłoszenia błędów: https://github.com/stasolejnik/elektron/issues
+Zgłoszenia błędów i kontakt: https://github.com/Klap3K/Elektronv2/issues

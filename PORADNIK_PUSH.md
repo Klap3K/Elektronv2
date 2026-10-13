@@ -12,7 +12,7 @@ Całość działa na darmowej infrastrukturze, bez własnego serwera:
 | Element | Gdzie | Rola |
 |---|---|---|
 | Firebase Cloud Messaging | projekt w konsoli Firebase | dostarcza wiadomości na telefony |
-| Watcher | [stasolejnik/elektron-push-watcher](https://github.com/stasolejnik/elektron-push-watcher) | co 5 minut sprawdza stronę szkoły i wysyła push |
+| Watcher | Repozytorium watchera push | co 5 minut sprawdza stronę szkoły i wysyła push |
 | Zegar | [cron-job.org](https://cron-job.org) | uruchamia watcher co 5 minut |
 | Aplikacja | `app/src/gms` | subskrybuje tematy i odbiera wiadomości |
 
@@ -48,8 +48,8 @@ Watcher musi działać w **publicznym** repozytorium na GitHubie. Tylko wtedy Gi
 limitu minut (prywatne repozytorium ma 2000 minut miesięcznie, a przebieg co 5 minut zużyje je
 w kilka dni).
 
-Najprościej zrobić **fork** [stasolejnik/elektron-push-watcher](https://github.com/stasolejnik/elektron-push-watcher).
-W forku GitHub domyślnie wyłącza workflowy. Wejdź w zakładkę **Actions** i je włącz.
+Najprościej utworzyć repozytorium z kodem watchera (np. skrypt Python/Node sprawdzający zmiany i wysyłający FCM).
+W repozytorium GitHub domyślnie wyłącza workflowy. Wejdź w zakładkę **Actions** i je włącz.
 
 Zanim watcher wyśle pierwszy push, wyczyść stan z oryginału, żeby fork zaczął od własnego snapshotu.
 Zastąp zawartość `state.json` przez `{}` i zatwierdź zmianę.
@@ -143,8 +143,7 @@ Push jest tylko sygnałem. O tym, czy pokazać powiadomienie, decyduje aktualny 
 i ustawienia w aplikacji (klasa, grupy, włączone powiadomienia). Synchronizacja w tle działa dalej
 jako zabezpieczenie, gdy push nie dotrze (brak sieci, Doze, przerwa w działaniu watchera).
 
-Szczegóły watchera (ponawianie, archiwum stron, heartbeat): README w
-[elektron-push-watcher](https://github.com/stasolejnik/elektron-push-watcher).
+Szczegóły watchera (ponawianie, archiwum stron, heartbeat): zobacz dokumentację w repozytorium watchera.
 
 ## Koszty
 

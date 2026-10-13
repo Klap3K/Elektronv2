@@ -9,10 +9,10 @@ import java.net.URLEncoder
  */
 object CrashReport {
 
-    const val ISSUES_URL = "https://github.com/stasolejnik/elektron/issues/new"
+    const val ISSUES_URL = "https://github.com/Klap3K/Elektronv2/issues/new"
 
     /** Oficjalny adres kontaktowy dewelopera (raporty błędów, pytania). */
-    const val CONTACT_EMAIL = "kontakt.elektron@pm.me"
+    const val CONTACT_EMAIL = "klap3k@users.noreply.github.com"
 
     /** Dłuższe ślady stosu są przycinane (w e-mailu jest pełny raport z logami). */
     private const val MAX_STACK_CHARS = 8_000
@@ -36,7 +36,7 @@ object CrashReport {
         /** Ostatnie logi aplikacji (logcat własnego procesu). */
         logs: String? = null
     ): String = buildString {
-        appendLine("eLektron $versionName ($versionCode, $flavor)")
+        appendLine("Elektron-Vulcan $versionName ($versionCode, $flavor)")
         appendLine("Android $androidVersion (API $sdkInt), $device")
         appendLine("Czas: $time")
         thread?.let { appendLine("Wątek: $it") }
@@ -79,8 +79,8 @@ object CrashReport {
 
     /** Temat e-maila z raportem. */
     fun emailSubject(report: String): String =
-        if (report.lineSequence().any { it.startsWith("--- ") } && title(report) == "Awaria aplikacji") "eLektron: zgłoszenie problemu"
-        else "eLektron: " + title(report)
+        if (report.lineSequence().any { it.startsWith("--- ") } && title(report) == "Awaria aplikacji") "Elektron-Vulcan: zgłoszenie problemu"
+        else "Elektron-Vulcan: " + title(report)
 
     /**
      * Adres mailto: z tematem i treścią (przyciętą - pełna treść idzie też jako EXTRA_TEXT,
@@ -130,7 +130,7 @@ object CrashReport {
         androidVersion: String, sdkInt: Int, device: String
     ): String {
         val body = "Opisz problem - co się stało i co spodziewałeś/aś się zobaczyć?\n\n\n---\n" +
-            "eLektron $versionName ($versionCode, $flavor)\nAndroid $androidVersion (API $sdkInt), $device"
+            "Elektron-Vulcan $versionName ($versionCode, $flavor)\nAndroid $androidVersion (API $sdkInt), $device"
         return "$ISSUES_URL?body=${enc(body)}"
     }
 

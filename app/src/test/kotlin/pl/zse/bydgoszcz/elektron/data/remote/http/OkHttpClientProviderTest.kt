@@ -41,7 +41,7 @@ class OkHttpClientProviderTest {
             .build()
         client.newCall(Request.Builder().url("https://github.com/x.apk").build()).execute().close()
         assertEquals(1, calls)                                   // 503 bez ponawiania
-        assertEquals("eLektron/1.0-test (+https://github.com/stasolejnik/elektron)", seen?.header("User-Agent"))
+        assertEquals("Elektron-Vulcan/1.0-test (+https://github.com/Klap3K/Elektronv2)", seen?.header("User-Agent"))
         assertNull(seen?.header("Accept"))
         assertNull(seen?.header("Cache-Control"))
     }

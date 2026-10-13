@@ -59,7 +59,7 @@ internal fun TransitMap(stops: List<TransitDestination>, destination: TransitDes
     }
     val map = remember(context, owner) {
         Configuration.getInstance().apply {
-            userAgentValue = "eLektron/${BuildConfig.VERSION_NAME} (+https://github.com/stasolejnik/elektron)"
+            userAgentValue = "Elektron-Vulcan/${BuildConfig.VERSION_NAME} (+https://github.com/Klap3K/Elektronv2)"
             osmdroidBasePath = File(context.cacheDir, "transit_map")
             osmdroidTileCache = File(osmdroidBasePath, "tiles").apply { mkdirs() }
             tileFileSystemCacheMaxBytes = 30L * 1024 * 1024
