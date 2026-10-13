@@ -1,6 +1,8 @@
 package pl.zse.bydgoszcz.elektron.presentation.attendance
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -264,10 +266,12 @@ private fun SimulatorSection(
         )
         Spacer(Modifier.height(4.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            listOf(0, 1, 2, 4, 8).forEach { hours ->
+            listOf(0, 1, 2, 4, 8, 12).forEach { hours ->
                 val label = if (hours == 0) "Reset" else "+$hours h"
                 FilterChip(
                     selected = currentMissed == hours,

@@ -5,6 +5,14 @@ object Changelog {
     data class Entry(val versionCode: Int, val versionName: String, val items: List<String>)
 
     val entries: List<Entry> = listOf(
+        Entry(47, "2.1.0", listOf(
+            "Symulator Ocen „Co jeśli”: natychmiastowa symulacja przewidywanych ocen i ich wpływu na średnią ważoną przedmiotu oraz średnią ogólną",
+            "Strażnik Frekwencji: naprawione pobieranie wszystkich przedmiotów z eduVULCAN oraz kalkulator bezpiecznego progu z precyzyjnym limitem opuszczeń i godzinami do odrobienia",
+            "Usprawniony interfejs symulatora frekwencji: pełne poziome przewijanie kafelków opuszczeń bez ucinania chipów (+8 h)",
+            "Powiadomienia Smart Diff: powiadomienia o nowo wpisanych ocenach cząstkowych w tle przez WorkManager",
+            "Stabilność sesji eduVULCAN: odporność na błędy OEM Keystore AES-GCM (brak wylogowywania po aktualizacji)",
+            "Bezpieczeństwo WebView i czyszczenie pamięci: obsługa domen BCU, atomowe wylogowanie i deduplikacja workerów FCM"
+        )),
         Entry(46, "2.0.9", listOf(
             "Pakiet poprawek audytu technicznego DeepSeek (stoper na lockscreen/AOD w Android 12-15, harmonogram alarmów)",
             "Ciągłe powiadomienie „Kiedy dzwonek?”: licznik na żywo na ekranie blokady i AOD, sala, lekcja i postęp bez zużycia baterii",

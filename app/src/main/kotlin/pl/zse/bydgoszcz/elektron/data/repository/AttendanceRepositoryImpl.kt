@@ -36,7 +36,14 @@ class AttendanceRepositoryImpl @Inject constructor(
             if (res.isSuccess) {
                 val stats = res.getOrDefault(emptyList())
                 if (stats.isNotEmpty()) {
-                    dao.replaceAll(stats.map { it.toEntity() })
+                    val current = dao.getAll().first()
+                    // Jeśli mamy już pełną listę przedmiotów w bazie, a z API przyszła podejrzanie mała liczba (< 3),
+                    // nie usuwaj pozostałych przedmiotów za pomocą replaceAll, lecz zaktualizuj (upsertAll).
+                    if (current.size > 3 && stats.size < 3) {
+                        dao.upsertAll(stats.map { it.toEntity() })
+                    } else {
+                        dao.replaceAll(stats.map { it.toEntity() })
+                    }
                     return@withContext Result.success(stats.size)
                 }
             }

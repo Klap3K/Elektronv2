@@ -44,4 +44,13 @@ class AppVersionTest {
         assertTrue(AppVersion.isNewer("v0.6.0-alpha", "0.5.0-alpha-debug"))
         assertFalse(AppVersion.isNewer("v0.4.0-alpha", "0.5.0-alpha"))
     }
+
+    @Test
+    fun semVerV209VsV2010() {
+        assertTrue(AppVersion.isNewer("v2.0.10", "v2.0.9"))
+        assertTrue(AppVersion.isNewer("2.0.10", "2.0.9"))
+        assertTrue(AppVersion.isNewer("v2.1.0", "v2.0.9"))
+        assertFalse(AppVersion.isNewer("v2.0.9", "v2.0.9"))
+        assertFalse(AppVersion.isNewer("v2.0.9", "v2.0.10"))
+    }
 }

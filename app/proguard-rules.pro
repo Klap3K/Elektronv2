@@ -9,6 +9,8 @@
 -keep @androidx.room.Dao class * { *; }
 -keep class pl.zse.bydgoszcz.elektron.data.local.** { *; }
 -keep class pl.zse.bydgoszcz.elektron.data.remote.dto.** { *; }
+-keep class pl.zse.bydgoszcz.elektron.data.remote.vulcan.** { *; }
+-keep class pl.zse.bydgoszcz.elektron.data.update.** { *; }
 -keep class pl.zse.bydgoszcz.elektron.domain.model.** { *; }
 -keep class * extends androidx.work.ListenableWorker { <init>(...); }
 -dontwarn okhttp3.**

@@ -28,6 +28,23 @@ data class StudentGrade(
 }
 
 /**
+ * Wirtualna ocena w symulatorze ocen „Co jeśli”.
+ * Nie jest zapisywana trwale w bazie danych, służy do natychmiastowego
+ * podglądu wpływu nowej oceny na średnią ważoną danego przedmiotu i średnią ogólną.
+ */
+data class VirtualGrade(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val subject: String,
+    val value: String,
+    val weight: Double = 1.0,
+    val description: String = "Symulacja"
+) {
+    /** Wartość liczbowa w skali 1.0–6.0 (lub null dla niepoprawnych wpisów). */
+    val numericValue: Double?
+        get() = GradeCalculator.parseNumericGrade(value)
+}
+
+/**
  * Podsumowanie ocen z jednego przedmiotu w wybranym okresie klasyfikacyjnym (semestrze).
  */
 data class SubjectGradesSummary(
@@ -158,5 +175,34 @@ object GradeCalculator {
             }
         if (valid.isEmpty()) return null
         return ((valid.average()) * 100.0).roundToInt() / 100.0
+    }
+
+    /**
+     * Oblicza symulowaną średnią ważoną przedmiotu z uwzględnieniem ocen wirtualnych („Co jeśli”).
+     */
+    fun calculateWeightedAverageWithVirtual(
+        existingGrades: List<StudentGrade>,
+        virtualGrades: List<VirtualGrade>
+    ): Double? {
+        var weightedSum = 0.0
+        var weightTotal = 0.0
+        for (g in existingGrades) {
+            if (g.isSuperseded) continue
+            val num = g.numericValue ?: continue
+            val w = if (g.weight > 0.0) g.weight else 1.0
+            weightedSum += num * w
+            weightTotal += w
+        }
+        for (vg in virtualGrades) {
+            val num = vg.numericValue ?: continue
+            val w = if (vg.weight > 0.0) vg.weight else 1.0
+            weightedSum += num * w
+            weightTotal += w
+        }
+        return if (weightTotal > 0.0) {
+            ((weightedSum / weightTotal) * 100.0).roundToInt() / 100.0
+        } else {
+            null
+        }
     }
 }

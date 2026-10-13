@@ -662,6 +662,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
 
                                 override fun onContextSuccess(domain: String, city: String, contextJson: String) {
                                     if (cont.isActive) {
+                                        runCatching { CookieManager.getInstance().flush() }
                                         val parsed = parseContextJson(domain, city, contextJson, username, password)
                                         cont.resume(parsed)
                                     }
@@ -677,12 +678,9 @@ class EduVulcanWebAuthenticator @Inject constructor(
                                 view?.postDelayed({ EduVulcanWebSecurity.evaluate(view, jsCode) }, 1200L)
                                 view?.postDelayed({ EduVulcanWebSecurity.evaluate(view, jsCode) }, 2500L)
                             }
-
-
                         }
 
                         wv.loadUrl(LOGIN_URL)
-
                     }
                 }
 
@@ -695,7 +693,11 @@ class EduVulcanWebAuthenticator @Inject constructor(
             } finally {
                 runCatching {
                     webView?.stopLoading()
+                    webView?.loadUrl("about:blank")
+                    webView?.clearHistory()
+                    webView?.removeAllViews()
                     webView?.destroy()
+                    webView = null
                 }
             }
         }

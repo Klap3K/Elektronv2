@@ -59,8 +59,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import pl.zse.bydgoszcz.elektron.domain.model.GradeCalculator
 import pl.zse.bydgoszcz.elektron.domain.model.StudentGrade
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectGradesSummary
+import pl.zse.bydgoszcz.elektron.domain.model.VirtualGrade
 import pl.zse.bydgoszcz.elektron.presentation.calendar.EduVulcanLoginDialog
 import java.util.Locale
 
@@ -72,6 +74,8 @@ fun GradesDialog(
 ) {
     val summaries by viewModel.subjectSummaries.collectAsStateWithLifecycle()
     val overallAvg by viewModel.overallAverage.collectAsStateWithLifecycle()
+    val virtualGrades by viewModel.virtualGrades.collectAsStateWithLifecycle()
+    val overallSimAvg by viewModel.overallSimulatedAverage.collectAsStateWithLifecycle()
     val availablePeriods by viewModel.availablePeriods.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
@@ -178,12 +182,50 @@ fun GradesDialog(
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text(
-                                    text = overallAvg?.let { String.format(Locale.US, "%.2f", it) } ?: "—",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = overallAvg?.let { String.format(Locale.US, "%.2f", it) } ?: "—",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    if (overallSimAvg != null && overallSimAvg != overallAvg) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = "➔",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.tertiary
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = String.format(Locale.US, "%.2f", overallSimAvg),
+                                            style = MaterialTheme.typography.headlineMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.tertiary
+                                        )
+                                    }
+                                }
+                                if (virtualGrades.isNotEmpty()) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "✨ Symulacja: ${virtualGrades.size} wirtualnych ocen",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.tertiary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = "Wyczyść wszystko",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.clickable { viewModel.clearVirtualGrades() }
+                                        )
+                                    }
+                                }
                             }
 
                             if (availablePeriods.size > 1) {
@@ -287,13 +329,22 @@ fun GradesDialog(
                     ) {
                         items(summaries, key = { "${it.periodNumber}_${it.subject}" }) { summary ->
                             val isExpanded = expandedSubject == summary.subject
+                            val subjectVirtuals = virtualGrades.filter { it.subject.equals(summary.subject, ignoreCase = true) }
                             SubjectGradesRow(
                                 summary = summary,
+                                virtualGrades = subjectVirtuals,
                                 isExpanded = isExpanded,
                                 onToggleExpand = {
                                     expandedSubject = if (isExpanded) null else summary.subject
                                 },
-                                onDeleteGrade = viewModel::deleteGrade
+                                onDeleteGrade = viewModel::deleteGrade,
+                                onAddVirtualGrade = { valStr, weight ->
+                                    viewModel.addVirtualGrade(summary.subject, valStr, weight)
+                                },
+                                onRemoveVirtualGrade = viewModel::removeVirtualGrade,
+                                onClearVirtualGrades = {
+                                    viewModel.clearVirtualGrades(summary.subject)
+                                }
                             )
                         }
                     }
@@ -307,10 +358,18 @@ fun GradesDialog(
 @Composable
 private fun SubjectGradesRow(
     summary: SubjectGradesSummary,
+    virtualGrades: List<VirtualGrade>,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
-    onDeleteGrade: (String) -> Unit
+    onDeleteGrade: (String) -> Unit,
+    onAddVirtualGrade: (value: String, weight: Double) -> Unit,
+    onRemoveVirtualGrade: (String) -> Unit,
+    onClearVirtualGrades: () -> Unit
 ) {
+    val simulatedAvg = if (virtualGrades.isNotEmpty()) {
+        GradeCalculator.calculateWeightedAverageWithVirtual(summary.grades, virtualGrades)
+    } else null
+
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
@@ -346,24 +405,51 @@ private fun SubjectGradesRow(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    summary.average?.let { avg ->
+                    val displayAvg = simulatedAvg ?: summary.average
+                    if (displayAvg != null) {
                         val avgColor = when {
-                            avg >= 4.75 -> Color(0xFF2E7D32)
-                            avg >= 3.5 -> MaterialTheme.colorScheme.primary
-                            avg >= 2.0 -> Color(0xFFEF6C00)
+                            displayAvg >= 4.75 -> Color(0xFF2E7D32)
+                            displayAvg >= 3.5 -> MaterialTheme.colorScheme.primary
+                            displayAvg >= 2.0 -> Color(0xFFEF6C00)
                             else -> MaterialTheme.colorScheme.error
                         }
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = avgColor.copy(alpha = 0.15f)
                         ) {
-                            Text(
-                                text = String.format(Locale.US, "Śr: %.2f", avg),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = avgColor,
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            ) {
+                                if (simulatedAvg != null && summary.average != null && simulatedAvg != summary.average) {
+                                    Text(
+                                        text = String.format(Locale.US, "%.2f", summary.average),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textDecoration = TextDecoration.LineThrough
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = "➔",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = String.format(Locale.US, "%.2f", simulatedAvg),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = avgColor
+                                    )
+                                } else {
+                                    Text(
+                                        text = String.format(Locale.US, "Śr: %.2f", displayAvg),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = avgColor
+                                    )
+                                }
+                            }
                         }
                         Spacer(Modifier.width(6.dp))
                     }
@@ -375,7 +461,8 @@ private fun SubjectGradesRow(
                 }
             }
 
-            if (summary.grades.isNotEmpty()) {
+            val totalGradesCount = summary.grades.size + virtualGrades.size
+            if (totalGradesCount > 0) {
                 Spacer(Modifier.height(8.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -384,64 +471,254 @@ private fun SubjectGradesRow(
                     summary.grades.forEach { g ->
                         GradeBadgeChip(g)
                     }
+                    virtualGrades.forEach { vg ->
+                        VirtualGradeBadgeChip(
+                            virtualGrade = vg,
+                            onRemove = { onRemoveVirtualGrade(vg.id) }
+                        )
+                    }
                 }
             }
 
-            AnimatedVisibility(visible = isExpanded && summary.grades.isNotEmpty()) {
+            AnimatedVisibility(visible = isExpanded) {
                 Column(modifier = Modifier.padding(top = 10.dp)) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // Symulator ocen "Co jeśli"
                     Spacer(Modifier.height(8.dp))
-                    summary.grades.forEach { g ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            GradeBadgeChip(g)
-                            Spacer(Modifier.width(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                val title = listOfNotNull(g.category, g.description)
-                                    .filter { it.isNotBlank() }
-                                    .distinct()
-                                    .joinToString(": ")
-                                    .ifBlank { "Ocena cząstkowa" }
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold
+                                    text = "✨ Symulator „Co jeśli”",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
-                                val sub = buildList {
-                                    if (g.weight > 0.0) add("Waga: ${g.weight.toInt().takeIf { it.toDouble() == g.weight } ?: g.weight}")
-                                    g.dateText?.takeIf { it.isNotBlank() }?.let { add(it) }
-                                    g.teacher?.takeIf { it.isNotBlank() }?.let { add(it) }
-                                    if (g.isSuperseded) add("Poprawiona")
-                                }.joinToString(" • ")
-                                if (sub.isNotBlank()) {
+                                if (virtualGrades.isNotEmpty()) {
                                     Text(
-                                        text = sub,
+                                        text = "Resetuj symulację",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.clickable(onClick = onClearVirtualGrades)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Wybierz wagę i dotknij ocenę, aby zasymulować wpływ na średnią:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+
+                            var selectedSimWeight by remember { mutableStateOf(1.0) }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Waga:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                listOf(1.0, 2.0, 3.0, 4.0).forEach { w ->
+                                    val isSelected = selectedSimWeight == w
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            1.dp,
+                                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                                        ),
+                                        modifier = Modifier.clickable { selectedSimWeight = w }
+                                    ) {
+                                        Text(
+                                            text = "${w.toInt()}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf("6", "5", "4", "3", "2", "1").forEach { gradeVal ->
+                                    Button(
+                                        onClick = { onAddVirtualGrade(gradeVal, selectedSimWeight) },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(34.dp),
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                                    ) {
+                                        Text(
+                                            text = "+$gradeVal",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (summary.grades.isNotEmpty() || virtualGrades.isNotEmpty()) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = "Szczegóły ocen:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(6.dp))
+
+                        // Oceny wirtualne
+                        virtualGrades.forEach { vg ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                VirtualGradeBadgeChip(
+                                    virtualGrade = vg,
+                                    onRemove = { onRemoveVirtualGrade(vg.id) }
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Ocena symulowana („Co jeśli”)",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                    Text(
+                                        text = "Waga: ${vg.weight.toInt().takeIf { it.toDouble() == vg.weight } ?: vg.weight}",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
-                            if (g.id.startsWith("manual_")) {
                                 IconButton(
-                                    onClick = { onDeleteGrade(g.id) },
+                                    onClick = { onRemoveVirtualGrade(vg.id) },
                                     modifier = Modifier.size(28.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Delete,
-                                        contentDescription = "Usuń ocenę",
+                                        contentDescription = "Usuń symulację",
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
                         }
+
+                        // Oceny rzeczywiste
+                        summary.grades.forEach { g ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                GradeBadgeChip(g)
+                                Spacer(Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    val title = listOfNotNull(g.category, g.description)
+                                        .filter { it.isNotBlank() }
+                                        .distinct()
+                                        .joinToString(": ")
+                                        .ifBlank { "Ocena cząstkowa" }
+                                    Text(
+                                        text = title,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    val sub = buildList {
+                                        if (g.weight > 0.0) add("Waga: ${g.weight.toInt().takeIf { it.toDouble() == g.weight } ?: g.weight}")
+                                        g.dateText?.takeIf { it.isNotBlank() }?.let { add(it) }
+                                        g.teacher?.takeIf { it.isNotBlank() }?.let { add(it) }
+                                        if (g.isSuperseded) add("Poprawiona")
+                                    }.joinToString(" • ")
+                                    if (sub.isNotBlank()) {
+                                        Text(
+                                            text = sub,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                if (g.id.startsWith("manual_")) {
+                                    IconButton(
+                                        onClick = { onDeleteGrade(g.id) },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = "Usuń ocenę",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun VirtualGradeBadgeChip(
+    virtualGrade: VirtualGrade,
+    onRemove: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
+        modifier = Modifier.clickable(onClick = onRemove)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+        ) {
+            Text(
+                text = "✨ ${virtualGrade.value}",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            val wInt = virtualGrade.weight.toInt()
+            val wStr = if (wInt.toDouble() == virtualGrade.weight) "$wInt" else "${virtualGrade.weight}"
+            Text(
+                text = " [w:$wStr]",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+            )
+            Spacer(Modifier.width(2.dp))
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Usuń symulację",
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(12.dp)
+            )
         }
     }
 }

@@ -4,6 +4,28 @@ Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
+## [2.1.0] - 2026-10-13 (47)
+
+Szczegóły: [release-notes/2.1.0.md](release-notes/2.1.0.md).
+
+- **Symulator Ocen „Co jeśli” (Grade Simulator):**
+  - Natychmiastowa symulacja przewidywanych ocen i ich wpływu na średnią ważoną każdego przedmiotu oraz średnią ogólną.
+  - Szybkie dodawanie i usuwanie wirtualnych ocen cząstkowych z wyborem wagi (1–4) i podglądem na żywo bez modyfikowania rzeczywistych danych.
+- **Strażnik Frekwencji & Kalkulator Bezpiecznego Progu:**
+  - Naprawiono pobieranie wszystkich przedmiotów z eduVULCAN (usunięto błąd odrzucania przedmiotów z pustym `podsumowaniem`).
+  - Precyzyjny kalkulator progu frekwencji (`AttendanceThresholdCalculator`) wyliczający maksymalną dopuszczalną liczbę opuszczeń ($\lfloor P/R - T \rfloor$) oraz godziny potrzebne do odrobienia frekwencji ($\lceil (RT - P)/(1 - R) \rceil$).
+  - Pełne poziome przewijanie kafelków opuszczeń w `AttendanceGuardianDialog` – eliminacja ucinania chipa `+8 h` na węższych ekranach.
+- **Powiadomienia Smart Diff w tle:**
+  - Automatyczne systemowe powiadomienia o nowo wpisanych ocenach z dziennika eduVULCAN wykrywane przez `CalendarRepository` podczas synchronizacji w tle.
+- **Odporność sesji eduVULCAN na błędy Keystore:**
+  - Zabezpieczenie przed unieważnieniem kluczy AES-GCM przez błędy OEM Androida (Samsung Knox/Xiaomi MIUI/ColorOS) po aktualizacji aplikacji.
+  - Atomowe czyszczenie sesji i ciasteczek WebView przy wylogowaniu.
+- **Uszczelnienie WebView i optymalizacja R8:**
+  - Rozszerzenie zaufanych domen o samorządowe i branżowe instancje VULCAN (`bcu.gov.pl`).
+  - Pełne zwalnianie pamięci headless WebView po autoryzacji w tle.
+  - Deduplikacja zadań WorkManager w serwisie FCM (`enqueueUniqueWork` z `ExistingWorkPolicy.KEEP`).
+  - Reguły R8 chroniące modele DTO aktualizacji i integracji eduVULCAN.
+
 ## [2.0.9] - 2026-10-13 (46)
 
 Szczegóły: [release-notes/2.0.9.md](release-notes/2.0.9.md).

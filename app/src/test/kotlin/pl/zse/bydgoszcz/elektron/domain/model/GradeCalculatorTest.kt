@@ -161,4 +161,36 @@ class GradeCalculatorTest {
         assertEquals("https://dziennik-uczen.vulcan.net.pl/bydgoszcz/012345", tiles[0].url)
         assertEquals("Anna Kowalska - Uczeń", tiles[1].title)
     }
+
+    @Test
+    fun calculateWeightedAverageWithVirtual_correctlyIncludesVirtualGradesAndWeights() {
+        val existingGrades = listOf(
+            StudentGrade(
+                id = "1",
+                subject = "Matematyka",
+                value = "3",
+                weight = 2.0,
+                periodNumber = 1
+            ),
+            StudentGrade(
+                id = "2",
+                subject = "Matematyka",
+                value = "4",
+                weight = 1.0,
+                periodNumber = 1
+            )
+        )
+        val existingAvg = GradeCalculator.calculateWeightedAverageWithVirtual(existingGrades, emptyList())
+        assertEquals(3.33, existingAvg!!, 0.001)
+
+        val virtualGrades = listOf(
+            VirtualGrade(
+                subject = "Matematyka",
+                value = "5",
+                weight = 3.0
+            )
+        )
+        val simulatedAvg = GradeCalculator.calculateWeightedAverageWithVirtual(existingGrades, virtualGrades)
+        assertEquals(4.17, simulatedAvg!!, 0.001)
+    }
 }

@@ -20,9 +20,8 @@ interface CredentialCipher {
 
 /** A new random IV for every value; the preference name is authenticated as AAD. */
 class KeystoreCredentialCipher : CredentialCipher {
-    private fun key(): SecretKey = synchronized(keyLock) {
-        val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (store.getKey(ALIAS, null) as? SecretKey) ?: KeyGenerator.getInstance(
+    private fun generateKey(): SecretKey {
+        return KeyGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore"
         ).apply {
             init(KeyGenParameterSpec.Builder(ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
@@ -30,6 +29,18 @@ class KeystoreCredentialCipher : CredentialCipher {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setRandomizedEncryptionRequired(true).build())
         }.generateKey()
+    }
+
+    private fun key(): SecretKey = synchronized(keyLock) {
+        val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        try {
+            (store.getKey(ALIAS, null) as? SecretKey) ?: generateKey()
+        } catch (e: Exception) {
+            // Na nakładkach OEM (HyperOS, OneUI, MagicOS) po zmianie blokady ekranu
+            // lub błędzie sprzętowym: bezpiecznie usuwamy uszkodzony klucz i generujemy nowy.
+            runCatching { store.deleteEntry(ALIAS) }
+            generateKey()
+        }
     }
 
     private val cipher = AesGcmCredentialCipher(::key)
@@ -53,12 +64,15 @@ class AesGcmCredentialCipher(private val keyProvider: () -> SecretKey) : Credent
     override fun decrypt(value: String, purpose: String): String {
         val bytes = Base64.getDecoder().decode(value)
         require(bytes.size >= 28) { "Nieprawidłowe zaszyfrowane poświadczenia" }
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, keyProvider(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
-        cipher.updateAAD(purpose.toByteArray(Charsets.UTF_8))
-        return cipher.doFinal(bytes.copyOfRange(12, bytes.size)).toString(Charsets.UTF_8)
+        return try {
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, keyProvider(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
+            cipher.updateAAD(purpose.toByteArray(Charsets.UTF_8))
+            cipher.doFinal(bytes.copyOfRange(12, bytes.size)).toString(Charsets.UTF_8)
+        } catch (e: Exception) {
+            throw java.security.GeneralSecurityException("Błąd odszyfrowania poświadczeń Keystore", e)
+        }
     }
-
 }
 
 /** DataStore commits this migration atomically before exposing preferences to readers. */

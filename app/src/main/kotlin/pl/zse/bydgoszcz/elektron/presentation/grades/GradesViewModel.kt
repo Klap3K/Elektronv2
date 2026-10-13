@@ -15,6 +15,7 @@ import pl.zse.bydgoszcz.elektron.domain.model.EduVulcanSession
 import pl.zse.bydgoszcz.elektron.domain.model.GradeCalculator
 import pl.zse.bydgoszcz.elektron.domain.model.StudentGrade
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectGradesSummary
+import pl.zse.bydgoszcz.elektron.domain.model.VirtualGrade
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
 import pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.GradeRepository
@@ -58,6 +59,59 @@ class GradesViewModel @Inject constructor(
     val overallAverage: StateFlow<Double?> = combine(subjectSummaries) { (summaries) ->
         GradeCalculator.overallAverage(summaries)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _virtualGrades = MutableStateFlow<List<VirtualGrade>>(emptyList())
+    val virtualGrades: StateFlow<List<VirtualGrade>> = _virtualGrades.asStateFlow()
+
+    val overallSimulatedAverage: StateFlow<Double?> = combine(
+        subjectSummaries,
+        _virtualGrades
+    ) { summaries, virtuals ->
+        if (virtuals.isEmpty()) return@combine null
+        val simulatedSummaries = summaries.map { summary ->
+            val vGradesForSubject = virtuals.filter { it.subject.equals(summary.subject, ignoreCase = true) }
+            if (vGradesForSubject.isEmpty()) {
+                summary
+            } else {
+                val newAvg = GradeCalculator.calculateWeightedAverageWithVirtual(summary.grades, vGradesForSubject)
+                summary.copy(average = newAvg ?: summary.average)
+            }
+        }
+        GradeCalculator.overallAverage(simulatedSummaries)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun addVirtualGrade(
+        subject: String,
+        value: String,
+        weight: Double = 1.0,
+        description: String = "Symulacja"
+    ) {
+        val cleanSubj = subject.trim()
+        val cleanVal = value.trim()
+        if (cleanSubj.isBlank() || cleanVal.isBlank()) return
+        val current = _virtualGrades.value.toMutableList()
+        current.add(
+            VirtualGrade(
+                subject = cleanSubj,
+                value = cleanVal,
+                weight = weight.coerceAtLeast(0.5),
+                description = description.ifBlank { "Symulacja" }
+            )
+        )
+        _virtualGrades.value = current
+    }
+
+    fun removeVirtualGrade(id: String) {
+        _virtualGrades.value = _virtualGrades.value.filter { it.id != id }
+    }
+
+    fun clearVirtualGrades(subject: String? = null) {
+        if (subject == null) {
+            _virtualGrades.value = emptyList()
+        } else {
+            _virtualGrades.value = _virtualGrades.value.filter { !it.subject.equals(subject, ignoreCase = true) }
+        }
+    }
 
     fun selectPeriod(period: Int) {
         _selectedPeriod.value = period

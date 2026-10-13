@@ -389,42 +389,57 @@ class VulcanApiClient @Inject constructor(
                     .header("Referer", "$baseUrl/App")
                     .build()
 
+                // Delikatne opóźnienie między żądaniami dla przedmiotów, aby uniknąć limitów HTTP 429
+                if (i > 0) {
+                    runCatching { Thread.sleep(40L) }
+                }
+
                 val statRes = runCatching { okHttp.newCall(statReq).execute() }.getOrNull() ?: continue
                 if (!statRes.isSuccessful) continue
                 val statBody = statRes.body?.string().orEmpty().trim()
                 if (statBody.isBlank()) continue
 
                 val statJson = runCatching { JSONObject(statBody) }.getOrNull() ?: continue
-                if (statJson.isNull("podsumowanie")) continue
 
-                val rows = statJson.optJSONArray("statystyki") ?: continue
+                val rows = statJson.optJSONArray("statystyki") ?: statJson.optJSONArray("Statystyki")
                 var present = 0
                 var absent = 0
                 var excused = 0
                 var late = 0
                 var obligation = 0
 
-                for (r in 0 until rows.length()) {
-                    val row = rows.optJSONObject(r) ?: continue
-                    val kat = row.optInt("kategoriaFrekwencji", 0)
-                    var count = row.optInt("razem", -1)
-                    if (count < 0) {
-                        count = 0
-                        val okresy = row.optJSONArray("okresy")
-                        if (okresy != null) {
-                            for (o in 0 until okresy.length()) {
-                                count += okresy.optInt(o, 0)
+                if (rows != null) {
+                    for (r in 0 until rows.length()) {
+                        val row = rows.optJSONObject(r) ?: continue
+                        val kat = row.optInt("kategoriaFrekwencji", 0)
+                        var count = row.optInt("razem", -1)
+                        if (count < 0) {
+                            count = 0
+                            val okresy = row.optJSONArray("okresy") ?: row.optJSONArray("Okresy")
+                            if (okresy != null) {
+                                for (o in 0 until okresy.length()) {
+                                    count += okresy.optInt(o, 0)
+                                }
                             }
                         }
-                    }
 
-                    when (kat) {
-                        1 -> present += count
-                        2 -> absent += count
-                        3 -> excused += count
-                        4, 5 -> late += count
-                        6, 7 -> obligation += count
+                        when (kat) {
+                            1 -> present += count
+                            2 -> absent += count
+                            3 -> excused += count
+                            4, 5 -> late += count
+                            6, 7 -> obligation += count
+                        }
                     }
+                }
+
+                val podsumowanie = statJson.optJSONObject("podsumowanie") ?: statJson.optJSONObject("Podsumowanie")
+                if (podsumowanie != null && present == 0 && absent == 0 && excused == 0 && late == 0 && obligation == 0) {
+                    present = podsumowanie.optInt("obecnosci", podsumowanie.optInt("Obecnosci", 0))
+                    absent = podsumowanie.optInt("nieobecnosci", podsumowanie.optInt("Nieobecnosci", 0))
+                    excused = podsumowanie.optInt("usprawiedliwione", podsumowanie.optInt("Usprawiedliwione", 0))
+                    late = podsumowanie.optInt("spoznienia", podsumowanie.optInt("Spoznienia", 0))
+                    obligation = podsumowanie.optInt("obowiazekSzkolny", podsumowanie.optInt("ObowiazekSzkolny", 0))
                 }
 
                 val total = present + absent + excused + late + obligation

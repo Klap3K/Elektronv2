@@ -44,6 +44,7 @@ import pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanAccount
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanRegistrationInput
 import pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
+import pl.zse.bydgoszcz.elektron.work.NotificationSink
 import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
@@ -64,7 +65,8 @@ class CalendarRepositoryImpl @Inject constructor(
     private val gradeDao: GradeDao,
     private val okHttp: OkHttpClient,
     private val vulcanApiClient: VulcanApiClient,
-    private val eduVulcanAuthenticator: EduVulcanWebAuthenticator
+    private val eduVulcanAuthenticator: EduVulcanWebAuthenticator,
+    private val notificationSink: NotificationSink
 ) : CalendarRepository {
 
     private val store = context.calendarPreferences
@@ -241,6 +243,14 @@ class CalendarRepositoryImpl @Inject constructor(
 
     private suspend fun clearVulcanAccountLocked() {
         withContext(Dispatchers.IO) {
+            // 1. Zatrzymanie aktywnych zadań synchronizacji w tle w WorkManager
+            runCatching {
+                val wm = androidx.work.WorkManager.getInstance(context)
+                wm.cancelUniqueWork(pl.zse.bydgoszcz.elektron.work.SyncScheduler.WORK_MANUAL)
+                wm.cancelUniqueWork(pl.zse.bydgoszcz.elektron.work.SyncScheduler.WORK_PUSH_SUBS)
+            }
+
+            // 2. Usunięcie zaszyfrowanych poświadczeń i kluczy sesyjnych z DataStore
             store.edit { prefs ->
                 prefs.remove(Keys.VULCAN_TOKEN)
                 prefs.remove(Keys.VULCAN_SYMBOL)
@@ -259,8 +269,12 @@ class CalendarRepositoryImpl @Inject constructor(
                 prefs.remove(Keys.EDU_COOKIES)
                 prefs.remove(Keys.LAST_SYNC_ERROR)
             }
+
+            // 3. Wyczyszczenie danych z bazy Room
             attendanceDao.clear()
             gradeDao.replaceAll(gradeDao.getAll().filter { it.id.startsWith("manual_") })
+
+            // 4. Wyczyszczenie ciasteczek i pamięci podręcznej WebView na wątku głównym
             withContext(Dispatchers.Main) {
                 runCatching {
                     suspendCancellableCoroutine<Unit> { continuation ->
@@ -269,6 +283,7 @@ class CalendarRepositoryImpl @Inject constructor(
                         }
                     }
                     CookieManager.getInstance().flush()
+                    android.webkit.WebStorage.getInstance().deleteAllData()
                 }
             }
             val rawUrl = calendarUrl.first()?.trim()
@@ -356,16 +371,47 @@ class CalendarRepositoryImpl @Inject constructor(
                 val attRes = vulcanApiClient.fetchEduVulcanAttendance(activeAccount)
                 attRes.onSuccess { stats ->
                     if (stats.isNotEmpty()) {
-                        attendanceDao.replaceAll(stats.map { it.toAttendanceEntity() })
+                        val currentAtt = runCatching { attendanceDao.getAll().first() }.getOrDefault(emptyList())
+                        if (currentAtt.size > 3 && stats.size < 3) {
+                            attendanceDao.upsertAll(stats.map { it.toAttendanceEntity() })
+                        } else {
+                            attendanceDao.replaceAll(stats.map { it.toAttendanceEntity() })
+                        }
                     }
                 }
 
                 val gradesRes = vulcanApiClient.fetchEduVulcanGrades(activeAccount)
                 gradesRes.onSuccess { remoteGrades ->
                     if (remoteGrades.isNotEmpty()) {
-                        val manualGrades = gradeDao.getAll().filter { it.id.startsWith("manual_") }
+                        val existingGrades = gradeDao.getAll()
+                        val existingIds = existingGrades.map { it.id }.toSet()
+                        val manualGrades = existingGrades.filter { it.id.startsWith("manual_") }
                         val gradeEntities = (remoteGrades.map { it.toEntity() } + manualGrades).distinctBy { it.id }
                         gradeDao.replaceAll(gradeEntities)
+
+                        // Smart Diff: emituj powiadomienie tylko gdy baza nie była pusta (unikamy spamu przy 1. logowaniu)
+                        if (existingIds.isNotEmpty()) {
+                            val newlyAdded = remoteGrades.filter { it.id !in existingIds && it.value.isNotBlank() }
+                            if (newlyAdded.isNotEmpty()) {
+                                if (newlyAdded.size == 1) {
+                                    val g = newlyAdded.first()
+                                    val desc = listOfNotNull(g.category, g.description).filter { it.isNotBlank() }.joinToString(": ")
+                                    val body = if (desc.isNotBlank()) "Ocena ${g.value} ($desc)" else "Ocena ${g.value}"
+                                    notificationSink.postGeneric(
+                                        title = "Nowa ocena: ${g.subject}",
+                                        body = body,
+                                        deepLink = "grades"
+                                    )
+                                } else {
+                                    val subjects = newlyAdded.map { it.subject }.distinct().joinToString(", ")
+                                    notificationSink.postGeneric(
+                                        title = "Nowe oceny w eduVULCAN (${newlyAdded.size})",
+                                        body = "Wpisano nowe oceny z przedmiotów: $subjects",
+                                        deepLink = "grades"
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -47,34 +47,23 @@ data class SubjectAttendance(
 
     /**
      * Maksymalna liczba godzin, które można jeszcze opuścić przed spadkiem poniżej progu [thresholdFraction] (np. 0.50f dla 50%).
-     *
-     * Wzór: x = floor((O * (1 - T) - N * T) / T)
      */
-    fun maxMissableHours(thresholdFraction: Float = 0.50f): Int {
-        if (totalHours == 0) return 0
-        val t = thresholdFraction.toDouble().coerceIn(0.01, 0.99)
-        val o = presentCount.toDouble()
-        val n = absentCount.toDouble()
-        val numerator = o * (1.0 - t) - n * t
-        val maxMiss = floor(numerator / t).toInt()
-        return maxMiss.coerceAtLeast(0)
-    }
+    fun maxMissableHours(thresholdFraction: Float = 0.50f): Int =
+        AttendanceThresholdCalculator.calculate(
+            presentHours = presentCount,
+            absentHours = absentCount,
+            requiredThreshold = thresholdFraction.toDouble()
+        ).maxMissableHours
 
     /**
      * Liczba obecności z rzędu potrzebna do odrobienia frekwencji do progu [thresholdFraction], gdy uczeń jest poniżej progu.
-     *
-     * Wzór: y = ceil((N * T - O * (1 - T)) / (1 - T))
      */
-    fun hoursNeededToRecover(thresholdFraction: Float = 0.50f): Int {
-        if (totalHours == 0) return 0
-        val t = thresholdFraction.toDouble().coerceIn(0.01, 0.99)
-        val o = presentCount.toDouble()
-        val n = absentCount.toDouble()
-        if (o / (o + n) >= t) return 0
-        val numerator = n * t - o * (1.0 - t)
-        val needed = ceil(numerator / (1.0 - t)).toInt()
-        return needed.coerceAtLeast(0)
-    }
+    fun hoursNeededToRecover(thresholdFraction: Float = 0.50f): Int =
+        AttendanceThresholdCalculator.calculate(
+            presentHours = presentCount,
+            absentHours = absentCount,
+            requiredThreshold = thresholdFraction.toDouble()
+        ).hoursNeededToRecover
 
     /**
      * Symuluje nową frekwencję przy dodatkowych opuszczonych [simulatedAbsentHours] lub odrobionych [simulatedPresentHours].
@@ -111,24 +100,19 @@ data class OverallAttendance(
     val warningSubjectsCount: Int
         get() = subjects.count { it.isWarning }
 
-    fun maxMissableHours(thresholdFraction: Float = 0.50f): Int {
-        if (totalHours == 0) return 0
-        val t = thresholdFraction.toDouble().coerceIn(0.01, 0.99)
-        val o = presentCount.toDouble()
-        val n = absentCount.toDouble()
-        val numerator = o * (1.0 - t) - n * t
-        return floor(numerator / t).toInt().coerceAtLeast(0)
-    }
+    fun maxMissableHours(thresholdFraction: Float = 0.50f): Int =
+        AttendanceThresholdCalculator.calculate(
+            presentHours = presentCount,
+            absentHours = absentCount,
+            requiredThreshold = thresholdFraction.toDouble()
+        ).maxMissableHours
 
-    fun hoursNeededToRecover(thresholdFraction: Float = 0.50f): Int {
-        if (totalHours == 0) return 0
-        val t = thresholdFraction.toDouble().coerceIn(0.01, 0.99)
-        val o = presentCount.toDouble()
-        val n = absentCount.toDouble()
-        if (o / (o + n) >= t) return 0
-        val numerator = n * t - o * (1.0 - t)
-        return ceil(numerator / (1.0 - t)).toInt().coerceAtLeast(0)
-    }
+    fun hoursNeededToRecover(thresholdFraction: Float = 0.50f): Int =
+        AttendanceThresholdCalculator.calculate(
+            presentHours = presentCount,
+            absentHours = absentCount,
+            requiredThreshold = thresholdFraction.toDouble()
+        ).hoursNeededToRecover
 
     fun simulate(simulatedAbsentHours: Int = 0, simulatedPresentHours: Int = 0): Float {
         val newPresent = (presentCount + simulatedPresentHours).coerceAtLeast(0)

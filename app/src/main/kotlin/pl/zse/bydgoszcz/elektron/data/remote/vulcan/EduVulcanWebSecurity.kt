@@ -19,7 +19,7 @@ interface EduVulcanBridge {
 
 /** Origin-scoped messages also protect against untrusted iframes on a trusted page. */
 object EduVulcanWebSecurity {
-    private val domains = setOf("eduvulcan.pl", "vulcan.net.pl", "vulcan.edu.pl")
+    private val domains = setOf("eduvulcan.pl", "vulcan.net.pl", "vulcan.edu.pl", "bcu.gov.pl")
     private val origins = domains.flatMap { listOf("https://$it", "https://*.$it") }.toSet()
 
     fun isTrustedUrl(value: String?): Boolean {
@@ -60,7 +60,7 @@ object EduVulcanWebSecurity {
             view.evaluateJavascript("""
                 (function() {
                 if (window.location.protocol !== 'https:' ||
-                    !/^(?:[a-z0-9-]+\.)*(?:eduvulcan\.pl|vulcan\.net\.pl|vulcan\.edu\.pl)$/i.test(window.location.hostname) ||
+                    !/^(?:[a-z0-9-]+\.)*(?:eduvulcan\.pl|vulcan\.net\.pl|vulcan\.edu\.pl|bcu\.gov\.pl)$/i.test(window.location.hostname) ||
                     (window.location.port && window.location.port !== '443')) return;
                 window.AndroidEduVulcan = {};
                 ['onStatus','onProfilesFound','onLoginError','onContextSuccess'].forEach(function(method) {

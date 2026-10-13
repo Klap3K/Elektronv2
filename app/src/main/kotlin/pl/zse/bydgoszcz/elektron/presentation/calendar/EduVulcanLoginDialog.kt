@@ -438,6 +438,7 @@ fun EduVulcanLoginDialog(
                                             override fun onContextSuccess(domain: String, city: String, contextJson: String) {
                                                 mainHandler.post {
                                                     if (!isLoggingIn) return@post
+                                                    runCatching { CookieManager.getInstance().flush() }
                                                     val parsed = EduVulcanWebAuthenticator.parseContextJson(
                                                         domain = domain,
                                                         symbol = city,

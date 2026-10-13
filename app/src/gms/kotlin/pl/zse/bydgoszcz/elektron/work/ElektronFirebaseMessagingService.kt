@@ -2,6 +2,7 @@ package pl.zse.bydgoszcz.elektron.work
 
 import android.util.Log
 import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -15,7 +16,10 @@ class ElektronFirebaseMessagingService : FirebaseMessagingService() {
             val data = Data.Builder().apply {
                 message.data.forEach { (key, value) -> putString(key, value) }
             }.build()
-            WorkManager.getInstance(this).enqueue(
+            val workName = "fcm_push_${message.messageId ?: System.currentTimeMillis()}"
+            WorkManager.getInstance(this).enqueueUniqueWork(
+                workName,
+                ExistingWorkPolicy.KEEP,
                 OneTimeWorkRequestBuilder<PushMessageWorker>().setInputData(data).build()
             )
         } catch (e: IllegalStateException) {
