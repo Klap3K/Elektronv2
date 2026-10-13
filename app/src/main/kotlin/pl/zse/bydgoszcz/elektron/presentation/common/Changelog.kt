@@ -5,6 +5,15 @@ object Changelog {
     data class Entry(val versionCode: Int, val versionName: String, val items: List<String>)
 
     val entries: List<Entry> = listOf(
+        Entry(46, "2.0.9", listOf(
+            "Pakiet poprawek audytu technicznego DeepSeek (stoper na lockscreen/AOD w Android 12-15, harmonogram alarmów)",
+            "Ciągłe powiadomienie „Kiedy dzwonek?”: licznik na żywo na ekranie blokady i AOD, sala, lekcja i postęp bez zużycia baterii",
+            "Dyżurny klasowy: informacje o dyżurze i obowiązkach, numer w dzienniku oraz plakietka w powiadomieniu",
+            "Poprawiona karta ocen na stronie głównej: czytelna pozioma plakietka średniej bez ucinania tekstu",
+            "Customizacja układu strony głównej: możliwość włączania/wyłączania i zmiany kolejności kart",
+            "Przejrzyste Ustawienia podzielone na 4 główne kategorie z czytelnymi odznakami",
+            "Automatyczny popup z informacją o nowej aktualizacji przy uruchomieniu aplikacji"
+        )),
         Entry(45, "2.0.8", listOf(
             "Ciągłe powiadomienie „Kiedy dzwonek?”: licznik na żywo na ekranie blokady i AOD, sala, lekcja i postęp bez zużycia baterii",
             "Dyżurny klasowy: informacje o dyżurze i obowiązkach, numer w dzienniku oraz plakietka w powiadomieniu",

@@ -4,6 +4,19 @@ Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
+## [2.0.9] - 2026-10-13 (46)
+
+Szczegóły: [release-notes/2.0.9.md](release-notes/2.0.9.md).
+
+- **Pakiet poprawek audytu technicznego (DeepSeek):**
+  - Widoczność stopera na ekranie blokady i AOD w Androidzie 12–15 (`setShowWhen(true)`).
+  - Precyzyjne wybudzanie porannego powiadomienia przed pierwszą lekcją w `LiveBellScheduler` (45 min przed lekcją).
+  - Weryfikacja blokady pojedynczego kanału powiadomień `elektron_live_bell`.
+  - Unikalne klucze elementów zastępstw w `LazyColumn` i eliminacja kolizji UI.
+  - Ujednolicenie brandingu i komunikatów instalatora aktualizacji.
+  - Stabilizacja testów wielowątkowych Robolectric pod obciążeniem runnera CI GitHub Actions.
+- **Wszystkie funkcje wersji 2.0.8:** Ciągłe powiadomienie „Kiedy dzwonek?”, Dyżurny klasowy, nowa pozioma karta ocen, customizacja układu strony głównej, reorganizacja Ustawień na 4 kategorie i automatyczny popup aktualizacji.
+
 ## [2.0.8] - 2026-10-13 (45)
 
 Szczegóły: [release-notes/2.0.8.md](release-notes/2.0.8.md).
