@@ -64,6 +64,7 @@ class FakeSettings(
     override val autoDndEnabled: Flow<Boolean> = autoDndFlow
     override suspend fun setAutoDndEnabled(enabled: Boolean) { autoDndFlow.value = enabled }
 
+    override fun groupSelections(classId: String): Flow<Map<String, String>> = groupSelectionsFlow
     override val activeGroupSelections: Flow<Map<String, String>> = groupSelectionsFlow
     override suspend fun setGroupSelection(classId: String, subject: String, choice: String?) {}
     override val groupsConfiguredFor: Flow<String?> = flowOf(classId)

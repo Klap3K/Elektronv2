@@ -67,13 +67,13 @@ class DashboardViewModel @Inject constructor(
     private val dutyRepo: DutyRepository,
     private val attendanceRepo: AttendanceRepository,
     private val activityRepo: UserActivityRepository,
-    private val dndScheduler: pl.zse.bydgoszcz.elektron.service.AutoDndScheduler,
-    @ApplicationContext private val appContext: Context
+    private val dndScheduler: pl.zse.bydgoszcz.elektron.service.AutoDndScheduler? = null,
+    @ApplicationContext private val appContext: Context? = null
 ) : ViewModel() {
     private val visible = MutableStateFlow(false)
     fun setVisible(value: Boolean) {
         visible.value = value
-        if (value) dndScheduler.requestReschedule()
+        if (value) dndScheduler?.requestReschedule()
     }
 
 
@@ -267,7 +267,7 @@ class DashboardViewModel @Inject constructor(
         // nie pusty/"brak" stan.
         val stillLoadingBase = c.initialSyncPending
         val isLessonOngoing = (status == LessonStatus.Now)
-        val autoDndActive = AutoDndManager.isSilenced(appContext) || (c.autoDnd && isLessonOngoing)
+        val autoDndActive = (appContext?.let { AutoDndManager.isSilenced(it) } ?: false) || (c.autoDnd && isLessonOngoing)
 
         return State(
             selectedClassId = cid,
