@@ -62,7 +62,7 @@ jobs:
           [[ ${#apks[@]} -eq 1 ]]
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify "${apks[0]}"
           cp "${apks[0]}" release-apk/Elektron-Vulcan.apk
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: release-apk/Elektron-Vulcan.apk
           fail_on_unmatched_files: true
