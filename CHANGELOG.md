@@ -4,6 +4,17 @@ Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
+## [2.0.8] - 2026-10-13 (45)
+
+Szczegóły: [release-notes/2.0.8.md](release-notes/2.0.8.md).
+
+- **Ciągłe Powiadomienie „Kiedy dzwonek?”:** Odliczanie na żywo do dzwonka na ekranie blokady i AOD z zerowym zużyciem baterii (sprzętowy Chronometr), numer sali, postęp lekcji i odznaki.
+- **Dyżurny Klasowy:** Karta dyżurnego na stronie głównej z obowiązkami, rotacja według numerka i plakietka dyżurnego w ciągłym powiadomieniu.
+- **Poprawiona karta Ocen:** Poziomy chip średniej ocen eliminujący ucinanie i pionowe zawijanie tekstu na stronie głównej.
+- **Dostosowywanie układu strony głównej:** Wygodne włączanie, wyłączanie oraz zmiana kolejności kart na ekranie startowym.
+- **Podział Ustawień na 4 główne kategorie:** Nowy podział na Twoja Klasa, Dzwonki i Powiadomienia, Wygląd i Układ, Aplikacja i System.
+- **Automatyczny popup nowej wersji:** Natychmiastowe wykrywanie nowej aktualizacji w tle przy uruchomieniu z instalacją 1 kliknięciem.
+
 ## [2.0.7] - 2026-10-13 (44)
 
 Szczegóły: [release-notes/2.0.7.md](release-notes/2.0.7.md).
@@ -14,9 +25,6 @@ Szczegóły: [release-notes/2.0.7.md](release-notes/2.0.7.md).
 - Podpis przez GitHub Secrets, bez klucza w bieżących plikach i bez debug APK w nowych wydaniach.
 - Schemat Room 6, rozszerzone testy migracji, bezpieczniejszy zapis plików i obsługa FCM przez WorkManager.
 - Rozszerzone CI, przypięte wersje Actions, dokumentacja bezpieczeństwa i instrukcja dalszych napraw.
-
-To częściowy pakiet napraw. Pozostałe problemy opisano w [audycie](AUDYT_PROJEKTU_2026-10-13.md).
-Klucz historyczny nadal jest skompromitowany; nie wykonano rotacji ani przepisywania historii.
 
 ## [2.0.6] - 2026-10-13 (43)
 

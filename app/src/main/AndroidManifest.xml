@@ -147,6 +147,11 @@
             android:name=".service.AutoDndReceiver"
             android:exported="false" />
 
+        <!-- Powiadomienie na żywo o stanie lekcji i dzwonku (Kiedy dzwonek?) -->
+        <receiver
+            android:name=".service.LiveBellReceiver"
+            android:exported="false" />
+
         <!-- Kafelek w szybkich ustawieniach: najbliższa lekcja. -->
         <service
             android:name=".widget.NextLessonTileService"

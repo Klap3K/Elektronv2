@@ -85,9 +85,17 @@ import pl.zse.bydgoszcz.elektron.domain.model.UpdateChannel
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.saveable.rememberSaveable
 
 private const val REPO_URL = "https://github.com/Klap3K/Elektronv2"
 private const val PRIVACY_URL = "https://github.com/Klap3K/Elektronv2/blob/main/PRYWATNOSC.md"
@@ -175,6 +183,33 @@ fun SettingsScreen(
         )
     }
 
+    var showDutyConfigDialog by rememberSaveable { mutableStateOf(false) }
+    var showDashboardLayoutDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showDutyConfigDialog) {
+        pl.zse.bydgoszcz.elektron.presentation.dashboard.DutyConfigDialog(
+            initialNumber = state.dutyStudentNumber,
+            initialSize = state.dutyClassSize,
+            onDismiss = { showDutyConfigDialog = false },
+            onSave = { num, size ->
+                viewModel.setDutyStudentNumber(num)
+                viewModel.setDutyClassSize(size)
+                showDutyConfigDialog = false
+            }
+        )
+    }
+
+    if (showDashboardLayoutDialog) {
+        pl.zse.bydgoszcz.elektron.presentation.dashboard.DashboardLayoutDialog(
+            currentOrder = state.cardOrder,
+            onDismiss = { showDashboardLayoutDialog = false },
+            onSave = { updated ->
+                viewModel.saveDashboardLayout(updated)
+                showDashboardLayoutDialog = false
+            }
+        )
+    }
+
     val feedbackReport by viewModel.feedbackReport.collectAsStateWithLifecycle()
     feedbackReport?.let { report ->
         ReportDialog(
@@ -197,36 +232,31 @@ fun SettingsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { LargeTitleBar(title = "Ustawienia", scrollBehavior = scrollBehavior) }
     ) { padding ->
-        // Kolejność: kim jesteś (klasa), co i kiedy dostajesz (powiadomienia, przypomnienia),
-        // co widzisz (strona główna, Odjazdy, wygląd, plan, pasek, widżety), a na końcu sprawy
-        // techniczne (praca w tle, aktualizacje, dane, informacje).
+        // Ustawienia podzielone na 4 główne kategorie:
+        // 1. Twoja Klasa i Dziennik
+        // 2. Dzwonki, Lekcje i Powiadomienia
+        // 3. Wygląd i Układ
+        // 4. Aplikacja i System
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).revealWhen(state.ready),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item(key = "class") { ClassCard(state.classes, state.selectedClassId, onSelect = viewModel::setClass, onOpenGroups = onOpenGroups) }
+            // === 1. Twoja Klasa i Dziennik ===
+            item(key = "cat_class") {
+                CategoryHeader("1. Twoja Klasa i Dziennik", Icons.Outlined.School)
+            }
 
-            item(key = "notifications") {
-                NotificationsSection(
-                    substitutions = state.notifSubs,
-                    announcements = state.notifAnn,
-                    quiet = state.quiet,
-                    autoDnd = state.autoDndEnabled,
-                    onSubs = viewModel::setNotifSubs,
-                    onAnnouncements = viewModel::setNotifAnn,
-                    onQuiet = viewModel::setQuietHours,
-                    onAutoDnd = viewModel::setAutoDndEnabled
+            item(key = "class") {
+                ClassCard(
+                    classes = state.classes,
+                    selectedId = state.selectedClassId,
+                    onSelect = viewModel::setClass,
+                    onOpenGroups = onOpenGroups,
+                    dutyStudentNumber = state.dutyStudentNumber,
+                    dutyClassSize = state.dutyClassSize,
+                    onConfigureDuty = { showDutyConfigDialog = true }
                 )
-            }
-
-            item(key = "reminders") {
-                val reminderStatus by viewModel.reminderStatus.collectAsStateWithLifecycle()
-                RemindersSection(state.reminder, reminderStatus, viewModel::refreshReminderStatus) { viewModel.setReminder(it) }
-            }
-
-            item(key = "notes") {
-                NoteRemindersSection(notesState.enabled, notesState.ready && !notesState.error, notesState.timing, notesViewModel::setReminderTiming, notesViewModel::refreshReminders, notesViewModel::setReminders) { showNotes = true }
             }
 
             item(key = "calendar") {
@@ -245,28 +275,45 @@ fun SettingsScreen(
                 )
             }
 
-            item(key = "home") {
-                HomeSection(state.startScreen, transitTab = transitSettings.preferences.visible, onChange = viewModel::setStartScreen) {
-                    SwitchRow("Następna lekcja", state.showNextLesson) { viewModel.setShowNextLesson(it) }
-                    RowDivider()
-                    SwitchRow("Zastępstwa", state.showSubstitutions) { viewModel.setShowSubstitutions(it) }
-                    RowDivider()
-                    SwitchRow("Najnowsze ogłoszenia", state.showAnnouncements) { viewModel.setShowAnnouncements(it) }
-                    RowDivider()
-                    ValueRow(
-                        "Odliczanie na stronie głównej",
-                        if (state.countdownSettings.enabled) "${state.countdownSettings.title} (${state.countdownSettings.daysRemaining} dni)" else "Wyłączone",
-                        supporting = "Karta odliczająca dni do wybranego wydarzenia"
-                    ) { showCountdownConfig = true }
-                }
+            // === 2. Dzwonki, Lekcje i Powiadomienia ===
+            item(key = "cat_notifications") {
+                CategoryHeader("2. Dzwonki, Lekcje i Powiadomienia", Icons.Outlined.Notifications)
             }
 
-            item(key = "transit") {
-                TransitSection(transitSettings, transitSaving, transitError,
-                    onTab = { transitViewModel.setTabVisible("transit", it) },
-                    onCard = transitViewModel::setShowOnDashboard,
-                    onTransfers = transitViewModel::setAllowTransfers,
-                    onPick = { origin -> transitViewModel.query.value = ""; transitPicker = if (origin) 2 else 1 })
+            item(key = "notifications") {
+                NotificationsSection(
+                    substitutions = state.notifSubs,
+                    announcements = state.notifAnn,
+                    quiet = state.quiet,
+                    autoDnd = state.autoDndEnabled,
+                    liveBell = state.liveBellNotificationEnabled,
+                    onSubs = viewModel::setNotifSubs,
+                    onAnnouncements = viewModel::setNotifAnn,
+                    onQuiet = viewModel::setQuietHours,
+                    onAutoDnd = viewModel::setAutoDndEnabled,
+                    onLiveBell = viewModel::setLiveBellNotificationEnabled
+                )
+            }
+
+            item(key = "reminders") {
+                val reminderStatus by viewModel.reminderStatus.collectAsStateWithLifecycle()
+                RemindersSection(state.reminder, reminderStatus, viewModel::refreshReminderStatus) { viewModel.setReminder(it) }
+            }
+
+            item(key = "notes") {
+                NoteRemindersSection(
+                    notesState.enabled,
+                    notesState.ready && !notesState.error,
+                    notesState.timing,
+                    notesViewModel::setReminderTiming,
+                    notesViewModel::refreshReminders,
+                    notesViewModel::setReminders
+                ) { showNotes = true }
+            }
+
+            // === 3. Wygląd i Układ ===
+            item(key = "cat_look") {
+                CategoryHeader("3. Wygląd i Układ", Icons.Outlined.Palette)
             }
 
             item(key = "look") {
@@ -301,6 +348,28 @@ fun SettingsScreen(
                 }
             }
 
+            item(key = "home") {
+                HomeSection(state.startScreen, transitTab = transitSettings.preferences.visible, onChange = viewModel::setStartScreen) {
+                    ActionRow(
+                        "Dostosuj układ strony głównej…",
+                        supporting = "Włączaj, wyłączaj i zmieniaj kolejność kart",
+                        trailingChevron = true
+                    ) { showDashboardLayoutDialog = true }
+                    RowDivider()
+                    ValueRow(
+                        "Odliczanie na stronie głównej",
+                        if (state.countdownSettings.enabled) "${state.countdownSettings.title} (${state.countdownSettings.daysRemaining} dni)" else "Wyłączone",
+                        supporting = "Karta odliczająca dni do wybranego wydarzenia"
+                    ) { showCountdownConfig = true }
+                    RowDivider()
+                    SwitchRow("Następna lekcja", state.showNextLesson) { viewModel.setShowNextLesson(it) }
+                    RowDivider()
+                    SwitchRow("Zastępstwa", state.showSubstitutions) { viewModel.setShowSubstitutions(it) }
+                    RowDivider()
+                    SwitchRow("Najnowsze ogłoszenia", state.showAnnouncements) { viewModel.setShowAnnouncements(it) }
+                }
+            }
+
             item(key = "plan") {
                 val look = state.look
                 GroupedSection("Plan lekcji", icon = Icons.Outlined.CalendarMonth) {
@@ -312,9 +381,22 @@ fun SettingsScreen(
                 }
             }
 
+            item(key = "transit") {
+                TransitSection(transitSettings, transitSaving, transitError,
+                    onTab = { transitViewModel.setTabVisible("transit", it) },
+                    onCard = transitViewModel::setShowOnDashboard,
+                    onTransfers = transitViewModel::setAllowTransfers,
+                    onPick = { origin -> transitViewModel.query.value = ""; transitPicker = if (origin) 2 else 1 })
+            }
+
             item(key = "bar") { pl.zse.bydgoszcz.elektron.presentation.transit.TransitVisibilitySection(transitViewModel) }
 
             item(key = "widgets") { WidgetsSection(state.widgetLook) { viewModel.setWidgetLook(it) } }
+
+            // === 4. Aplikacja i System ===
+            item(key = "cat_app") {
+                CategoryHeader("4. Aplikacja i System", Icons.Outlined.Settings)
+            }
 
             item(key = "background") { BackgroundSection() }
 
@@ -465,6 +547,38 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CategoryHeader(title: String, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, top = 8.dp, bottom = 0.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            modifier = Modifier.size(32.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 

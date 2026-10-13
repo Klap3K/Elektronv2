@@ -6,6 +6,8 @@ import pl.zse.bydgoszcz.elektron.domain.sync.SyncCoordinator
 import pl.zse.bydgoszcz.elektron.domain.sync.SyncRequest
 import java.time.LocalDateTime
 import pl.zse.bydgoszcz.elektron.domain.model.LessonClock
+import pl.zse.bydgoszcz.elektron.domain.model.DashboardCardItem
+import pl.zse.bydgoszcz.elektron.domain.model.DashboardLayoutUtils
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -113,6 +115,7 @@ class DashboardViewModel @Inject constructor(
         val todayActivities: List<UserActivity> = emptyList(),
         val countdown: CountdownSettings = CountdownSettings(),
         val autoDndActive: Boolean = false,
+        val cardOrder: List<DashboardCardItem> = DashboardLayoutUtils.defaultOrder(),
         /** Pierwsze dane już są (do tego czasu ekran jest niewidoczny, bez mignięć). */
         val ready: Boolean = false
     )
@@ -145,7 +148,8 @@ class DashboardViewModel @Inject constructor(
         val overallAttendance: OverallAttendance? = null,
         val todayActivities: List<UserActivity> = emptyList(),
         val countdown: CountdownSettings? = null,
-        val autoDnd: Boolean = false
+        val autoDnd: Boolean = false,
+        val cardOrderRaw: String? = null
     )
 
     private val refreshing = MutableStateFlow(false)
@@ -191,6 +195,7 @@ class DashboardViewModel @Inject constructor(
         .combine(todayFlow.flatMapLatest { activityRepo.observeForDate(it) }) { core, acts -> core.copy(todayActivities = acts) }
         .combine(settings.countdownSettings) { core, cs -> core.copy(countdown = cs) }
         .combine(settings.autoDndEnabled) { core, dnd -> core.copy(autoDnd = dnd) }
+        .combine(settings.dashboardCardsOrder) { core, order -> core.copy(cardOrderRaw = order) }
         .combine(visibleMinuteTicker(visible)) { core, _ -> core }
         .map { core -> compute(core).copy(ready = true) }
         // Przeliczanie stanu (filtry grup, zastępstwa, odliczanie) poza wątkiem UI.
@@ -312,8 +317,15 @@ class DashboardViewModel @Inject constructor(
             atRiskSubjectsCount = c.overallAttendance?.criticalSubjectsCount ?: 0,
             todayActivities = c.todayActivities,
             countdown = c.countdown ?: CountdownSettings(),
-            autoDndActive = autoDndActive
+            autoDndActive = autoDndActive,
+            cardOrder = DashboardLayoutUtils.decode(c.cardOrderRaw)
         )
+    }
+
+    fun saveDashboardLayout(items: List<DashboardCardItem>) {
+        viewModelScope.launch {
+            settings.setDashboardCardsOrder(DashboardLayoutUtils.encode(items))
+        }
     }
 
     fun dismissUpdate(versionName: String) {

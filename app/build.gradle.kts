@@ -37,8 +37,8 @@ android {
         applicationId = "pl.zse.bydgoszcz.elektron.vulcan"
         minSdk = 26
         targetSdk = 35
-        versionCode = 44
-        versionName = "2.0.7"
+        versionCode = 45
+        versionName = "2.0.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }

@@ -64,6 +64,14 @@ class FakeSettings(
     override val autoDndEnabled: Flow<Boolean> = autoDndFlow
     override suspend fun setAutoDndEnabled(enabled: Boolean) { autoDndFlow.value = enabled }
 
+    val liveBellFlow = MutableStateFlow(true)
+    val dashboardCardsOrderFlow = MutableStateFlow<String?>(null)
+
+    override val liveBellNotificationEnabled: Flow<Boolean> = liveBellFlow
+    override suspend fun setLiveBellNotificationEnabled(enabled: Boolean) { liveBellFlow.value = enabled }
+    override val dashboardCardsOrder: Flow<String?> = dashboardCardsOrderFlow
+    override suspend fun setDashboardCardsOrder(order: String) { dashboardCardsOrderFlow.value = order }
+
     override fun groupSelections(classId: String): Flow<Map<String, String>> = groupSelectionsFlow
     override val activeGroupSelections: Flow<Map<String, String>> = groupSelectionsFlow
     override suspend fun setGroupSelection(classId: String, subject: String, choice: String?) {}

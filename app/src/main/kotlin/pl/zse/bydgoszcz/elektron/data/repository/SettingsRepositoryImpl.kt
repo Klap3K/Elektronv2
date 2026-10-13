@@ -96,6 +96,8 @@ class SettingsRepositoryImpl internal constructor(
         val COUNTDOWN_TITLE = stringPreferencesKey("countdown_title")
         val COUNTDOWN_TARGET_EPOCH = longPreferencesKey("countdown_target_epoch")
         val AUTO_DND_ENABLED = booleanPreferencesKey("auto_dnd_enabled")
+        val LIVE_BELL_NOTIFICATION_ENABLED = booleanPreferencesKey("live_bell_notification_enabled")
+        val DASHBOARD_CARDS_ORDER = stringPreferencesKey("dashboard_cards_order")
         val LAST_SEEN_VERSION = intPreferencesKey("last_seen_version_code")
         val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
         val GROUPS_CONFIGURED_FOR = stringPreferencesKey("groups_configured_for")
@@ -271,6 +273,26 @@ class SettingsRepositoryImpl internal constructor(
     override suspend fun setAutoDndEnabled(enabled: Boolean) {
         safeEdit {
             it[Keys.AUTO_DND_ENABLED] = enabled
+        }
+    }
+
+    override val liveBellNotificationEnabled: Flow<Boolean> = prefs.map {
+        it[Keys.LIVE_BELL_NOTIFICATION_ENABLED] ?: true
+    }.distinctUntilChanged()
+
+    override suspend fun setLiveBellNotificationEnabled(enabled: Boolean) {
+        safeEdit {
+            it[Keys.LIVE_BELL_NOTIFICATION_ENABLED] = enabled
+        }
+    }
+
+    override val dashboardCardsOrder: Flow<String?> = prefs.map {
+        it[Keys.DASHBOARD_CARDS_ORDER]
+    }.distinctUntilChanged()
+
+    override suspend fun setDashboardCardsOrder(order: String) {
+        safeEdit {
+            it[Keys.DASHBOARD_CARDS_ORDER] = order
         }
     }
 

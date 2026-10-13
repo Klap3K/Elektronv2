@@ -135,12 +135,12 @@ class UpdateRepositoryImpl @Inject constructor(
         // 100 wydań w jednym zapytaniu: przy serii wersji testowych wydanie stabilne wypadało z 10
         // najnowszych i kanał Stabilne przestawał je widzieć.
         const val RELEASES_API = "https://api.github.com/repos/Klap3K/Elektronv2/releases?per_page=100"
-        const val CHECK_INTERVAL_SECONDS = 12 * 60 * 60L
+        const val CHECK_INTERVAL_SECONDS = 5 * 60L
         const val KEY_ATTEMPTED = "update_attempted"
-        const val RETRY_INTERVAL_SECONDS = 15 * 60L
+        const val RETRY_INTERVAL_SECONDS = 2 * 60L
         const val KEY_CHECKED = "update_checked"
         const val KEY_LATEST = "update_latest"
         const val KEY_DISMISSED = "update_dismissed"
-        const val DISMISS_SECONDS = 3 * 24 * 60 * 60L
+        const val DISMISS_SECONDS = 24 * 60 * 60L
     }
 }

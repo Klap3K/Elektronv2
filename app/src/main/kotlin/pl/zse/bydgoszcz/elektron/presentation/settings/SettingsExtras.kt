@@ -149,18 +149,23 @@ internal fun TransitSection(
 internal fun NotificationsSection(
     substitutions: Boolean, announcements: Boolean, quiet: QuietHours,
     autoDnd: Boolean = false,
+    liveBell: Boolean = true,
     onSubs: (Boolean) -> Unit, onAnnouncements: (Boolean) -> Unit, onQuiet: (QuietHours) -> Unit,
-    onAutoDnd: (Boolean) -> Unit = {}
+    onAutoDnd: (Boolean) -> Unit = {},
+    onLiveBell: (Boolean) -> Unit = {}
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var dndGranted by remember { mutableStateOf(pl.zse.bydgoszcz.elektron.service.AutoDndManager.isDndPermissionGranted(ctx)) }
     OnResume { dndGranted = pl.zse.bydgoszcz.elektron.service.AutoDndManager.isDndPermissionGranted(ctx) }
     var picking by remember { mutableStateOf<Boolean?>(null) }   // true = od, false = do
-    GroupedSection("Powiadomienia i dźwięk", icon = androidx.compose.material.icons.Icons.Outlined.Notifications) {
+    GroupedSection("Dzwonki i powiadomienia", icon = androidx.compose.material.icons.Icons.Outlined.Notifications) {
         SystemNotificationStatus()
-        SwitchRow("Nowe zastępstwa", substitutions, supporting = "Zmiany w planie Twojej klasy", onChange = onSubs)
-        RowDivider()
-        SwitchRow("Nowe ogłoszenia", announcements, supporting = "Wpisy na stronie szkoły", onChange = onAnnouncements)
+        SwitchRow(
+            "Ciągłe powiadomienie (Kiedy dzwonek?)",
+            liveBell,
+            supporting = "Licznik na ekranie blokady, sala, lekcja i postęp bez zużycia baterii",
+            onChange = onLiveBell
+        )
         RowDivider()
         SwitchRow(
             "Wyciszanie na lekcjach (Auto DND)",
@@ -316,7 +321,15 @@ internal fun WidgetsSection(current: WidgetLook, onChange: (WidgetLook) -> Unit)
  * przewijanej listy wewnątrz Ustawień), zmiana dopiero po potwierdzeniu.
  */
 @Composable
-internal fun ClassCard(classes: List<SchoolClass>, selectedId: String?, onSelect: (String) -> Unit, onOpenGroups: () -> Unit) {
+internal fun ClassCard(
+    classes: List<SchoolClass>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+    onOpenGroups: () -> Unit,
+    dutyStudentNumber: Int? = null,
+    dutyClassSize: Int = 30,
+    onConfigureDuty: (() -> Unit)? = null
+) {
     val colors = MaterialTheme.colorScheme
     var choosing by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val current = classes.firstOrNull { it.id == selectedId }
@@ -346,6 +359,12 @@ internal fun ClassCard(classes: List<SchoolClass>, selectedId: String?, onSelect
         }
         RowDivider()
         ActionRow("Grupy zajęciowe", supporting = "Tylko Twoje lekcje w planie i na stronie głównej", trailingChevron = true, onClick = onOpenGroups)
+        if (onConfigureDuty != null) {
+            RowDivider()
+            val dutySupporting = if (dutyStudentNumber != null) "Twój numer: #$dutyStudentNumber ($dutyClassSize osób w klasie)"
+            else "Ustaw swój numer w dzienniku"
+            ActionRow("Dyżurny klasowy", supporting = dutySupporting, trailingChevron = true, onClick = onConfigureDuty)
+        }
     }
     // Zmiana klasy pobiera dane od nowa i otwiera krok grup bez cofania - jedno przypadkowe
     // dotknięcie na liście było dawniej od razu zmianą klasy.

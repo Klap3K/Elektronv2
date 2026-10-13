@@ -40,6 +40,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Tune
+import pl.zse.bydgoszcz.elektron.domain.model.DashboardCardId
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -163,6 +165,19 @@ fun DashboardScreen(
         )
     }
 
+    var showDashboardLayoutDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showDashboardLayoutDialog) {
+        DashboardLayoutDialog(
+            currentOrder = state.cardOrder,
+            onDismiss = { showDashboardLayoutDialog = false },
+            onSave = { updated ->
+                viewModel.saveDashboardLayout(updated)
+                showDashboardLayoutDialog = false
+            }
+        )
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
@@ -228,100 +243,129 @@ fun DashboardScreen(
                         }
                     }
 
-                    if (state.countdown.enabled) {
-                        item(key = "countdown_card") {
-                            CountdownCard(
-                                countdown = state.countdown,
-                                onClick = { showCountdownDialog = true }
-                            )
+                    state.cardOrder.filter { it.isVisible }.forEach { cardItem ->
+                        when (cardItem.id) {
+                            DashboardCardId.COUNTDOWN -> {
+                                if (state.countdown.enabled) {
+                                    item(key = "countdown_card") {
+                                        CountdownCard(
+                                            countdown = state.countdown,
+                                            onClick = { showCountdownDialog = true }
+                                        )
+                                    }
+                                }
+                            }
+                            DashboardCardId.DUTY -> {
+                                state.duty?.let { duty ->
+                                    item(key = "duty_card") {
+                                        DutyCard(duty, onConfigure = { showDutyConfigDialog = true })
+                                    }
+                                }
+                            }
+                            DashboardCardId.ATTENDANCE -> {
+                                state.overallAttendance?.let { att ->
+                                    item(key = "attendance_card") {
+                                        AttendanceGuardianCard(
+                                            attendance = att,
+                                            atRiskCount = state.atRiskSubjectsCount,
+                                            onClick = { showAttendanceDialog = true }
+                                        )
+                                    }
+                                }
+                            }
+                            DashboardCardId.GRADES -> {
+                                item(key = "grades_card") {
+                                    val totalGradesCount = gradeSummaries.sumOf { it.grades.size }
+                                    GradesSummaryCard(
+                                        overallAverage = overallGradesAvg,
+                                        subjectsCount = gradeSummaries.size,
+                                        gradesCount = totalGradesCount,
+                                        onClick = { showGradesDialog = true }
+                                    )
+                                }
+                            }
+                            DashboardCardId.ACTIVITIES -> {
+                                if (state.todayActivities.isNotEmpty()) {
+                                    item(key = "today_activities") {
+                                        TodayActivitiesCard(
+                                            activities = state.todayActivities,
+                                            onToggle = { id, comp -> viewModel.toggleActivity(id, comp) },
+                                            onOpenTimetable = { onOpenTimetable(AppClock.today()) }
+                                        )
+                                    }
+                                }
+                            }
+                            DashboardCardId.DEPARTURE -> {
+                                if (state.showDeparture && transitSettings.ready && !transitSettings.failed && transitSettings.preferences.showOnDashboard) {
+                                    item(key = "departure") {
+                                        DashboardDeparture(transitViewModel, eligible = true, onOpenTransit)
+                                    }
+                                }
+                            }
+                            DashboardCardId.SUBS -> {
+                                if (state.showSubstitutions) {
+                                    item(key = "h_subs") {
+                                        val t = if (state.upcomingSubstitutions.isEmpty()) "Zastępstwa"
+                                            else "Zastępstwa (${state.upcomingSubstitutions.size})"
+                                        SectionTitle(t, Icons.Filled.EventBusy)
+                                    }
+                                    when {
+                                        state.loadingSubs -> item(key = "subs_loading") { DelayedLoading { LoadingCard("Ładowanie zastępstw…") } }
+                                        state.upcomingSubstitutions.isEmpty() -> item(key = "subs_empty") { EmptyCard("Brak zastępstw") }
+                                        else -> items(state.upcomingSubstitutions, key = { "sub_${it.id}" }) {
+                                            SubstitutionRow(it, Modifier.animateItem().semantics(mergeDescendants = true) {}, onOpenSubstitutions)
+                                        }
+                                    }
+                                }
+                            }
+                            DashboardCardId.EVENTS -> {
+                                if (upcomingEvents.isNotEmpty() || semesterEvents.isNotEmpty()) {
+                                    item(key = "h_events") {
+                                        val countLabel = if (upcomingEvents.isNotEmpty()) upcomingEvents.size else semesterEvents.size
+                                        SectionTitle("Sprawdziany, prace klasowe i zadania ($countLabel)", Icons.Outlined.CalendarMonth)
+                                    }
+                                    item(key = "events_card") {
+                                        UpcomingEventsCard(
+                                            events = upcomingEvents.ifEmpty { semesterEvents.takeLast(5) },
+                                            totalCount = semesterEvents.size,
+                                            onOpenDay = { date -> onOpenTimetable(date) },
+                                            onOpenAll = { showExamsDialog = true }
+                                        )
+                                    }
+                                }
+                            }
+                            DashboardCardId.ANNOUNCEMENTS -> {
+                                if (state.showAnnouncements) {
+                                    if (state.latestAnnouncements.isNotEmpty()) {
+                                        item(key = "h_anns") { SectionTitle("Najnowsze ogłoszenia", Icons.Filled.Campaign) }
+                                        items(state.latestAnnouncements, key = { "ann_${it.id}" }) { ann ->
+                                            AnnouncementRow(ann, Modifier.animateItem()) { onOpenAnnouncement(ann.id) }
+                                        }
+                                    } else if (state.loadingAnns) {
+                                        item(key = "h_anns") { SectionTitle("Najnowsze ogłoszenia", Icons.Filled.Campaign) }
+                                        item(key = "anns_loading") { DelayedLoading { LoadingCard("Ładowanie ogłoszeń…") } }
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    state.duty?.let { duty ->
-                        item(key = "duty_card") {
-                            DutyCard(duty, onConfigure = { showDutyConfigDialog = true })
-                        }
-                    }
-
-                    state.overallAttendance?.let { att ->
-                        item(key = "attendance_card") {
-                            AttendanceGuardianCard(
-                                attendance = att,
-                                atRiskCount = state.atRiskSubjectsCount,
-                                onClick = { showAttendanceDialog = true }
-                            )
-                        }
-                    }
-
-                    item(key = "grades_card") {
-                        val totalGradesCount = gradeSummaries.sumOf { it.grades.size }
-                        GradesSummaryCard(
-                            overallAverage = overallGradesAvg,
-                            subjectsCount = gradeSummaries.size,
-                            gradesCount = totalGradesCount,
-                            onClick = { showGradesDialog = true }
-                        )
-                    }
-
-                    if (state.todayActivities.isNotEmpty()) {
-                        item(key = "today_activities") {
-                            TodayActivitiesCard(
-                                activities = state.todayActivities,
-                                onToggle = { id, comp -> viewModel.toggleActivity(id, comp) },
-                                onOpenTimetable = { onOpenTimetable(AppClock.today()) }
-                            )
-                        }
-                    }
-
-                    // Jak wyżej: karta Odjazdów tylko wtedy, gdy ma się pojawić (inaczej pusty odstęp).
-                    if (state.showDeparture && transitSettings.ready && !transitSettings.failed && transitSettings.preferences.showOnDashboard) {
-                        item(key = "departure") {
-                            DashboardDeparture(transitViewModel, eligible = true, onOpenTransit)
-                        }
-                    }
-                    if (state.showSubstitutions) {
-                        item(key = "h_subs") {
-                            val t = if (state.upcomingSubstitutions.isEmpty()) "Zastępstwa"
-                                else "Zastępstwa (${state.upcomingSubstitutions.size})"
-                            SectionTitle(t, Icons.Filled.EventBusy)
-                        }
-                        when {
-                            state.loadingSubs -> item(key = "subs_loading") { DelayedLoading { LoadingCard("Ładowanie zastępstw…") } }
-                            state.upcomingSubstitutions.isEmpty() -> item(key = "subs_empty") { EmptyCard("Brak zastępstw") }
-                            else -> items(state.upcomingSubstitutions, key = { "sub_${it.id}" }) {
-                                SubstitutionRow(it, Modifier.animateItem().semantics(mergeDescendants = true) {}, onOpenSubstitutions)
+                    item(key = "customize_layout") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            TextButton(
+                                onClick = { showDashboardLayoutDialog = true },
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                            ) {
+                                Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Dostosuj stronę główną", style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
                 }
-
-                if (upcomingEvents.isNotEmpty() || semesterEvents.isNotEmpty()) {
-                    item(key = "h_events") {
-                        val countLabel = if (upcomingEvents.isNotEmpty()) upcomingEvents.size else semesterEvents.size
-                        SectionTitle("Sprawdziany, prace klasowe i zadania ($countLabel)", Icons.Outlined.CalendarMonth)
-                    }
-                    item(key = "events_card") {
-                        UpcomingEventsCard(
-                            events = upcomingEvents.ifEmpty { semesterEvents.takeLast(5) },
-                            totalCount = semesterEvents.size,
-                            onOpenDay = { date -> onOpenTimetable(date) },
-                            onOpenAll = { showExamsDialog = true }
-                        )
-                    }
-                }
-
-                if (state.showAnnouncements) {
-                    if (state.latestAnnouncements.isNotEmpty()) {
-                        item(key = "h_anns") { SectionTitle("Najnowsze ogłoszenia", Icons.Filled.Campaign) }
-                        items(state.latestAnnouncements, key = { "ann_${it.id}" }) { ann ->
-                            AnnouncementRow(ann, Modifier.animateItem()) { onOpenAnnouncement(ann.id) }
-                        }
-                    } else if (state.loadingAnns) {
-                        item(key = "h_anns") { SectionTitle("Najnowsze ogłoszenia", Icons.Filled.Campaign) }
-                        item(key = "anns_loading") { DelayedLoading { LoadingCard("Ładowanie ogłoszeń…") } }
-                    }
-                }
-            }
         }
     }
 }
@@ -919,22 +963,34 @@ private fun GradesSummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        "🎓 Oceny i średnia (eduVULCAN)",
+                        text = "🎓 Oceny",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
-                Text(
-                    text = overallAverage?.let { String.format(java.util.Locale.US, "Śr: %.2f", it) } ?: "Importuj",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (overallAverage != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    Text(
+                        text = overallAverage?.let { String.format(java.util.Locale.US, "Średnia %.2f", it) } ?: "Importuj",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (overallAverage != null) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             }
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -942,19 +998,22 @@ private fun GradesSummaryCard(
             ) {
                 Text(
                     text = if (gradesCount > 0) {
-                        "Zaimportowano $gradesCount ocen z $subjectsCount przedmiotów"
+                        "$gradesCount ocen z $subjectsCount przedmiotów"
                     } else {
-                        "Dotknij, aby zaimportować oceny z dziennika eduVULCAN"
+                        "Dotknij, aby pobrać oceny z eduVULCAN"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    maxLines = 1
                 )
                 Text(
-                    "Otwórz ›",
+                    "Szczegóły ›",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -1027,7 +1086,7 @@ private fun TodayActivitiesCard(
 }
 
 @Composable
-private fun DutyConfigDialog(
+internal fun DutyConfigDialog(
     initialNumber: Int?,
     initialSize: Int,
     onDismiss: () -> Unit,

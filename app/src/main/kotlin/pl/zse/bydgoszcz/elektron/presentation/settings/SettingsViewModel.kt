@@ -35,7 +35,10 @@ import pl.zse.bydgoszcz.elektron.domain.repository.SettingsRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.ThemeMode
 import pl.zse.bydgoszcz.elektron.domain.repository.TimetableRepository
 import pl.zse.bydgoszcz.elektron.domain.usecase.ClassSelection
-import pl.zse.bydgoszcz.elektron.widget.WidgetUpdater
+import pl.zse.bydgoszcz.elektron.domain.model.DashboardCardItem
+import pl.zse.bydgoszcz.elektron.domain.model.DashboardLayoutUtils
+import pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository
+import pl.zse.bydgoszcz.elektron.service.LiveBellScheduler
 import javax.inject.Inject
 
 @HiltViewModel
@@ -49,6 +52,8 @@ class SettingsViewModel @Inject constructor(
     private val notificationsRepo: NotificationsRepository,
     private val developerTools: DeveloperTools,
     private val dndScheduler: pl.zse.bydgoszcz.elektron.service.AutoDndScheduler,
+    private val liveBellScheduler: LiveBellScheduler,
+    private val dutyRepo: DutyRepository,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -184,6 +189,10 @@ class SettingsViewModel @Inject constructor(
         val updateChannel: UpdateChannel = UpdateChannel.STABLE,
         val countdownSettings: CountdownSettings = CountdownSettings(),
         val autoDndEnabled: Boolean = false,
+        val liveBellNotificationEnabled: Boolean = true,
+        val dutyStudentNumber: Int? = null,
+        val dutyClassSize: Int = 30,
+        val cardOrder: List<DashboardCardItem> = DashboardLayoutUtils.defaultOrder(),
         /** Pierwsze dane już są (do tego czasu ekran jest niewidoczny, bez mignięć). */
         val ready: Boolean = false
     )
@@ -201,7 +210,11 @@ class SettingsViewModel @Inject constructor(
         settings.accent,
         settings.updateChannel,
         settings.countdownSettings,
-        settings.autoDndEnabled
+        settings.autoDndEnabled,
+        settings.liveBellNotificationEnabled,
+        dutyRepo.studentNumber,
+        dutyRepo.classSize,
+        settings.dashboardCardsOrder
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         State(
@@ -223,7 +236,11 @@ class SettingsViewModel @Inject constructor(
             accent = values[14] as AccentSetting,
             updateChannel = values[15] as UpdateChannel,
             countdownSettings = values[16] as CountdownSettings,
-            autoDndEnabled = values[17] as Boolean
+            autoDndEnabled = values[17] as Boolean,
+            liveBellNotificationEnabled = values[18] as Boolean,
+            dutyStudentNumber = values[19] as Int?,
+            dutyClassSize = values[20] as Int,
+            cardOrder = DashboardLayoutUtils.decode(values[21] as String?)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), State())
 
@@ -238,6 +255,7 @@ class SettingsViewModel @Inject constructor(
     fun setClass(id: String) {
         if (id == state.value.selectedClassId) return
         classSelection.select(id)
+        liveBellScheduler.requestReschedule()
     }
 
     /** Stan ręcznego sprawdzania aktualizacji ("O aplikacji"). */
@@ -310,6 +328,20 @@ class SettingsViewModel @Inject constructor(
     fun setAutoDndEnabled(value: Boolean) = writeSetting {
         settings.setAutoDndEnabled(value)
         dndScheduler.requestReschedule()
+    }
+    fun setLiveBellNotificationEnabled(value: Boolean) = writeSetting {
+        settings.setLiveBellNotificationEnabled(value)
+        liveBellScheduler.requestReschedule()
+    }
+    fun setDutyStudentNumber(number: Int?) = writeSetting {
+        dutyRepo.setStudentNumber(number)
+        liveBellScheduler.requestReschedule()
+    }
+    fun setDutyClassSize(size: Int) = writeSetting {
+        dutyRepo.setClassSize(size)
+    }
+    fun saveDashboardLayout(order: List<DashboardCardItem>) = writeSetting {
+        settings.setDashboardCardsOrder(DashboardLayoutUtils.encode(order))
     }
 
     companion object { private const val TAG = "SettingsViewModel" }

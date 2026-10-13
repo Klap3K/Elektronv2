@@ -21,7 +21,9 @@ import pl.zse.bydgoszcz.elektron.crash.CrashReporter
 import pl.zse.bydgoszcz.elektron.crash.CrashReportDialog
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import pl.zse.bydgoszcz.elektron.presentation.common.NewUpdateDialog
 import androidx.activity.enableEdgeToEdge
 import android.graphics.Color
 import androidx.compose.runtime.DisposableEffect
@@ -155,10 +157,24 @@ class ElektronActivity : ComponentActivity() {
                         })
                     }
 
+                    val availableUpdate by updateRepo.availableUpdate.collectAsStateWithLifecycle(null)
+                    var dismissedUpdateSession by rememberSaveable { mutableStateOf<String?>(null) }
+
                     if (crashReport == null && state.changelogToShow.isNotEmpty()) {
                         ChangelogDialog(
                             entries = state.changelogToShow,
                             onDismiss = { appViewModel.markChangelogSeen() }
+                        )
+                    } else if (crashReport == null && availableUpdate != null && availableUpdate?.versionName != dismissedUpdateSession) {
+                        NewUpdateDialog(
+                            update = availableUpdate!!,
+                            onDismiss = {
+                                val ver = availableUpdate?.versionName
+                                dismissedUpdateSession = ver
+                                if (ver != null) {
+                                    lifecycleScope.launch { updateRepo.dismiss(ver) }
+                                }
+                            }
                         )
                     }
                 }
@@ -167,14 +183,16 @@ class ElektronActivity : ComponentActivity() {
     }
 
     /**
-     * Nowa wersja na GitHubie: przy każdym powrocie do aplikacji (najwyżej co 12 h - limit
-     * w UpdateRepository). Dawniej tylko przy starcie procesu, a proces żyje nieraz tygodniami.
+     * Nowa wersja na GitHubie: sprawdzanie w tle przy każdym uruchomieniu i powrocie do aplikacji
+     * (co min. 5 minut dzięki cache i ETag w UpdateRepository).
      */
     @javax.inject.Inject lateinit var noteReminders: pl.zse.bydgoszcz.elektron.work.NoteReminderScheduler
+    @javax.inject.Inject lateinit var liveBellScheduler: pl.zse.bydgoszcz.elektron.service.LiveBellScheduler
 
     override fun onStart() {
         super.onStart()
         noteReminders.requestReschedule(force = true)
+        liveBellScheduler.requestReschedule()
         if (BuildConfig.UPDATE_CHECK) lifecycleScope.launch { updateRepo.check(force = false) }
     }
 

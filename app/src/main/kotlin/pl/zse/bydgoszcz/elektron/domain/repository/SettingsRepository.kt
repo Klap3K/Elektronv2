@@ -72,6 +72,14 @@ interface SettingsRepository {
     val autoDndEnabled: Flow<Boolean>
     suspend fun setAutoDndEnabled(enabled: Boolean)
 
+    /** Ciągłe powiadomienie na ekranie blokady o trwającej lekcji i dzwonku („Kiedy dzwonek?”). */
+    val liveBellNotificationEnabled: Flow<Boolean>
+    suspend fun setLiveBellNotificationEnabled(enabled: Boolean)
+
+    /** Kolejność i widoczność kart na stronie głównej (Dashboard). */
+    val dashboardCardsOrder: Flow<String?>
+    suspend fun setDashboardCardsOrder(order: String)
+
     /** Kanał aktualizacji z GitHuba; domyślnie stabilny. */
     val updateChannel: Flow<UpdateChannel> get() = flowOf(UpdateChannel.STABLE)
     suspend fun setUpdateChannel(channel: UpdateChannel) {}
