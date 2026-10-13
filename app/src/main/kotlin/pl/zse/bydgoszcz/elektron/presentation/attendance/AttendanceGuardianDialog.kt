@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import pl.zse.bydgoszcz.elektron.domain.model.AttendanceBalance
+import pl.zse.bydgoszcz.elektron.domain.model.AttendanceThresholdCalculator
 import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance
 import pl.zse.bydgoszcz.elektron.presentation.calendar.EduVulcanLoginDialog
