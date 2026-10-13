@@ -1,0 +1,1 @@
+Fixed eduVULCAN profile selection and SSO redirects during login. Polish interface.

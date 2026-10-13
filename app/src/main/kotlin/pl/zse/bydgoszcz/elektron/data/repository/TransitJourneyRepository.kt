@@ -154,10 +154,7 @@ class TransitJourneyRepository internal constructor(private val client: OkHttpCl
         if (!result.complete) return
         withContext(Dispatchers.IO) { cacheLock.withLock {
             runCatching {
-                val atomic = android.util.AtomicFile(file)
-                val output = atomic.startWrite()
-                try { output.write(TransitResultCodec.encode(result).toByteArray(Charsets.UTF_8)); atomic.finishWrite(output) }
-                catch (e: Exception) { atomic.failWrite(output); throw e }
+                pl.zse.bydgoszcz.elektron.data.local.writeAtomicFile(file, TransitResultCodec.encode(result).toByteArray(Charsets.UTF_8))
             }.onFailure { android.util.Log.w("TransitJourneys", "Nie udało się zapisać ostatnich połączeń", it) }
         } }
     }

@@ -2,6 +2,7 @@ package pl.zse.bydgoszcz.elektron.data.repository
 
 import android.content.Context
 import android.util.AtomicFile
+import pl.zse.bydgoszcz.elektron.data.local.writeAtomicFile
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,9 +40,7 @@ class FavoriteAnnouncementsStore internal constructor(private val file: File?) {
                 .put("cover", article.coverImageUrl ?: JSONObject.NULL).put("html", article.fullHtml ?: JSONObject.NULL)
                 .put("source", article.source))
         } }.toString().toByteArray(Charsets.UTF_8)
-        val atomic = AtomicFile(file)
-        val output = atomic.startWrite()
-        try { output.write(data); atomic.finishWrite(output); lastSnapshot = entries.toList() }
-        catch (error: Exception) { atomic.failWrite(output); throw error }
+        writeAtomicFile(file, data)
+        lastSnapshot = entries.toList()
     }
 }

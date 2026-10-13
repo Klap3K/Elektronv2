@@ -46,6 +46,7 @@ class UpdateRepositoryImpl @Inject constructor(
         syncStateDao.observe(KEY_DISMISSED),
         settings.updateChannel
     ) { latest, dismissed, channel ->
+        if (!BuildConfig.UPDATE_CHECK) return@combine null
         // Zapisana wersja z kanału beta nie pokazuje się po powrocie na kanał stabilny.
         val update = decode(latest?.message)?.takeIf { channel.accepts(it.versionName, it.prerelease) }
             ?: return@combine null
@@ -62,8 +63,7 @@ class UpdateRepositoryImpl @Inject constructor(
 
     override suspend fun check(force: Boolean): Result<AppUpdate?> = withContext(Dispatchers.IO) {
         checkMutex.withLock {
-            // Wersja F-Droid (foss): bez sprawdzania GitHuba — F-Droid sam aktualizuje aplikację
-            // i podpisuje ją własnym kluczem (APK z GitHuba i tak by się nie zainstalował).
+            // Guard for distributions which disable update checks.
             if (!BuildConfig.UPDATE_CHECK) return@withLock Result.success(null)
             runCatchingCancellable {
                 val now = Instant.now().epochSecond

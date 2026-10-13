@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Domyślnie wyłącznie HTTPS. Cała komunikacja aplikacji (plan, zastępstwa, RSS, archiwum)
-  idzie przez https://. Nieszyfrowany HTTP dopuszczony tylko dla hosta obrazków ogłoszeń,
-  gdyby stare wpisy odwoływały się do nich przez http:// (najgorzej: brak obrazka).
+  idzie przez https://. Mappery normalizują również stare adresy obrazków do HTTPS.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">zse.edu.bydgoszcz.pl</domain>
-    </domain-config>
 </network-security-config>

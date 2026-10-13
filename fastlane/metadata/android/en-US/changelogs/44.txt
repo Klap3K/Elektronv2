@@ -1,0 +1,1 @@
+Security and reliability fixes: encrypted saved credentials, origin-scoped eduVULCAN WebView messaging, Room schema and migration tests, safer persistent file writes, WorkManager-based FCM handling, and GitHub-only distribution. Polish UI. Remaining audit findings and historical signing-key compromise are documented in the repository.

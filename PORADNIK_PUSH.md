@@ -4,7 +4,7 @@ Powiadomienia push skracają czas, po którym aplikacja dowiaduje się o nowym z
 ogłoszeniu: zamiast czekać na najbliższą synchronizację w tle (WorkManager, najczęściej co 15 minut),
 telefon dostaje sygnał w ciągu kilku minut od zmiany na stronie szkoły.
 
-Dotyczy to tylko wariantu **`gms`** (APK z GitHub Releases). Wariant **`foss`** (F-Droid) nie ma
+Dotyczy to tylko opcjonalnego wariantu **`gms`** z własną konfiguracją Firebase. Standardowy APK z GitHub Releases (`github`) nie ma
 Firebase i polega wyłącznie na synchronizacji w tle. Nie potrzebuje niczego z tego poradnika.
 
 Całość działa na darmowej infrastrukturze, bez własnego serwera:
@@ -32,7 +32,7 @@ dostępu do projektu Firebase albo we własnym forku.
 6. Cloud Messaging jest włączony domyślnie.
 
 `app/google-services.json` jest w `.gitignore`. **Nie commituj go.** Każdy, kto buduje wariant `gms`,
-potrzebuje własnej kopii. Wariant `foss` buduje się bez tego pliku.
+potrzebuje własnej kopii. Wariant `github` buduje się bez tego pliku.
 
 ## Krok 2. Klucz konta usługi
 
@@ -106,7 +106,7 @@ Jeśli domyślna Java w systemie jest starsza, wskaż nowszy JDK przez `JAVA_HOM
 `JAVA_HOME=/ścieżka/do/jdk-21 ./gradlew :app:assembleGmsDebug`.
 
 Wydanie: `:app:assembleGmsRelease` (wymaga też `keystore.properties`, patrz README).
-Wariant F-Droid: `:app:assembleFossDebug`, bez `google-services.json`.
+Wariant bez Firebase: `:app:assembleGithubDebug`, bez `google-services.json`.
 
 ## Krok 8. Sprawdzenie
 
@@ -164,5 +164,5 @@ Szczegóły watchera (ponawianie, archiwum stron, heartbeat): zobacz dokumentacj
   `heartbeat.txt` co 25 dni, ale gdyby harmonogram się wyłączył, włącz go w zakładce Actions.
 - **Zielony workflow, a brak powiadomień:** sprawdź w aplikacji, czy powiadomienia są włączone, czy
   wybrana jest właściwa klasa i grupy, oraz logcat z tagiem `FcmTopicManager`. Upewnij się też, że
-  na telefonie jest APK `gms`, a nie z F-Droid, i że klucz z kroku 2 pochodzi z tego samego projektu
+  na telefonie jest APK `gms`, a nie `github`, i że klucz z kroku 2 pochodzi z tego samego projektu
   Firebase co `google-services.json` użyty do zbudowania aplikacji.

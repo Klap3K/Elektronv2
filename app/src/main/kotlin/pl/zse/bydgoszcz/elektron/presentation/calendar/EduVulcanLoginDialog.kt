@@ -5,11 +5,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
 import android.webkit.CookieManager
-import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,6 +66,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
 import org.json.JSONObject
+import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanBridge
+import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanWebSecurity
+import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanWebViewClient
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanProfileTile
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanWebAuthenticator
 import pl.zse.bydgoszcz.elektron.domain.model.EduVulcanSession
@@ -107,7 +107,7 @@ fun EduVulcanLoginDialog(
                     password = password,
                     autoSelectSingleProfile = true
                 )
-                webViewRef?.evaluateJavascript(js, null)
+                EduVulcanWebSecurity.evaluate(webViewRef, js)
                 // Jeśli po 5 sekundach logowanie nadal trwa (np. pojawiła się Captcha lub wybór profilu),
                 // automatycznie odsłaniamy podgląd strony i ukrywamy formularz, aby dać pełną przestrzeń do przewijania
                 if (secondsElapsed == 4 && !showWebViewPreview && detectedProfiles.isEmpty() && !isOpeningProfile) {
@@ -303,7 +303,7 @@ fun EduVulcanLoginDialog(
                                         """.trimIndent()
                                         val wv = webViewRef
                                         if (wv != null) {
-                                            wv.evaluateJavascript(openJs, null)
+                                            EduVulcanWebSecurity.evaluate(wv, openJs)
                                         }
                                     }
                             ) {
@@ -388,6 +388,9 @@ fun EduVulcanLoginDialog(
                                     cm.setAcceptThirdPartyCookies(this, true)
 
                                     settings.apply {
+                                        allowFileAccess = false
+                                        allowContentAccess = false
+                                        mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                                         javaScriptEnabled = true
                                         domStorageEnabled = true
                                         javaScriptCanOpenWindowsAutomatically = true
@@ -398,17 +401,17 @@ fun EduVulcanLoginDialog(
                                         userAgentString = EduVulcanWebAuthenticator.USER_AGENT
                                     }
 
-                                    addJavascriptInterface(
-                                        object {
-                                            @JavascriptInterface
-                                            fun onStatus(msg: String) {
+                                    EduVulcanWebSecurity.installBridge(this,
+                                        object : EduVulcanBridge {
+
+                                            override fun onStatus(msg: String) {
                                                 mainHandler.post {
                                                     statusMessage = msg
                                                 }
                                             }
 
-                                            @JavascriptInterface
-                                            fun onProfilesFound(profilesJson: String) {
+
+                                            override fun onProfilesFound(profilesJson: String) {
                                                 mainHandler.post {
                                                     val profiles = EduVulcanWebAuthenticator.parseProfileTiles(profilesJson)
                                                     if (profiles.isNotEmpty()) {
@@ -420,8 +423,8 @@ fun EduVulcanLoginDialog(
                                                 }
                                             }
 
-                                            @JavascriptInterface
-                                            fun onLoginError(err: String) {
+
+                                            override fun onLoginError(err: String) {
                                                 mainHandler.post {
                                                     errorMessage = err
                                                     isOpeningProfile = false
@@ -431,8 +434,8 @@ fun EduVulcanLoginDialog(
                                                 }
                                             }
 
-                                            @JavascriptInterface
-                                            fun onContextSuccess(domain: String, city: String, contextJson: String) {
+
+                                            override fun onContextSuccess(domain: String, city: String, contextJson: String) {
                                                 mainHandler.post {
                                                     if (!isLoggingIn) return@post
                                                     val parsed = EduVulcanWebAuthenticator.parseContextJson(
@@ -456,12 +459,11 @@ fun EduVulcanLoginDialog(
                                                     )
                                                 }
                                             }
-                                        },
-                                        "AndroidEduVulcan"
+                                        }
                                     )
 
                                     webChromeClient = WebChromeClient()
-                                    webViewClient = object : WebViewClient() {
+                                    webViewClient = object : EduVulcanWebViewClient() {
                                         override fun onPageFinished(view: WebView?, url: String?) {
                                             super.onPageFinished(view, url)
                                             val js = EduVulcanWebAuthenticator.buildAutomationJs(
@@ -469,13 +471,10 @@ fun EduVulcanLoginDialog(
                                                 password = password,
                                                 autoSelectSingleProfile = true
                                             )
-                                            view?.evaluateJavascript(js, null)
+                                            EduVulcanWebSecurity.evaluate(view, js)
                                         }
 
-                                        override fun shouldOverrideUrlLoading(
-                                            view: WebView?,
-                                            request: WebResourceRequest?
-                                        ): Boolean = false
+
                                     }
 
                                     webViewRef = this

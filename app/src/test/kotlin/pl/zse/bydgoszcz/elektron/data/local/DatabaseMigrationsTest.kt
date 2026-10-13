@@ -21,6 +21,14 @@ class DatabaseMigrationsTest {
     }
 
     @Test
+    fun everySupportedVersionHasAnExportedSchema() {
+        for (version in DatabaseMigrations.FIRST_MIGRATABLE_VERSION..DATABASE_VERSION) {
+            assertTrue("Brak schematu Room $version.json — wygeneruj i dodaj plik do repozytorium.",
+                javaClass.getResource("/pl.zse.bydgoszcz.elektron.data.local.AppDatabase/$version.json") != null)
+        }
+    }
+
+    @Test
     fun migrationsDoNotGoBeyondCurrentVersion() {
         DatabaseMigrations.ALL.forEach {
             assertTrue("Migracja ${it.startVersion}->${it.endVersion} wykracza poza DATABASE_VERSION",

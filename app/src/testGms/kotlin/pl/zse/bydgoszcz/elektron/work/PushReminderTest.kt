@@ -72,7 +72,7 @@ class PushReminderTest {
                 override suspend fun fetchArticleDate(url: String): java.time.Instant? = null
             }
             val t = pl.zse.bydgoszcz.elektron.testutil.TestCoordinator(context, db, settings, source, subsSource, annSource, sink)
-            val service = ElektronFirebaseMessagingService().also {
+            val service = PushMessageHandler().also {
                 it.settings = settings
                 it.timetableRepo = timetable
                 it.notificationsRepo = notifications
@@ -83,18 +83,18 @@ class PushReminderTest {
                 "type" to "substitution", "id" to pl.zse.bydgoszcz.elektron.data.mapper.SubstitutionMapper.toEntity(pageItems.single())!!.id, "date" to day.toString(),
                 "lessonNumber" to "1", "classShortName" to "1D", "roomOrInfo" to "Uczniowie zwolnieni"
             )).build()
-            service.onMessageReceived(message)
+            service.handle(message.data)
             assertNull(alarms.peekNextScheduledAlarm())
             // Szkoła odwołała zastępstwo; opóźniony identyczny push nadal mówi "zwolnieni".
-            service.onMessageReceived(message)
+            service.handle(message.data)
             assertEquals(1, calls) // duplikat po wspólnym odczycie nie pobiera strony ponownie
             pageItems = emptyList()
             t.coordinator.sync(pl.zse.bydgoszcz.elektron.domain.sync.SyncRequest.of(SyncOutcome.SUBSTITUTIONS))
-            service.onMessageReceived(message)
+            service.handle(message.data)
             assertTrue(t.substitutionsRepo.getAllFrom(day).isEmpty())
             assertNotNull(alarms.peekNextScheduledAlarm())
             assertEquals(3, calls)
-            service.onMessageReceived(RemoteMessage.Builder("test").setData(message.data + ("classShortName" to "2A")).build())
+            service.handle(message.data + ("classShortName" to "2A"))
             assertEquals(3, calls)
         } finally { db.close() }
     }

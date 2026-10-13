@@ -3,6 +3,8 @@ package pl.zse.bydgoszcz.elektron.data.repository
 import android.content.Context
 import android.webkit.CookieManager
 import androidx.datastore.core.DataStore
+import pl.zse.bydgoszcz.elektron.data.local.CredentialMigration
+import pl.zse.bydgoszcz.elektron.data.local.KeystoreCredentialCipher
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -13,11 +15,17 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import pl.zse.bydgoszcz.elektron.domain.util.runCatchingCancellable
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import pl.zse.bydgoszcz.elektron.data.local.AttendanceDao
@@ -43,7 +51,10 @@ import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.calendarPreferences: DataStore<Preferences> by preferencesDataStore(name = "calendar_preferences")
+private val Context.calendarPreferences: DataStore<Preferences> by preferencesDataStore(
+    name = "calendar_preferences",
+    produceMigrations = { listOf(CredentialMigration(KeystoreCredentialCipher())) }
+)
 
 @Singleton
 class CalendarRepositoryImpl @Inject constructor(
@@ -57,61 +68,77 @@ class CalendarRepositoryImpl @Inject constructor(
 ) : CalendarRepository {
 
     private val store = context.calendarPreferences
+    private val accountOperations = Mutex()
+    private val calendarHttp = okHttp.newBuilder()
+        .apply { interceptors().removeAll { it is okhttp3.logging.HttpLoggingInterceptor } }
+        .cache(null).build()
+    private val credentialCipher = KeystoreCredentialCipher()
+    private fun credential(prefs: Preferences, key: Preferences.Key<String>): String? =
+        prefs[key]?.let { credentialCipher.decrypt(it, key.name) }
+    private fun encrypt(value: String, key: Preferences.Key<String>): String = credentialCipher.encrypt(value, key.name)
 
     private object Keys {
-        val CALENDAR_URL = stringPreferencesKey("calendar_url")
+        val CALENDAR_URL = stringPreferencesKey("encrypted_calendar_url")
         val LAST_SYNC_EPOCH = longPreferencesKey("last_sync_epoch")
         val LAST_SYNC_ERROR = stringPreferencesKey("last_sync_error")
 
         // Poświadczenia i stan sesji eduVULCAN / VULCAN
-        val VULCAN_TOKEN = stringPreferencesKey("vulcan_token")
-        val VULCAN_SYMBOL = stringPreferencesKey("vulcan_symbol")
+        val VULCAN_TOKEN = stringPreferencesKey("encrypted_vulcan_token")
+        val VULCAN_SYMBOL = stringPreferencesKey("encrypted_vulcan_symbol")
         val VULCAN_PUPIL_ID = intPreferencesKey("vulcan_pupil_id")
-        val VULCAN_PUPIL_NAME = stringPreferencesKey("vulcan_pupil_name")
-        val VULCAN_SCHOOL_NAME = stringPreferencesKey("vulcan_school_name")
-        val VULCAN_REST_URL = stringPreferencesKey("vulcan_rest_url")
-        val VULCAN_CERT_PEM = stringPreferencesKey("vulcan_cert_pem")
-        val VULCAN_THUMBPRINT = stringPreferencesKey("vulcan_thumbprint")
-        val VULCAN_PRIVATE_KEY_PKCS8 = stringPreferencesKey("vulcan_private_key_pkcs8")
+        val VULCAN_PUPIL_NAME = stringPreferencesKey("encrypted_vulcan_pupil_name")
+        val VULCAN_SCHOOL_NAME = stringPreferencesKey("encrypted_vulcan_school_name")
+        val VULCAN_REST_URL = stringPreferencesKey("encrypted_vulcan_rest_url")
+        val VULCAN_CERT_PEM = stringPreferencesKey("encrypted_vulcan_cert_pem")
+        val VULCAN_THUMBPRINT = stringPreferencesKey("encrypted_vulcan_thumbprint")
+        val VULCAN_PRIVATE_KEY_PKCS8 = stringPreferencesKey("encrypted_vulcan_private_key_pkcs8")
         val VULCAN_IS_EDUVULCAN = booleanPreferencesKey("vulcan_is_eduvulcan")
-        val VULCAN_SAVED_PASSWORD = stringPreferencesKey("vulcan_saved_password")
+        val VULCAN_SAVED_PASSWORD = stringPreferencesKey("encrypted_vulcan_saved_password")
+        val EDU_STUDENT_KEY = stringPreferencesKey("encrypted_vulcan_student_key")
+        val EDU_DOMAIN = stringPreferencesKey("encrypted_vulcan_domain")
+        val EDU_LOGIN = stringPreferencesKey("encrypted_vulcan_login_username")
+        val EDU_COOKIES = stringPreferencesKey("encrypted_vulcan_cookies_header")
     }
 
-    override val calendarUrl: Flow<String?> = store.data.map { it[Keys.CALENDAR_URL] }.distinctUntilChanged()
+    override val calendarUrl: Flow<String?> = store.data.map { credential(it, Keys.CALENDAR_URL) }
+        .catch { emit(null) }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     override val vulcanAccount: Flow<VulcanAccount?> = store.data.map { prefs ->
-        val token = prefs[Keys.VULCAN_TOKEN] ?: return@map null
-        val symbol = prefs[Keys.VULCAN_SYMBOL] ?: return@map null
-        val restUrl = prefs[Keys.VULCAN_REST_URL] ?: return@map null
-        val certPem = prefs[Keys.VULCAN_CERT_PEM].orEmpty()
-        val privateKey = prefs[Keys.VULCAN_PRIVATE_KEY_PKCS8].orEmpty()
+        val symbol = credential(prefs, Keys.VULCAN_SYMBOL) ?: return@map null
+        val restUrl = credential(prefs, Keys.VULCAN_REST_URL) ?: return@map null
+        val token = credential(prefs, Keys.VULCAN_TOKEN).orEmpty()
+        val certPem = credential(prefs, Keys.VULCAN_CERT_PEM).orEmpty()
+        val privateKey = credential(prefs, Keys.VULCAN_PRIVATE_KEY_PKCS8).orEmpty()
         val isEduVulcan = prefs[Keys.VULCAN_IS_EDUVULCAN] ?: restUrl.contains("uczen.")
-        val thumbprint = prefs[Keys.VULCAN_THUMBPRINT].orEmpty()
+        val thumbprint = credential(prefs, Keys.VULCAN_THUMBPRINT).orEmpty()
 
         VulcanAccount(
             token = token,
             symbol = symbol,
             pin = "",
             pupilId = prefs[Keys.VULCAN_PUPIL_ID] ?: 0,
-            pupilName = prefs[Keys.VULCAN_PUPIL_NAME].orEmpty().ifBlank { "Uczeń" },
-            schoolName = prefs[Keys.VULCAN_SCHOOL_NAME].orEmpty().ifBlank { symbol },
+            pupilName = credential(prefs, Keys.VULCAN_PUPIL_NAME).orEmpty().ifBlank { "Uczeń" },
+            schoolName = credential(prefs, Keys.VULCAN_SCHOOL_NAME).orEmpty().ifBlank { symbol },
             restUrl = restUrl,
             certificatePem = certPem,
             certificateThumbprint = thumbprint,
             privateKeyPkcs8Base64 = privateKey,
             isEduVulcan = isEduVulcan,
-            domain = if (isEduVulcan) certPem.ifBlank { "eduvulcan.pl" } else "eduvulcan.pl",
-            studentKey = token,
-            cookiesHeader = privateKey,
-            loginUsername = thumbprint
+            domain = credential(prefs, Keys.EDU_DOMAIN).orEmpty().ifBlank { "eduvulcan.pl" },
+            studentKey = credential(prefs, Keys.EDU_STUDENT_KEY).orEmpty(),
+            cookiesHeader = credential(prefs, Keys.EDU_COOKIES).orEmpty(),
+            loginUsername = credential(prefs, Keys.EDU_LOGIN).orEmpty()
         )
-    }.distinctUntilChanged()
+    }.catch {
+        saveSyncError("Nie można odczytać poświadczeń eduVULCAN. Odłącz konto i zaloguj się ponownie.")
+        emit(null)
+    }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     override suspend fun setCalendarUrl(url: String?) {
         store.edit { prefs ->
             val cleanUrl = url?.trim()?.takeIf { it.isNotBlank() }
             if (cleanUrl != null) {
-                prefs[Keys.CALENDAR_URL] = cleanUrl
+                prefs[Keys.CALENDAR_URL] = encrypt(cleanUrl, Keys.CALENDAR_URL)
             } else {
                 prefs.remove(Keys.CALENDAR_URL)
             }
@@ -119,22 +146,28 @@ class CalendarRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun connectEduVulcan(session: EduVulcanSession): Result<VulcanAccount> = withContext(Dispatchers.IO) {
+    override suspend fun connectEduVulcan(session: EduVulcanSession): Result<VulcanAccount> =
+        accountOperations.withLock { runCatchingCancellable { connectEduVulcanLocked(session).getOrThrow() } }
+
+    private suspend fun connectEduVulcanLocked(session: EduVulcanSession): Result<VulcanAccount> = withContext(Dispatchers.IO) {
         val account = session.toVulcanAccount()
         saveEduVulcanSessionToPrefs(session, account)
         // Natychmiastowa synchronizacja sprawdzianów oraz frekwencji
-        sync()
+        syncLocked()
         Result.success(account)
     }
 
-    override suspend fun loginEduVulcanWithPassword(
+    override suspend fun loginEduVulcanWithPassword(username: String, password: String): Result<VulcanAccount> =
+        accountOperations.withLock { runCatchingCancellable { loginEduVulcanLocked(username, password).getOrThrow() } }
+
+    private suspend fun loginEduVulcanLocked(
         username: String,
         password: String
     ): Result<VulcanAccount> = withContext(Dispatchers.IO) {
         val authRes = eduVulcanAuthenticator.refreshSessionSilently(username.trim(), password)
         authRes.fold(
             onSuccess = { session ->
-                connectEduVulcan(session)
+                connectEduVulcanLocked(session)
             },
             onFailure = { err ->
                 val msg = err.localizedMessage ?: "Nie udało się zalogować do eduVULCAN"
@@ -146,41 +179,55 @@ class CalendarRepositoryImpl @Inject constructor(
 
     private suspend fun saveEduVulcanSessionToPrefs(session: EduVulcanSession, account: VulcanAccount) {
         store.edit { prefs ->
-            prefs[Keys.VULCAN_TOKEN] = account.studentKey
-            prefs[Keys.VULCAN_SYMBOL] = account.symbol
+            prefs[Keys.EDU_STUDENT_KEY] = encrypt(account.studentKey, Keys.EDU_STUDENT_KEY)
+            prefs.remove(Keys.VULCAN_TOKEN)
+            prefs.remove(Keys.VULCAN_CERT_PEM)
+            prefs.remove(Keys.VULCAN_THUMBPRINT)
+            prefs.remove(Keys.VULCAN_PRIVATE_KEY_PKCS8)
+            prefs[Keys.VULCAN_SYMBOL] = encrypt(account.symbol, Keys.VULCAN_SYMBOL)
             prefs[Keys.VULCAN_PUPIL_ID] = account.pupilId
-            prefs[Keys.VULCAN_PUPIL_NAME] = account.pupilName
-            prefs[Keys.VULCAN_SCHOOL_NAME] = account.schoolName
-            prefs[Keys.VULCAN_REST_URL] = account.restUrl
-            prefs[Keys.VULCAN_CERT_PEM] = account.domain
-            prefs[Keys.VULCAN_THUMBPRINT] = session.loginUsername
-            prefs[Keys.VULCAN_PRIVATE_KEY_PKCS8] = account.cookiesHeader
+            prefs[Keys.VULCAN_PUPIL_NAME] = encrypt(account.pupilName, Keys.VULCAN_PUPIL_NAME)
+            prefs[Keys.VULCAN_SCHOOL_NAME] = encrypt(account.schoolName, Keys.VULCAN_SCHOOL_NAME)
+            prefs[Keys.VULCAN_REST_URL] = encrypt(account.restUrl, Keys.VULCAN_REST_URL)
+            prefs[Keys.EDU_DOMAIN] = encrypt(account.domain, Keys.EDU_DOMAIN)
+            prefs[Keys.EDU_LOGIN] = encrypt(session.loginUsername, Keys.EDU_LOGIN)
+            prefs[Keys.EDU_COOKIES] = encrypt(account.cookiesHeader, Keys.EDU_COOKIES)
             prefs[Keys.VULCAN_IS_EDUVULCAN] = true
             if (session.loginPassword.isNotBlank()) {
-                prefs[Keys.VULCAN_SAVED_PASSWORD] = session.loginPassword
+                prefs[Keys.VULCAN_SAVED_PASSWORD] = encrypt(session.loginPassword, Keys.VULCAN_SAVED_PASSWORD)
+            } else {
+                prefs.remove(Keys.VULCAN_SAVED_PASSWORD)
             }
             prefs.remove(Keys.LAST_SYNC_ERROR)
         }
     }
 
-    override suspend fun registerVulcan(input: VulcanRegistrationInput): Result<VulcanAccount> = withContext(Dispatchers.IO) {
+    override suspend fun registerVulcan(input: VulcanRegistrationInput): Result<VulcanAccount> =
+        accountOperations.withLock { runCatchingCancellable { registerVulcanLocked(input).getOrThrow() } }
+
+    private suspend fun registerVulcanLocked(input: VulcanRegistrationInput): Result<VulcanAccount> = withContext(Dispatchers.IO) {
         val result = vulcanApiClient.register(input)
         result.fold(
             onSuccess = { account ->
                 store.edit { prefs ->
-                    prefs[Keys.VULCAN_TOKEN] = account.token
-                    prefs[Keys.VULCAN_SYMBOL] = account.symbol
+                    prefs.remove(Keys.EDU_STUDENT_KEY)
+                    prefs.remove(Keys.EDU_DOMAIN)
+                    prefs.remove(Keys.EDU_LOGIN)
+                    prefs.remove(Keys.EDU_COOKIES)
+                    prefs.remove(Keys.VULCAN_SAVED_PASSWORD)
+                    prefs[Keys.VULCAN_TOKEN] = encrypt(account.token, Keys.VULCAN_TOKEN)
+                    prefs[Keys.VULCAN_SYMBOL] = encrypt(account.symbol, Keys.VULCAN_SYMBOL)
                     prefs[Keys.VULCAN_PUPIL_ID] = account.pupilId
-                    prefs[Keys.VULCAN_PUPIL_NAME] = account.pupilName
-                    prefs[Keys.VULCAN_SCHOOL_NAME] = account.schoolName
-                    prefs[Keys.VULCAN_REST_URL] = account.restUrl
-                    prefs[Keys.VULCAN_CERT_PEM] = account.certificatePem
-                    prefs[Keys.VULCAN_THUMBPRINT] = account.certificateThumbprint
-                    prefs[Keys.VULCAN_PRIVATE_KEY_PKCS8] = account.privateKeyPkcs8Base64
+                    prefs[Keys.VULCAN_PUPIL_NAME] = encrypt(account.pupilName, Keys.VULCAN_PUPIL_NAME)
+                    prefs[Keys.VULCAN_SCHOOL_NAME] = encrypt(account.schoolName, Keys.VULCAN_SCHOOL_NAME)
+                    prefs[Keys.VULCAN_REST_URL] = encrypt(account.restUrl, Keys.VULCAN_REST_URL)
+                    prefs[Keys.VULCAN_CERT_PEM] = encrypt(account.certificatePem, Keys.VULCAN_CERT_PEM)
+                    prefs[Keys.VULCAN_THUMBPRINT] = encrypt(account.certificateThumbprint, Keys.VULCAN_THUMBPRINT)
+                    prefs[Keys.VULCAN_PRIVATE_KEY_PKCS8] = encrypt(account.privateKeyPkcs8Base64, Keys.VULCAN_PRIVATE_KEY_PKCS8)
                     prefs[Keys.VULCAN_IS_EDUVULCAN] = false
                     prefs.remove(Keys.LAST_SYNC_ERROR)
                 }
-                sync()
+                syncLocked()
                 Result.success(account)
             },
             onFailure = { error ->
@@ -190,7 +237,9 @@ class CalendarRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun clearVulcanAccount() {
+    override suspend fun clearVulcanAccount() = accountOperations.withLock { clearVulcanAccountLocked() }
+
+    private suspend fun clearVulcanAccountLocked() {
         withContext(Dispatchers.IO) {
             store.edit { prefs ->
                 prefs.remove(Keys.VULCAN_TOKEN)
@@ -204,11 +253,21 @@ class CalendarRepositoryImpl @Inject constructor(
                 prefs.remove(Keys.VULCAN_PRIVATE_KEY_PKCS8)
                 prefs.remove(Keys.VULCAN_IS_EDUVULCAN)
                 prefs.remove(Keys.VULCAN_SAVED_PASSWORD)
+                prefs.remove(Keys.EDU_STUDENT_KEY)
+                prefs.remove(Keys.EDU_DOMAIN)
+                prefs.remove(Keys.EDU_LOGIN)
+                prefs.remove(Keys.EDU_COOKIES)
                 prefs.remove(Keys.LAST_SYNC_ERROR)
             }
+            attendanceDao.clear()
+            gradeDao.replaceAll(gradeDao.getAll().filter { it.id.startsWith("manual_") })
             withContext(Dispatchers.Main) {
                 runCatching {
-                    CookieManager.getInstance().removeAllCookies(null)
+                    suspendCancellableCoroutine<Unit> { continuation ->
+                        CookieManager.getInstance().removeAllCookies {
+                            if (continuation.isActive) continuation.resume(Unit)
+                        }
+                    }
                     CookieManager.getInstance().flush()
                 }
             }
@@ -216,7 +275,7 @@ class CalendarRepositoryImpl @Inject constructor(
             if (rawUrl.isNullOrBlank()) {
                 schoolEventDao.clear()
             } else {
-                sync()
+                syncLocked()
             }
         }
     }
@@ -243,7 +302,11 @@ class CalendarRepositoryImpl @Inject constructor(
             .distinctUntilChanged()
             .flowOn(Dispatchers.Default)
 
-    override suspend fun sync(): Result<Int> = withContext(Dispatchers.IO) {
+    override suspend fun sync(): Result<Int> = accountOperations.withLock {
+        runCatchingCancellable { syncLocked().getOrThrow() }
+    }
+
+    private suspend fun syncLocked(): Result<Int> = withContext(Dispatchers.IO) {
         var activeAccount = vulcanAccount.first()
         val rawUrl = calendarUrl.first()?.trim()
 
@@ -264,8 +327,8 @@ class CalendarRepositoryImpl @Inject constructor(
             // Jeśli sesja eduVULCAN wygasła i mamy zapisane hasło, odświeżamy sesję w tle
             if (vulcanRes.isFailure && vulcanRes.exceptionOrNull() is EduVulcanSessionExpiredException) {
                 val prefs = store.data.first()
-                val savedUser = prefs[Keys.VULCAN_THUMBPRINT].orEmpty()
-                val savedPass = prefs[Keys.VULCAN_SAVED_PASSWORD].orEmpty()
+                val savedUser = credential(prefs, Keys.EDU_LOGIN).orEmpty()
+                val savedPass = credential(prefs, Keys.VULCAN_SAVED_PASSWORD).orEmpty()
                 if (savedUser.isNotBlank() && savedPass.isNotBlank()) {
                     val refreshed = eduVulcanAuthenticator.refreshSessionSilently(savedUser, savedPass)
                     if (refreshed.isSuccess) {
@@ -361,32 +424,32 @@ class CalendarRepositoryImpl @Inject constructor(
                 .header("Accept", "text/calendar, text/plain, */*")
                 .build()
 
-            val response = okHttp.newCall(request).execute()
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(IOException("Błąd iCal: HTTP ${response.code}"))
+            calendarHttp.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext Result.failure(IOException("Błąd iCal: HTTP ${response.code}"))
+                }
+                val body = response.body?.string().orEmpty()
+                if (body.isBlank()) {
+                    return@withContext Result.failure(IOException("Pobrany plik iCal jest pusty"))
+                }
+                Result.success(IcalParser.parse(body))
             }
-
-            val body = response.body?.string().orEmpty()
-            if (body.isBlank()) {
-                return@withContext Result.failure(IOException("Pobrany plik iCal jest pusty"))
-            }
-
-            val events = IcalParser.parse(body)
-            Result.success(events)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override suspend fun clear() {
+    override suspend fun clear() = accountOperations.withLock { clearLocked() }
+
+    private suspend fun clearLocked() {
         withContext(Dispatchers.IO) {
-            schoolEventDao.clear()
-            clearVulcanAccount()
             store.edit { prefs ->
                 prefs.remove(Keys.CALENDAR_URL)
                 prefs.remove(Keys.LAST_SYNC_EPOCH)
                 prefs.remove(Keys.LAST_SYNC_ERROR)
             }
+            clearVulcanAccountLocked()
+            schoolEventDao.clear()
         }
     }
 

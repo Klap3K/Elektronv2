@@ -45,8 +45,7 @@ sealed interface InstallState {
 }
 
 /**
- * Pobieranie i instalacja APK w aplikacji (wariant gms). W wariancie foss (F-Droid)
- * [supported] = false - aktualizacjami zajmuje się F-Droid.
+ * Pobieranie i instalacja APK w obu wariantach dystrybucji GitHub (github/gms).
  */
 interface UpdateInstaller {
     val supported: Boolean

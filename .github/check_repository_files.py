@@ -18,6 +18,8 @@ def main():
     working_name = re.compile(r"(?:^|[-_.])(?:audit|report|raport|plan|iteration|iter[0-9]*|notatki)(?:[-_.]|$)", re.IGNORECASE)
     for name in tracked:
         path = PurePosixPath(name)
+        if path.suffix.lower() in {".jks", ".keystore", ".pfx", ".p12", ".pem", ".key"} or name.endswith((".pfx.b64", ".p12.b64", ".jks.b64")):
+            forbidden.add(name)
         if name.startswith("release-notes/") and (len(path.parts) != 2 or not final_release.fullmatch(path.name)):
             forbidden.add(name)
         if path.suffix.lower() == ".md" and (name.startswith("docs/") or working_name.search(path.stem)):

@@ -15,11 +15,19 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34])
 class FavoritesMigrationTest {
     @Test fun rc4DatabaseUpgradesWithoutLosingArticle() = runBlocking {
+        verifyMigration(2)
+    }
+
+    @Test fun versionFiveUpgradesToSixWithoutLosingArticle() = runBlocking {
+        verifyMigration(5)
+    }
+
+    private suspend fun verifyMigration(version: Int) {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val name = "migration-favorites.db"
         ctx.deleteDatabase(name)
         try {
-            val schema = JSONObject(javaClass.getResource("/pl.zse.bydgoszcz.elektron.data.local.AppDatabase/2.json")!!.readText())
+            val schema = JSONObject(javaClass.getResource("/pl.zse.bydgoszcz.elektron.data.local.AppDatabase/$version.json")!!.readText())
                 .getJSONObject("database")
             ctx.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { old ->
                 val entities = schema.getJSONArray("entities")
@@ -32,8 +40,8 @@ class FavoritesMigrationTest {
                 }
                 old.execSQL("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
                 old.execSQL("INSERT INTO room_master_table VALUES(42, ?)", arrayOf(schema.getString("identityHash")))
-                old.execSQL("INSERT INTO announcements VALUES ('saved', 'Tytuł', 'https://zse/a', 1800000000, NULL, NULL, '<p>Treść</p>', 0, 'RSS_NEWS')")
-                old.version = 2
+                old.execSQL("INSERT INTO announcements (id, title, url, publishedAtEpochSeconds, fullHtml, isRead, source) VALUES ('saved', 'Tytuł', 'https://zse/a', 1800000000, '<p>Treść</p>', 0, 'RSS_NEWS')")
+                old.version = version
             }
             val upgraded = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
                 .allowMainThreadQueries().addMigrations(*DatabaseMigrations.ALL).build()
@@ -43,6 +51,9 @@ class FavoritesMigrationTest {
                 assertFalse(article.isFavorite)
                 upgraded.announcementDao().toggleFavorite("saved")
                 assertTrue(upgraded.announcementDao().getById("saved")!!.isFavorite)
+                // Opening Room validates every entity and index, including the new grades table.
+                assertEquals(DATABASE_VERSION, upgraded.openHelper.writableDatabase.version)
+                assertTrue(upgraded.gradeDao().getAll().isEmpty())
             } finally { upgraded.close() }
         } finally { ctx.deleteDatabase(name) }
     }

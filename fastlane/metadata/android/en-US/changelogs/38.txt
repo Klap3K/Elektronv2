@@ -1,0 +1,1 @@
+Renamed the application to Elektron-Vulcan, assigned its own application ID and updated its icon. Polish interface.

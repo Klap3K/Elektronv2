@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Configuration
 import androidx.work.WorkManager
+import androidx.work.testing.SynchronousExecutor
+import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.junit.Assert.*
@@ -41,10 +43,8 @@ class NoteReminderSchedulerTest {
     @Test fun eveningDeliversAllDueNotesOnceAndTapOpensCorrectLesson() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<Application>()
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
-        runCatching { WorkManager.getInstance(app) }.getOrElse {
-            WorkManager.initialize(app, Configuration.Builder().build())
-            WorkManager.getInstance(app)
-        }
+        WorkManagerTestInitHelper.initializeTestWorkManager(app, Configuration.Builder()
+            .setExecutor(SynchronousExecutor()).setTaskExecutor(SynchronousExecutor()).build())
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val file = File(app.cacheDir, "reminder-notes.preferences_pb").apply { delete() }
         val repo = LessonNotesRepository(PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }))

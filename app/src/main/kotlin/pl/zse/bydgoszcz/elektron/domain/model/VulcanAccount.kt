@@ -5,7 +5,7 @@ package pl.zse.bydgoszcz.elektron.domain.model
  * lub w starszym API mobilnym VULCAN UONET+ (Hebe).
  */
 data class VulcanAccount(
-    val token: String,
+    val token: String = "",
     val symbol: String,
     val pin: String = "",
     val pupilId: Int,
@@ -17,12 +17,14 @@ data class VulcanAccount(
     val privateKeyPkcs8Base64: String = "",
     val isEduVulcan: Boolean = true,
     val domain: String = "eduvulcan.pl",
-    val studentKey: String = token,
-    val cookiesHeader: String = privateKeyPkcs8Base64,
-    val loginUsername: String = certificateThumbprint
+    val studentKey: String = "",
+    val cookiesHeader: String = "",
+    val loginUsername: String = ""
 ) {
     val shortDisplay: String
         get() = "$pupilName ($schoolName)"
+
+    override fun toString(): String = "VulcanAccount(isEduVulcan=$isEduVulcan)"
 }
 
 /**
@@ -50,16 +52,12 @@ data class EduVulcanSession(
             schoolName.ifBlank { symbol }
         }
         return VulcanAccount(
-            token = studentKey,
             symbol = symbol,
             pin = "",
             pupilId = idDziennik,
             pupilName = pupilName.ifBlank { "Uczeń" },
             schoolName = displaySchool,
             restUrl = baseRestUrl,
-            certificatePem = domain,
-            certificateThumbprint = loginUsername,
-            privateKeyPkcs8Base64 = cookiesHeader,
             isEduVulcan = true,
             domain = domain,
             studentKey = studentKey,
@@ -67,6 +65,8 @@ data class EduVulcanSession(
             loginUsername = loginUsername
         )
     }
+
+    override fun toString(): String = "EduVulcanSession(redacted)"
 }
 
 /**
@@ -77,6 +77,7 @@ data class VulcanRegistrationInput(
     val symbol: String,
     val pin: String
 ) {
+    override fun toString(): String = "VulcanRegistrationInput(redacted)"
     companion object {
         fun parseOrNull(raw: String): VulcanRegistrationInput? {
             val text = raw.trim()

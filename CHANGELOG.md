@@ -4,6 +4,20 @@ Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
+## [2.0.7] - 2026-10-13 (44)
+
+Szczegóły: [release-notes/2.0.7.md](release-notes/2.0.7.md).
+
+- Szyfrowanie zapisanych poświadczeń eduVULCAN i prywatnego adresu iCal, z migracją starszego magazynu.
+- Ograniczenie komunikacji WebView do zaufanych originów, bez refleksyjnego interfejsu JavaScript.
+- GitHub jako jedyny kanał dystrybucji; wariant Github bez Firebase, opcjonalny GMS.
+- Podpis przez GitHub Secrets, bez klucza w bieżących plikach i bez debug APK w nowych wydaniach.
+- Schemat Room 6, rozszerzone testy migracji, bezpieczniejszy zapis plików i obsługa FCM przez WorkManager.
+- Rozszerzone CI, przypięte wersje Actions, dokumentacja bezpieczeństwa i instrukcja dalszych napraw.
+
+To częściowy pakiet napraw. Pozostałe problemy opisano w [audycie](AUDYT_PROJEKTU_2026-10-13.md).
+Klucz historyczny nadal jest skompromitowany; nie wykonano rotacji ani przepisywania historii.
+
 ## [2.0.6] - 2026-10-13 (43)
 
 Szczegóły: [release-notes/2.0.6.md](release-notes/2.0.6.md).
@@ -12,7 +26,7 @@ Szczegóły: [release-notes/2.0.6.md](release-notes/2.0.6.md).
 - **Auto DND (Wyciszanie na lekcjach):** Automatyczne wyciszanie w kieszeni podczas lekcji w tle (`AlarmManager.setExactAndAllowWhileIdle`) i przywracanie profilu dźwięku na przerwach.
 - **Wbudowane aktualizacje 1 kliknięciem:** Sprawdzanie wydań co 4h w tle przez `SyncWorker`, pobieranie paczki APK z paskiem postępu bezpośrednio w aplikacji i uruchomienie instalatora systemowego bez usuwania danych.
 
-## [2.0.0] - 2026-10-12 (40)
+## [2.0.0] - 2026-10-12 (37)
 
 Szczegóły: [release-notes/2.0.0.md](release-notes/2.0.0.md).
 

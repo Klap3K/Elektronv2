@@ -27,6 +27,7 @@ const val DATABASE_VERSION = 6
  *
  * Test DatabaseMigrationsTest pilnuje, żeby każdy krok wersji miał migrację — podniesienie
  * wersji bez migracji wysypie testy zamiast skasować użytkownikom dane.
+ * Testy wymagają również wyeksportowanego pliku schematu dla każdej wersji.
  */
 object DatabaseMigrations {
 

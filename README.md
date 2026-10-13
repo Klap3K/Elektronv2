@@ -34,16 +34,16 @@
 ## Zrzuty ekranu
 
 <p align="center">
-  <img src="docs/screenshots/strona-glowna.png" alt="Strona główna" title="Strona główna" width="23%">
-  <img src="docs/screenshots/plan.png" alt="Plan lekcji" title="Plan lekcji" width="23%">
-  <img src="docs/screenshots/zastepstwa.png" alt="Zastępstwa" title="Zastępstwa" width="23%">
-  <img src="docs/screenshots/odjazdy.png" alt="Odjazdy" title="Odjazdy" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="Strona główna" title="Strona główna" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" alt="Plan lekcji" title="Plan lekcji" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" alt="Zastępstwa" title="Zastępstwa" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" alt="Odjazdy" title="Odjazdy" width="23%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/ogloszenia.png" alt="Ogłoszenia" title="Ogłoszenia" width="23%">
-  <img src="docs/screenshots/ustawienia.png" alt="Ustawienia" title="Ustawienia" width="23%">
-  <img src="docs/screenshots/widzety.png" alt="Widżety" title="Widżety" width="23%">
-  <img src="docs/screenshots/powiadomienia.png" alt="Powiadomienia" title="Powiadomienia" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" alt="Ogłoszenia" title="Ogłoszenia" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" alt="Ustawienia" title="Ustawienia" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" alt="Widżety" title="Widżety" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" alt="Powiadomienia" title="Powiadomienia" width="23%">
 </p>
 
 ---
@@ -107,7 +107,7 @@
 
 Aplikacja została zaprojektowana z najwyższą dbałością o bezpieczeństwo danych i prywatność użytkownika:
 1. **Bezpieczne logowanie eduVULCAN:** Logowanie do konta eduVULCAN odbywa się bezpośrednio w oficjalnym formularzu platformy (`eduvulcan.pl`) bez serwerów pośredniczących.
-2. **Lokalne szyfrowanie danych:** Identyfikatory sesji, oceny oraz wydarzenia są zapisywane wyłącznie w chronionej przestrzeni aplikacji na Twoim urządzeniu.
+2. **Poświadczenia:** Hasło, tokeny i ciasteczka sesji są szyfrowane AES-GCM kluczem Android Keystore. Oceny, frekwencja i wydarzenia są zapisane lokalnie w bazie Room, bez dodatkowego szyfrowania bazy.
 3. **Brak wycieków do chmury:** Baza danych oraz pliki autoryzacji są wykluczone z mechanizmu Google Cloud Backup.
 4. **Prywatność:** Brak trackerów, analityki, profilowania i reklam. Szczegóły: [PRYWATNOSC.md](PRYWATNOSC.md).
 
@@ -119,20 +119,20 @@ Projekt wykorzystuje nowoczesny stos technologiczny Androida:
 * **Język:** Kotlin 2.0+ (Coroutines, Flow)
 * **UI:** Jetpack Compose, Material 3
 * **Architektura:** Clean Architecture + MVI/MVVM, Dagger Hilt
-* **Baza Danych:** Room Database v5 (z atomowymi migracjami)
+* **Baza Danych:** Room Database v6 (z atomowymi migracjami)
 * **Zadania w tle:** WorkManager, Glance Widgets, AlarmManager
 * **Sieć i Parsowanie:** OkHttp 4, Jsoup
 
 Wymagania: JDK 17+ (zalecane JDK 21) oraz Android SDK (minSdk 26, targetSdk 35).
 
-Kompilacja wariantu instalacyjnego FOSS:
+Kompilacja APK dla GitHub Releases (bez Firebase):
 ```sh
-./gradlew :app:assembleFossRelease
+./gradlew :app:assembleGithubRelease
 ```
 
 Uruchomienie testów jednostkowych:
 ```sh
-./gradlew :app:testFossDebugUnitTest
+./gradlew :app:testGithubDebugUnitTest
 ```
 
 ---
@@ -141,3 +141,7 @@ Uruchomienie testów jednostkowych:
 
 Projekt udostępniany jest na warunkach otwartoźródłowej licencji [GNU General Public License v3.0 lub nowszej](LICENSE).
 Inspiracją dla pierwotnego interfejsu był projekt Atom autorstwa Kacpra Górki.
+
+Dystrybucja odbywa się tylko przez GitHub Releases. Wariant `github` nie ma Firebase i zawiera updater APK; opcjonalny `gms` dodaje powiadomienia Firebase i wymaga własnej konfiguracji. Warianty zachowują ten sam identyfikator aplikacji; aktualizacja wymaga zgodnego podpisu APK. Dawny wariant `foss` zastąpił `github`.
+
+Interfejs aplikacji jest dostępny wyłącznie po polsku. Instrukcje buildów, testów i hooków: [CONTRIBUTING.md](CONTRIBUTING.md). Zgłaszanie podatności i konfiguracja sekretów wydań: [SECURITY.md](SECURITY.md).

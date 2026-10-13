@@ -1,0 +1,1 @@
+Fixed exam, class test and homework imports from eduVULCAN. Improved date parsing and matching events to school subjects. Added the exams dialog. Polish interface.

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wariant gms: katalog z pobranym APK aktualizacji, udostępniany instalatorowi systemu. -->
+<!-- Both GitHub distribution variants share the APK updater. -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

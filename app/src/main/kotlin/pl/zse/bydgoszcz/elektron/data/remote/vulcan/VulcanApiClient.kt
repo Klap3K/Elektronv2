@@ -34,8 +34,24 @@ class EduVulcanSessionExpiredException(message: String) : IOException(message)
  */
 @Singleton
 class VulcanApiClient @Inject constructor(
-    private val okHttp: OkHttpClient
+    okHttp: OkHttpClient
 ) {
+
+    private val okHttp = okHttp.newBuilder()
+        .apply { interceptors().removeAll { it is okhttp3.logging.HttpLoggingInterceptor } }
+        .cache(null)
+        .followRedirects(false).followSslRedirects(false).build()
+
+    private fun accountBaseUrl(account: VulcanAccount): String? {
+        val domain = account.domain.ifBlank { "eduvulcan.pl" }
+        val symbol = account.symbol.trim()
+        if (!Regex("[A-Za-z0-9_-]+").matches(symbol)) return null
+        val url = "https://uczen.$domain/$symbol"
+        return url.takeIf { EduVulcanWebSecurity.isTrustedUrl(it) }
+    }
+
+    private fun apiUrl(value: String) = value.toHttpUrlOrNull()
+        ?: throw IOException("Nieprawidłowy adres API VULCAN.")
 
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -57,7 +73,8 @@ class VulcanApiClient @Inject constructor(
         val domain = account.domain.ifBlank { "eduvulcan.pl" }
         val symbol = account.symbol.trim()
         val key = account.studentKey.ifBlank { account.token }.trim()
-        val baseUrl = "https://uczen.$domain/$symbol"
+        val baseUrl = accountBaseUrl(account)
+            ?: return Result.failure(IOException("Nieprawidłowa domena lub symbol konta eduVULCAN."))
 
         val cookies = buildMergedCookies(domain, symbol, account.cookiesHeader)
         if (cookies.isBlank()) {
@@ -74,7 +91,7 @@ class VulcanApiClient @Inject constructor(
             val dataOd = "${startDate}T00:00:00.000Z"
             val dataDo = "${now.plusDays(120)}T23:59:59.999Z"
 
-            val listUrl = "$baseUrl/api/SprawdzianyZadaniaDomowe".toHttpUrlOrNull()!!
+            val listUrl = apiUrl("$baseUrl/api/SprawdzianyZadaniaDomowe")
                 .newBuilder()
                 .addQueryParameter("key", key)
                 .addQueryParameter("dataOd", dataOd)
@@ -308,7 +325,8 @@ class VulcanApiClient @Inject constructor(
         val domain = account.domain.ifBlank { "eduvulcan.pl" }
         val symbol = account.symbol.trim()
         val key = account.studentKey.ifBlank { account.token }.trim()
-        val baseUrl = "https://uczen.$domain/$symbol"
+        val baseUrl = accountBaseUrl(account)
+            ?: return Result.failure(IOException("Nieprawidłowa domena lub symbol konta eduVULCAN."))
 
         val cookies = buildMergedCookies(domain, symbol, account.cookiesHeader)
         if (cookies.isBlank()) {
@@ -319,7 +337,7 @@ class VulcanApiClient @Inject constructor(
             warmUpAndVerifyContext(baseUrl, cookies)
 
             // 1. Pobierz listę przedmiotów ucznia (/api/Przedmioty?key=...)
-            val subjUrl = "$baseUrl/api/Przedmioty".toHttpUrlOrNull()!!
+            val subjUrl = apiUrl("$baseUrl/api/Przedmioty")
                 .newBuilder()
                 .addQueryParameter("key", key)
                 .build()
@@ -355,7 +373,7 @@ class VulcanApiClient @Inject constructor(
                 val subjName = subjObj.optString("nazwa").trim()
                 if (subjId == -1 || subjName.isBlank()) continue
 
-                val statUrl = "$baseUrl/api/FrekwencjaStatystyki".toHttpUrlOrNull()!!
+                val statUrl = apiUrl("$baseUrl/api/FrekwencjaStatystyki")
                     .newBuilder()
                     .addQueryParameter("key", key)
                     .addQueryParameter("idPrzedmiot", subjId.toString())
@@ -440,7 +458,8 @@ class VulcanApiClient @Inject constructor(
         val domain = account.domain.ifBlank { "eduvulcan.pl" }
         val symbol = account.symbol.trim()
         val key = account.studentKey.ifBlank { account.token }.trim()
-        val baseUrl = "https://uczen.$domain/$symbol"
+        val baseUrl = accountBaseUrl(account)
+            ?: return Result.failure(IOException("Nieprawidłowa domena lub symbol konta eduVULCAN."))
 
         val cookies = buildMergedCookies(domain, symbol, account.cookiesHeader)
         if (cookies.isBlank()) {
@@ -473,7 +492,7 @@ class VulcanApiClient @Inject constructor(
             }
 
             // 1. Pobierz okresy klasyfikacyjne (/api/OkresyKlasyfikacyjne?key=...&idDziennik=...)
-            val periodsUrl = "$baseUrl/api/OkresyKlasyfikacyjne".toHttpUrlOrNull()!!
+            val periodsUrl = apiUrl("$baseUrl/api/OkresyKlasyfikacyjne")
                 .newBuilder()
                 .addQueryParameter("key", key)
                 .addQueryParameter("idDziennik", idDziennik.toString())
@@ -531,7 +550,7 @@ class VulcanApiClient @Inject constructor(
                 val periodNum = p.optInt("numerOkresu", i + 1)
                 val isActive = periodId == activePeriodId
 
-                val gradesUrl = "$baseUrl/api/Oceny".toHttpUrlOrNull()!!
+                val gradesUrl = apiUrl("$baseUrl/api/Oceny")
                     .newBuilder()
                     .addQueryParameter("key", key)
                     .addQueryParameter("idOkresKlasyfikacyjny", periodId)
@@ -757,7 +776,7 @@ class VulcanApiClient @Inject constructor(
         cookies: String
     ): JSONObject? {
         return runCatching {
-            val url = "$baseUrl/api/$endpoint".toHttpUrlOrNull()!!
+            val url = apiUrl("$baseUrl/api/$endpoint")
                 .newBuilder()
                 .addQueryParameter("key", key)
                 .addQueryParameter("id", itemId)

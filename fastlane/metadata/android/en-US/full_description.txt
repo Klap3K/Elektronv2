@@ -1,4 +1,4 @@
-Unofficial app for students of the Zespół Szkół Elektronicznych (school of electronics) in Bydgoszcz, Poland. It reads the school's public websites directly - no login and no personal data collected. Works offline.
+Unofficial app for students of the Zespół Szkół Elektronicznych (school of electronics) in Bydgoszcz, Poland. It reads the school's public websites directly. An optional eduVULCAN login imports calendar events, grades and attendance. Login credentials are encrypted locally using Android Keystore; imported records stay on the device. Public school data is available offline.
 
 <b>Features</b>
 <ul>

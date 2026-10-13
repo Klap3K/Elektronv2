@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Kopia zapasowa (Android 11 i starsze): jak w data_extraction_rules — bez bazy (cache). -->
 <full-backup-content>
+    <exclude domain="root" path="app_webview/" />
     <exclude domain="database" path="elektron.db" />
     <exclude domain="database" path="elektron.db-wal" />
     <exclude domain="database" path="elektron.db-shm" />

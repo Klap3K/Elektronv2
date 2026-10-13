@@ -7,7 +7,7 @@ Zespołu Szkół Elektronicznych w Bydgoszczy. Poniżej opisujemy, jakie dane pr
 
 ## W skrócie
 
-- Nie zakładasz konta i nie podajesz żadnych danych osobowych.
+- Publiczny plan, zastępstwa i ogłoszenia działają bez konta. Opcjonalne logowanie eduVULCAN przetwarza dane ucznia i poświadczenia na telefonie.
 - Aplikacja nie zawiera reklam, analityki ani śledzenia.
 - Twoje ustawienia są zapisane tylko na Twoim telefonie.
 
@@ -39,8 +39,8 @@ wykluczona. Odinstalowanie aplikacji usuwa wszystkie te dane.
   zse.bydgoszcz.pl i zse.edu.bydgoszcz.pl): aplikacja pobiera z nich publicznie dostępne
   informacje. Po otwarciu ogłoszenia lub dodaniu go do ulubionych pobiera także treść artykułu do czytania offline. Serwery szkoły widzą, jak przy każdej stronie internetowej, adres IP
   i wersję aplikacji.
-- **Firebase Cloud Messaging (Google)** - tylko w wersji z GitHuba (w wersji z F-Droid
-  Firebase nie ma): służy wyłącznie do powiadomień push o nowych zastępstwach
+- **Firebase Cloud Messaging (Google)** - tylko w opcjonalnym wariancie `gms` (standardowy APK `github`
+  nie zawiera Firebase): służy wyłącznie do powiadomień push o nowych zastępstwach
   i ogłoszeniach. Telefon subskrybuje ogólne tematy powiadomień wspólne dla wszystkich
   użytkowników - nie jest przesyłana wybrana klasa ani żadne dane osobowe. Google przetwarza
   przy tym techniczny identyfikator instalacji aplikacji, zgodnie
@@ -84,8 +84,9 @@ wykluczona. Odinstalowanie aplikacji usuwa wszystkie te dane.
   nazwa wybranego celu nie są do niego wysyłane. Fragmenty mapy są przechowywane lokalnie
   w pamięci podręcznej. Zasady prywatności: https://osmfoundation.org/wiki/Privacy_Policy
 
-**Wersja z F-Droid** łączy się ze stronami szkoły i, po otwarciu wyboru przystanku,
-również z katalogiem i planerem BUSearch oraz, po otwarciu mapy, z OpenStreetMap oraz z planerem tras pieszych FOSSGIS. Nie zawiera Firebase ani sprawdzania aktualizacji z GitHuba.
+**Dystrybucja:** aplikacja jest wydawana tylko przez GitHub Releases. Standardowy wariant
+`github` nie zawiera Firebase; opcjonalny `gms` dodaje Firebase. Oba sprawdzają aktualizacje
+z GitHuba i umożliwiają pobranie APK po decyzji użytkownika.
 
 ## Notatki do lekcji
 
@@ -97,8 +98,9 @@ Udostępnianie zastępstw przekazuje wybrane informacje do aplikacji wskazanej p
 
 Połączenie z kontem eduVULCAN (bezpośrednie logowanie lub mostek powiadomień z aplikacji eduVULCAN) oraz link iCal (.ics) są w pełni opcjonalne.
 Logowanie do konta eduVULCAN odbywa się bezpośrednio na oficjalnej platformie eduVULCAN (`eduvulcan.pl`). Aplikacja nie przekazuje Twoich danych logowania do żadnych serwerów pośredniczących ani dewelopera – połączenie nawiązywane jest wyłącznie z oficjalną infrastrukturą VULCAN.
-Identyfikatory sesji i pobrane wydarzenia (sprawdziany, prace klasowe, kartkówki, zadania domowe, oceny i frekwencja) są szyfrowane i przechowywane wyłącznie w lokalnej bazie oraz pamięci DataStore na Twoim telefonie.
-W każdej chwili możesz odłączyć konto eduVULCAN i usunąć wszystkie zaimportowane dane w Ustawieniach aplikacji.
+Login, hasło używane do automatycznego odnawiania sesji, tokeny, ciasteczka sesji oraz prywatny link iCal są przechowywane w DataStore w postaci zaszyfrowanej AES-GCM. Klucz znajduje się w Android Keystore. Starsze jawne wartości są atomowo zastępowane zaszyfrowanymi przed pierwszym odczytem. Poświadczenia nie trafiają do dewelopera ani serwerów pośredniczących.
+Pobrane wydarzenia, oceny, frekwencja, imię ucznia i dane profilu są przetwarzane lokalnie. Wydarzenia, oceny i frekwencja znajdują się w bazie Room w prywatnej przestrzeni aplikacji; baza nie ma dodatkowego szyfrowania. Plik poświadczeń oraz baza są wykluczone z kopii zapasowej i transferu danych Androida.
+Odłączenie konta w Ustawieniach usuwa zapisane poświadczenia, ciasteczka WebView, frekwencję i zaimportowane oceny (ręczne oceny zostają). Jeżeli nadal masz podłączony iCal, terminarz jest odtwarzany z tego źródła. Czyszczenie kalendarza usuwa także link iCal i jego wydarzenia. Odinstalowanie aplikacji usuwa dane aplikacji.
 
 ## Uprawnienia
 
@@ -114,8 +116,9 @@ W każdej chwili możesz odłączyć konto eduVULCAN i usunąć wszystkie zaimpo
 
 ## Dzieci
 
-Aplikacja jest przeznaczona dla uczniów, także niepełnoletnich. Nie wymaga konta, nie prosi
-o imię, nazwisko, adres e-mail ani numer telefonu i nie tworzy profili użytkowników.
+Aplikacja jest przeznaczona dla uczniów, także niepełnoletnich. Publiczne funkcje szkolne nie wymagają konta.
+Opcjonalne logowanie eduVULCAN wymaga loginu i hasła oraz pobiera profil ucznia, oceny, frekwencję i terminarz.
+Aplikacja nie tworzy odrębnego konta ani profilu na serwerach dewelopera.
 
 ## Kod źródłowy i kontakt
 

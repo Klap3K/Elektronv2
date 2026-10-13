@@ -1,0 +1,1 @@
+Optional eduVULCAN integration for calendar events, grades and attendance. Attendance Guardian, classroom duty rotation and custom activities. Event badges in timetable widgets. Polish interface.

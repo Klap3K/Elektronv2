@@ -15,12 +15,14 @@ local.properties
 *.idsig
 /app/release/
 /app/gms/
-/app/foss/
+/app/github/
 
 # --- Podpis release: klucz i hasła nigdy nie trafiają do repozytorium ---
 keystore.properties
 *.jks
 *.keystore
+*.pfx
+*.pfx.b64
 
 # --- Konfiguracja Firebase: trzymana lokalnie (kopia zapasowa poza repo) ---
 # Świeży klon potrzebuje własnego pliku - patrz README / PORADNIK_PUSH.md.

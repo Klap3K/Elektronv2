@@ -8,18 +8,16 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-// F-Droid: wariant "foss" nie może zawierać Firebase ani wtyczki Google Services.
-// Wtyczkę stosujemy więc tylko, gdy budowany jest wariant "gms" (albo wszystkie naraz).
-// Build F-Droid (np. assembleFossRelease) obejdzie się bez niej i bez google-services.json.
+// github does not use Firebase or Google Services; gms requires local configuration.
 val variantTasks = gradle.startParameter.taskNames.filter { name ->
-    !name.startsWith("-") && (name.contains("foss", ignoreCase = true) || name.contains("gms", ignoreCase = true))
+    !name.startsWith("-") && listOf("github", "gms").any { name.contains(it, ignoreCase = true) }
 }
 val needsGoogleServices = providers.gradleProperty("elektron.gms").orNull?.toBooleanStrictOrNull()
     ?: (variantTasks.isEmpty() || variantTasks.any { it.contains("gms", ignoreCase = true) })
 if (needsGoogleServices) {
     apply(plugin = "com.google.gms.google-services")
-    // Mixed-variant invocations must never require Google configuration for foss.
-    tasks.matching { it.name.contains("Foss") && it.name.endsWith("GoogleServices") }.configureEach { enabled = false }
+    // Mixed-variant invocations must never require Google configuration for github.
+    tasks.matching { it.name.contains("Github") && it.name.endsWith("GoogleServices") }.configureEach { enabled = false }
 }
 
 // Podpis release: dane klucza w keystore.properties (w .gitignore, NIGDY w repozytorium).
@@ -28,6 +26,8 @@ val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
+val releaseStoreFile = providers.environmentVariable("RELEASE_STORE_FILE").orNull
+val hasReleaseSigning = releaseStoreFile != null || keystorePropsFile.exists()
 
 android {
     namespace = "pl.zse.bydgoszcz.elektron"
@@ -37,28 +37,27 @@ android {
         applicationId = "pl.zse.bydgoszcz.elektron.vulcan"
         minSdk = 26
         targetSdk = 35
-        versionCode = 43
-        versionName = "2.0.6"
+        versionCode = 44
+        versionName = "2.0.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
 
-    // Dwa warianty dystrybucji:
-    //  - gms  (GitHub Releases + Firebase),
-    //  - foss (GitHub Releases bez zależności Google/Firebase, z wbudowanym sprawdzaniem i instalacją aktualizacji).
+    // github: GitHub Releases bez Firebase, z instalatorem APK.
+    // gms: GitHub z opcjonalnymi powiadomieniami Firebase.
     flavorDimensions += "distribution"
     productFlavors {
         create("gms") {
             dimension = "distribution"
             buildConfigField("boolean", "UPDATE_CHECK", "true")
         }
-        create("foss") {
+        create("github") {
             dimension = "distribution"
             buildConfigField("boolean", "UPDATE_CHECK", "true")
         }
     }
 
-    // F-Droid odrzuca APK z zaszyfrowanym blokiem metadanych zależności (czytelnym tylko dla Google).
+    // Do not embed Google's encrypted dependency metadata in distributed APKs.
     dependenciesInfo {
         includeInApk = false
         includeInBundle = false
@@ -66,7 +65,12 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropsFile.exists()) {
+            if (releaseStoreFile != null) {
+                storeFile = file(releaseStoreFile)
+                storePassword = providers.environmentVariable("RELEASE_STORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("RELEASE_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("RELEASE_KEY_PASSWORD").get()
+            } else if (keystorePropsFile.exists()) {
                 storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
                 storePassword = keystoreProps.getProperty("storePassword")
                 keyAlias = keystoreProps.getProperty("keyAlias")
@@ -81,7 +85,7 @@ android {
             isMinifyEnabled = false
         }
         release {
-            if (keystorePropsFile.exists()) signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -114,10 +118,16 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    lint {
+        // Lint production code; Robolectric/Compose tests are compiled and executed separately.
+        // Avoid FIR/UAST scanning the large JVM test environment on Windows.
+        ignoreTestSources = true
+    }
 }
 
 kotlin {
-    // Cel JVM wprost zamiast jvmToolchain(17): build działa z każdym JDK 17+ (F-Droid buduje na JDK 21),
+    // Cel JVM wprost zamiast jvmToolchain(17): build działa z każdym JDK 17+ (CI używa JDK 21),
     // a kod nadal jest kompilowany pod Javę 17 - tak jak compileOptions wyżej.
     compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 }
@@ -128,6 +138,7 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.webkit)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -149,20 +160,22 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.jsoup)
     implementation(libs.coil.compose)
-    implementation("org.osmdroid:osmdroid-android:6.1.20")
+    implementation(libs.osmdroid)
     implementation(libs.glance.appwidget)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.navigation.compose)
-    // Firebase tylko w wariancie gms (F-Droid nie dopuszcza zależności niewolnych).
+    // Firebase tylko w opcjonalnym wariancie gms.
     "gmsImplementation"(platform(libs.firebase.bom))
     "gmsImplementation"(libs.firebase.messaging)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     // Testy repozytoriów na prawdziwej bazie Room w pamięci (SQLite przez Robolectric).

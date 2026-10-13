@@ -3,6 +3,7 @@ package pl.zse.bydgoszcz.elektron.data.repository
 import android.os.SystemClock
 import android.content.Context
 import android.util.AtomicFile
+import pl.zse.bydgoszcz.elektron.data.local.writeAtomicFile
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -64,9 +65,7 @@ class TransitStopCatalog @Inject constructor(@ApplicationContext context: Contex
                 val result = decodeCatalog(json, now)
                 // A failed cache write must not discard an otherwise valid result.
                 runCatching {
-                    val output = file.startWrite()
-                    try { output.write(json.toByteArray(Charsets.UTF_8)); file.finishWrite(output) }
-                    catch (e: Exception) { file.failWrite(output); throw e }
+                    writeAtomicFile(file.baseFile, json.toByteArray(Charsets.UTF_8))
                 }
                 result.also { cached = it; lastFailure = null }
             }.getOrElse { error ->

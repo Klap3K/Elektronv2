@@ -3,11 +3,8 @@ package pl.zse.bydgoszcz.elektron.data.remote.vulcan
 import android.annotation.SuppressLint
 import android.content.Context
 import android.webkit.CookieManager
-import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -49,6 +46,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
          * Zbiera wszystkie ciasteczka sesyjne z systemowego CookieManagera dla domeny eduVULCAN.
          */
         fun collectCookiesHeader(domain: String, symbol: String): String {
+            require(EduVulcanWebSecurity.isTrustedUrl("https://uczen.$domain")) { "Nieprawidłowa domena eduVULCAN" }
             val cm = CookieManager.getInstance()
             runCatching { cm.flush() }
 
@@ -97,7 +95,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
                     for (i in 0 until arr.length()) {
                         val obj = arr.optJSONObject(i) ?: continue
                         val url = obj.optString("url").trim()
-                        if (!url.startsWith("https://") || !seenUrls.add(url)) continue
+                        if (!EduVulcanWebSecurity.isTrustedUrl(url) || !seenUrls.add(url)) continue
                         val rawTitle = obj.optString("title").trim()
                             .replace(Regex("\\s+"), " ")
                             .ifBlank { "Profil ucznia #${result.size + 1}" }
@@ -118,7 +116,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
             return trimmed.lines()
                 .mapNotNull { line ->
                     val parts = line.split("||", limit = 2)
-                    if (parts.size == 2 && parts[1].trim().startsWith("https://")) {
+                    if (parts.size == 2 && EduVulcanWebSecurity.isTrustedUrl(parts[1].trim())) {
                         val label = parts[0].trim().ifBlank { "Profil ucznia" }
                         EduVulcanProfileTile(
                             title = label,
@@ -140,6 +138,8 @@ class EduVulcanWebAuthenticator @Inject constructor(
             loginPassword: String
         ): Result<EduVulcanSession> {
             return runCatching {
+                require(EduVulcanWebSecurity.isTrustedUrl("https://uczen.$domain") &&
+                    Regex("[A-Za-z0-9_-]+").matches(symbol)) { "Nieprawidłowy adres dziennika eduVULCAN" }
                 val root = JSONObject(contextJson)
                 val arr = root.optJSONArray("uczniowie")
                     ?: root.optJSONArray("Uczniowie")
@@ -622,6 +622,9 @@ class EduVulcanWebAuthenticator @Inject constructor(
                         cm.setAcceptThirdPartyCookies(wv, true)
 
                         wv.settings.apply {
+                            allowFileAccess = false
+                            allowContentAccess = false
+                            mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                             javaScriptEnabled = true
                             domStorageEnabled = true
                             javaScriptCanOpenWindowsAutomatically = true
@@ -634,68 +637,52 @@ class EduVulcanWebAuthenticator @Inject constructor(
                             autoSelectSingleProfile = true
                         )
 
-                        wv.addJavascriptInterface(
-                            object {
-                                @JavascriptInterface
-                                fun onStatus(msg: String) {
+                        EduVulcanWebSecurity.installBridge(wv,
+                                        object : EduVulcanBridge {
+
+                                override fun onStatus(msg: String) {
                                     // Ciche logowanie w tle
                                 }
 
-                                @JavascriptInterface
-                                fun onProfilesFound(profilesJson: String) {
+
+                                override fun onProfilesFound(profilesJson: String) {
                                     val tiles = parseProfileTiles(profilesJson)
-                                    if (tiles.size > 1) {
-                                        val firstUrl = JSONObject.quote(tiles.first().url)
-                                        wv.post {
-                                            wv.evaluateJavascript(
-                                                "if (window.__evOpenProfileUrl) window.__evOpenProfileUrl($firstUrl); else window.location.assign($firstUrl);",
-                                                null
-                                            )
-                                        }
+                                    if (tiles.size > 1 && cont.isActive) {
+                                        cont.resume(Result.failure(IOException("Wybierz profil ucznia w oknie logowania eduVULCAN.")))
                                     }
                                 }
 
-                                @JavascriptInterface
-                                fun onLoginError(err: String) {
+
+                                override fun onLoginError(err: String) {
                                     if (cont.isActive) {
                                         cont.resume(Result.failure(IOException("Logowanie eduVULCAN odrzucone: $err")))
                                     }
                                 }
 
-                                @JavascriptInterface
-                                fun onContextSuccess(domain: String, city: String, contextJson: String) {
+
+                                override fun onContextSuccess(domain: String, city: String, contextJson: String) {
                                     if (cont.isActive) {
                                         val parsed = parseContextJson(domain, city, contextJson, username, password)
                                         cont.resume(parsed)
                                     }
                                 }
-                            },
-                            "AndroidEduVulcan"
+                            }
                         )
 
                         wv.webChromeClient = WebChromeClient()
-                        wv.webViewClient = object : WebViewClient() {
+                        wv.webViewClient = object : EduVulcanWebViewClient() {
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)
-                                view?.evaluateJavascript(jsCode, null)
-                                view?.postDelayed({ view.evaluateJavascript(jsCode, null) }, 1200L)
-                                view?.postDelayed({ view.evaluateJavascript(jsCode, null) }, 2500L)
+                                EduVulcanWebSecurity.evaluate(view, jsCode)
+                                view?.postDelayed({ EduVulcanWebSecurity.evaluate(view, jsCode) }, 1200L)
+                                view?.postDelayed({ EduVulcanWebSecurity.evaluate(view, jsCode) }, 2500L)
                             }
 
-                            override fun shouldOverrideUrlLoading(
-                                view: WebView?,
-                                request: WebResourceRequest?
-                            ): Boolean = false
+
                         }
 
                         wv.loadUrl(LOGIN_URL)
 
-                        cont.invokeOnCancellation {
-                            runCatching {
-                                wv.stopLoading()
-                                wv.destroy()
-                            }
-                        }
                     }
                 }
 
@@ -703,6 +690,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
                     IOException("Przekroczono czas oczekiwania na odpowiedź eduVULCAN (możliwa weryfikacja CAPTCHA – zaloguj się w Ustawieniach).")
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Result.failure(e)
             } finally {
                 runCatching {

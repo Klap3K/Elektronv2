@@ -1,0 +1,1 @@
+Added password login to eduVULCAN, exam and attendance imports, and an optional notification bridge from the official eduVULCAN app. Polish interface.

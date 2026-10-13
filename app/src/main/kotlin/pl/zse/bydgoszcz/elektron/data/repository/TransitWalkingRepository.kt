@@ -2,6 +2,7 @@ package pl.zse.bydgoszcz.elektron.data.repository
 
 import android.content.Context
 import android.util.AtomicFile
+import pl.zse.bydgoszcz.elektron.data.local.writeAtomicFile
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -128,10 +129,7 @@ class TransitWalkingRepository internal constructor(private val client: OkHttpCl
                 cacheFile?.takeIf { resolved.isNotEmpty() }?.let { file -> runCatching {
                     val data = JSONObject()
                     synchronized(cache) { cache.entries.take(100).map { it.key to it.value } }.forEach { (key, path) -> data.put(key, JSONObject().put("minutes", path.minutes).put("distance", path.distanceMeters).put("saved", path.savedAt)) }
-                    val atomic = AtomicFile(file)
-                    val output = atomic.startWrite()
-                    try { output.write(data.toString().toByteArray()); atomic.finishWrite(output) }
-                    catch (e: Exception) { atomic.failWrite(output); throw e }
+                    writeAtomicFile(file, data.toString().toByteArray(Charsets.UTF_8))
                 } }
             }.onSuccess { networkFailed = false }.onFailure { retryAfter = elapsedMs() + 60_000L; networkFailed = true }
             synchronized(cache) { cachedPaths(stops, now) }

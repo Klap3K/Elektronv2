@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tylko wariant gms (GitHub): odbiornik powiadomień push Firebase i instalowanie aktualizacji
-     z GitHuba. Wariant foss (F-Droid) nie ma żadnego z nich - aktualizuje go F-Droid. -->
+<!-- Wariant gms: Firebase i instalator APK. github ma instalator bez Firebase. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Otwieranie instalatora dla pobranej aktualizacji (użytkownik zatwierdza instalację). -->
