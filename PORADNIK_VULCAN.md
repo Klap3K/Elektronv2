@@ -1,94 +1,87 @@
-# 📖 Poradnik: Jak połączyć Elektron-Vulcan z Dziennikiem VULCAN (API)
+# 📖 Poradnik: Jak połączyć Elektron-Vulcan z kontem eduVULCAN
 
-Ten poradnik wyjaśnia krok po kroku, jak uzyskać dane dostępu (**Token**, **Symbol**, **PIN**) ze szkolnego dziennika VULCAN / eduVULCAN i połączyć go z aplikacją **Elektron-Vulcan**, aby automatycznie pobierać sprawdziany, kartkówki i zadania domowe wprost do planu lekcji.
+Ten poradnik wyjaśnia krok po kroku, jak połączyć konto **eduVULCAN** z aplikacją **Elektron-Vulcan**, aby automatycznie pobierać sprawdziany, prace klasowe, kartkówki, zadania domowe oraz oceny i frekwencję wprost do planu lekcji.
+
+---
+
+## 💡 Dlaczego logowanie do konta eduVULCAN?
+
+Tradycyjne mobilne API VULCAN (oparte na kodach rejestracyjnych: Token, Symbol, PIN) w większości szkół przestało działać po przejściu na scentralizowany system **eduVULCAN**. 
+
+Dlatego **Elektron-Vulcan** obsługuje nowoczesną, bezpośrednią technologię logowania do konta **eduVULCAN** (`eduvulcan.pl`), zapewniając stabilną i natychmiastową synchronizację danych.
 
 ---
 
 ## 🔒 Bezpieczeństwo i prywatność
 
-* **Nigdy nie podajesz hasła głównego** do swojego konta VULCAN.
-* Połączenie odbywa się za pomocą oficjalnego protokołu rejestracji urządzeń mobilnych VULCAN (Hebe / UONET+).
-* Aplikacja Elektron-Vulcan generuje na Twoim telefonie unikalną parę kluczy kryptograficznych RSA i certyfikat X.509.
-* Twoje dane logowania i klucze są przechowywane **wyłącznie lokalnie w pamięci Twojego urządzenia** i służą wyłącznie do pobierania Twoich sprawdzianów i terminarza w trybie tylko do odczytu.
+* **Brak serwerów pośredniczących:** Logowanie odbywa się bezpośrednio na oficjalnych stronach eduVULCAN (`eduvulcan.pl`). Twoje dane logowania ani hasło nigdy nie trafiają do twórców aplikacji ani na zewnętrzne serwery.
+* **Bezpieczny magazyn Androida:** Dane autoryzacyjne (ciasteczka sesyjne) są szyfrowane i zapisywane wyłącznie lokalnie w chronionym magazynie Twojego telefonu.
+* **Pełna kontrola:** W każdej chwili możesz wylogować się i odłączyć konto w Ustawieniach, co natychmiast usuwa wszystkie zaimportowane dane.
 
 ---
 
-## 🚀 Krok po kroku: Skąd wziąć Token, Symbol i PIN?
+## 🚀 Metoda 1: Bezpośrednie logowanie do eduVULCAN (Zalecane)
 
-### Krok 1: Zaloguj się do dziennika w przeglądarce
-1. Otwórz przeglądarkę internetową (na komputerze lub w telefonie).
-2. Wejdź na stronę swojego dziennika:
-   * **Nowy system eduVULCAN:** [https://eduvulcan.pl](https://eduvulcan.pl)
-   * **Tradycyjny UONET+:** adres Twojej szkoły, np. `https://uonetplus.vulcan.net.pl/bydgoszcz`
-3. Zaloguj się na swoje konto ucznia (lub rodzica).
+To najwygodniejszy i w pełni zautomatyzowany sposób:
 
----
-
-### Krok 2: Otwórz zakładkę „Dostęp mobilny”
-1. Po zalogowaniu przejdź do widoku **Dziennik ucznia** (Uczeń).
-2. W menu głównym (w zależności od wersji panelu):
-   * **W nowym eduVULCAN:** Kliknij ikonę swojego profilu / koło zębate w prawym górnym rogu lub w menu bocznym wybierz **Dostęp mobilny** / **Aplikacja mobilna**.
-   * **W klasycznym UONET+:** W menu po lewej stronie kliknij zakładkę **Dostęp mobilny** (lub u góry obok ikony kłódki / klucza).
-
----
-
-### Krok 3: Wygeneruj kod rejestracyjny urządzenia
-1. Kliknij przycisk **„Zarejestruj urządzenie”** (lub **„Nowe urządzenie”** / **„Wygeneruj kod dostępu”**).
-2. Na ekranie wyświetli się **Kod QR**, a pod nim lub obok niego 3 kluczowe wartości:
-
-| Pole | Przykład | Co to jest? |
-| :--- | :--- | :--- |
-| **Token** | `FK1000000000...` lub `C123456` | Unikalny kod sesji rejestracyjnej |
-| **Symbol** | `bydgoszcz` | Identyfikator samorządu/miasta Twojej szkoły |
-| **PIN** | `123456` | 6-cyfrowy kod numeryczny ważny jednorazowo |
-
-> 💡 **Wskazówka:** Jeśli rejestrujesz się z telefonu, możesz także skopiować tekst zakodowany w kodzie QR (często jest to ciąg znaków w formacie JSON) i wkleić go w całości w aplikacji Elektron-Vulcan!
-
----
-
-### Krok 4: Wpisz dane w aplikacji Elektron-Vulcan
 1. Otwórz aplikację **Elektron-Vulcan** na telefonie.
-2. Przejdź do zakładki **Ustawienia** (ikona koła zębatego).
-3. Znajdź sekcję **„Terminarz i sprawdziany (VULCAN)”**.
-4. Kliknij **„Połącz z VULCAN (Token, Symbol, PIN)”**.
-5. Wpisz odczytane wartości:
-   * **Token**
-   * **Symbol** (domyślnie podpowiadana jest `bydgoszcz`)
-   * **PIN**
-   *(albo kliknij „Wklej kod QR / JSON” i wklej zawartość kodu)*
-6. Kliknij **„Połącz”**.
-
-Gotowe! Aplikacja autoryzuje urządzenie, pobierze terminarz i od tej pory wszystkie sprawdziany będą na bieżąco synchronizowane.
+2. Przejdź do zakładki **Ustawienia** (ikona koła zębatego w dolnym pasku nawigacji).
+3. Znajdź sekcję **„Dziennik eduVULCAN (Oceny, Sprawdziany, Frekwencja)”**.
+4. Kliknij **„Zaloguj się do eduVULCAN (Login i Hasło)”**.
+5. W wyświetlonym oknie logowania:
+   - Wpisz swój login (adres e-mail) oraz hasło do konta eduVULCAN.
+   - Kliknij **„Zaloguj się”**.
+6. Aplikacja automatycznie przeprowadzi autoryzację, wykryje Twój profil ucznia w szkole (np. *Igor Szwarc (ZSE)*) i pobierze aktualne dane.
+7. Gotowe! Po zalogowaniu sprawdziany, kartkówki, prace domowe, oceny i frekwencja zostaną natychmiast zsynchronizowane.
 
 ---
 
-## 🎯 Gdzie zobaczysz swoje sprawdziany?
+## 📲 Metoda 2: Zaciąganie danych z aplikacji eduVULCAN na telefonie
 
-Po połączeniu sprawdziany automatycznie pojawią się w trzech miejscach:
+Jeśli masz już na swoim telefonie zainstalowaną oficjalną aplikację mobilną eduVULCAN i jesteś w niej zalogowany, możesz skorzystać z wbudowanego mostka powiadomień:
+
+1. W **Ustawieniach** aplikacji Elektron-Vulcan odszukaj sekcję **„Dziennik eduVULCAN”**.
+2. Kliknij opcję **„Zaciągaj dane z aplikacji eduVULCAN na telefonie”**.
+3. Przyznaj uprawnienie do odczytu powiadomień w ustawieniach systemu Android.
+4. Gdy oficjalny dziennik eduVULCAN przyśle powiadomienie o nowym sprawdzianie, kartkówce lub zadaniu domowym, Elektron-Vulcan automatycznie przechwyci wpis i doda go do Twojego terminarza!
+
+---
+
+## 🗓️ Metoda 3: Alternatywny link kalendarza iCal (.ics)
+
+Dla użytkowników korzystających z zewnętrznych kalendarzy:
+1. W sekcji **Dziennik eduVULCAN** kliknij **„Alternatywny link kalendarza iCal”**.
+2. Wklej publiczny lub prywatny link do kalendarza w formacie `.ics` (lub `webcal://`).
+
+---
+
+## 🎯 Gdzie zobaczysz swoje sprawdziany i oceny?
+
+Po połączeniu dane pojawią się automatycznie w kluczowych miejscach aplikacji:
 
 1. **Na kafelkach lekcji w planie zajęć:**
-   * Obok nazwy przedmiotu pojawi się etykieta, np. `SPRAWDZIAN` (czerwona) lub `KARTKÓWKA` (pomarańczowa).
+   - Obok nazwy przedmiotu pojawią się kolorowe etykiety: `📝 SPRAWDZIAN`, `📄 KARTKÓWKA`, `📌 ZADANIE`.
 2. **W szczegółach lekcji:**
-   * Po tapnięciu w lekcję zobaczysz dokładny temat pracy klasowej, zakres materiału i nazwisko nauczyciela.
-3. **Karta dnia w planie lekcji:**
-   * Na samej górze widoku danego dnia pojawi się czytelna karta ze wszystkimi zaplanowanymi sprawdzianami.
-4. **Ekran główny (Dashboard):**
-   * Sekcja *„Nadchodzące sprawdziany”* pokaże Ci najważniejsze testy na najbliższe dni, abyś o niczym nie zapomniał.
+   - Po dotknięciu danej lekcji zobaczysz dokładny opis pracy klasowej, zakres materiału oraz nazwisko nauczyciela.
+3. **Ekran główny (Dashboard):**
+   - Karta *Nadchodzące sprawdziany* z odliczaniem dni do najbliższych testów.
+4. **Widżety Glance na pulpicie:**
+   - Widżety *Plan dnia* i *Następna lekcja* bezpośrednio pokazują oznaczenia sprawdzianów na ekranie głównym Twojego telefonu.
+5. **Strażnik Frekwencji & Import Ocen:**
+   - Dokładny podgląd obecności, wyliczenie dopuszczalnych opuszczeń przed 50% oraz zestawienie ocen cząstkowych.
 
 ---
 
 ## ❓ Najczęściej zadawane pytania (FAQ)
 
-### 1. Wyświetla się błąd: „PIN wygasł” lub „Niepoprawny PIN”
-Wygenerowany w przeglądarce PIN ma ograniczony czas ważności (zwykle od kilkunastu minut do 1-2 godzin). Jeśli minęło zbyt dużo czasu, po prostu kliknij w przeglądarce ponownie **„Zarejestruj urządzenie”** i wpisz świeży kod.
+### 1. Dlaczego nie ma już logowania Tokenem, Symbolem i PIN-em?
+Dziennik VULCAN po modernizacji do eduVULCAN wycofał powszechną obsługę starszego API mobilnego dla wielu szkół i kont. Bezpośrednie logowanie do konta eduVULCAN jest oficjalnym, niezawodnym i w 100% działającym rozwiązaniem.
 
-### 2. Jaki mam wpisać „Symbol”?
-Symbol to fragment adresu internetowego Twojego dziennika szkoły:
-* Dla szkół w Bydgoszczy (w tym ZSE Bydgoszcz) jest to: `bydgoszcz`.
-* Jeśli Twoja szkoła używa innego adresu (np. `uonetplus.vulcan.net.pl/torun`), to Twoim symbolem jest `torun`.
+### 2. Czy moje hasło jest bezpieczne?
+Tak. Formularz logowania komunikuje się wyłącznie z oficjalnymi serwerami VULCAN (`eduvulcan.pl`). Hasło nie jest nigdzie zapisywane ani przesyłane do dewelopera – aplikacja przechowuje jedynie bezpieczny token sesji w chronionej przestrzeni aplikacji na telefonie.
 
-### 3. Czy muszę logować się ponownie po restarcie aplikacji?
-Nie. Po udanej rejestracji certyfikat urządzenia jest bezpiecznie zapisany w telefonie. Wystarczy wcisnąć przycisk **„Synchronizuj sprawdziany”**, a eLektron pobierze najnowsze wpisy.
+### 3. Co zrobić, gdy mam konto z kilkoma profilami lub rodzeństwem?
+Elektron-Vulcan automatycznie wykrywa profile powiązane z Twoim kontem i pozwala wybrać właściwego ucznia lub zmienić profil w każdej chwili w Ustawieniach.
 
-### 4. Czy mogę w każdej chwili odłączyć konto?
-Tak. W każdej chwili możesz wejść w Ustawienia → Terminarz i kliknąć **„Odłącz konto VULCAN”**. Spowoduje to natychmiastowe usunięcie kluczy i pobranych sprawdzianów z Twojego telefonu.
+### 4. Jak odświeżyć dane?
+Wystarczy pociągnąć ekran główny w dół (Pull-to-Refresh) lub wejść w Ustawienia → Dziennik eduVULCAN i kliknąć **„Synchronizuj oceny, sprawdziany i frekwencję”**.

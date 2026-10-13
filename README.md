@@ -4,14 +4,14 @@
 
 # Elektron-Vulcan
 
-**Nowoczesna aplikacja na Androida dla uczniów ZSE w Bydgoszczy – plan lekcji, zastępstwa, ogłoszenia, odjazdy, terminarz sprawdzianów z Dziennika VULCAN, Strażnik Frekwencji oraz inteligentne funkcje szkolne.**
+**Nowoczesna aplikacja na Androida dla uczniów ZSE w Bydgoszczy – plan lekcji, zastępstwa, ogłoszenia, odjazdy, terminarz sprawdzianów i oceny z konta eduVULCAN, Strażnik Frekwencji oraz inteligentne funkcje szkolne.**
 
 [![Licencja: GPL v3+](https://img.shields.io/badge/licencja-GPL--3.0--or--later-blue)](LICENSE)
 ![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-[![VULCAN API](https://img.shields.io/badge/VULCAN-Hebe%20API%20%2B%20iCal-blueviolet)](#główne-funkcje)
+[![eduVULCAN](https://img.shields.io/badge/eduVULCAN-Logowanie%20do%20konta-blueviolet)](#główne-funkcje)
 [![Pobierz APK](https://img.shields.io/badge/Wydanie-v2.0.6-success?logo=android&logoColor=white)](https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6)
 
-[**Pobierz najnowszą wersję (v2.0.6)**](https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6) • [**Poradnik VULCAN**](PORADNIK_VULCAN.md) • [**Polityka Prywatności**](PRYWATNOSC.md) • [**Zgłoś błąd / Sugestie**](https://github.com/Klap3K/Elektronv2/issues/new)
+[**Pobierz najnowszą wersję (v2.0.6)**](https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6) • [**Poradnik eduVULCAN**](PORADNIK_VULCAN.md) • [**Polityka Prywatności**](PRYWATNOSC.md) • [**Zgłoś błąd / Sugestie**](https://github.com/Klap3K/Elektronv2/issues/new)
 
 </div>
 
@@ -19,10 +19,10 @@
 
 ## O projekcie Elektron-Vulcan
 
-**Elektron-Vulcan** to zaawansowana, w pełni otwartoźródłowa aplikacja mobilna stworzona z myślą o uczniach Zespołu Szkół Elektronicznych w Bydgoszczy. Aplikacja gromadzi w jednym, przejrzystym miejscu wszystkie informacje niezbędne w szkolnej codzienności: od planu lekcji i zmian sal, przez ogłoszenia i rozkłady odjazdów ZDMiKP, aż po **pełną integrację z Dziennikiem VULCAN (Hebe API)** oraz narzędzia wspomagające naukę i organizację roku szkolnego.
+**Elektron-Vulcan** to zaawansowana, w pełni otwartoźródłowa aplikacja mobilna stworzona z myślą o uczniach Zespołu Szkół Elektronicznych w Bydgoszczy. Aplikacja gromadzi w jednym, przejrzystym miejscu wszystkie informacje niezbędne w szkolnej codzienności: od planu lekcji i zmian sal, przez ogłoszenia i rozkłady odjazdów ZDMiKP, aż po **obsługę technologii bezpośredniego logowania do konta eduVULCAN** oraz narzędzia wspomagające naukę i organizację roku szkolnego.
 
 ### Najważniejsze atuty
-- 🎓 **Oficjalne API mobilne VULCAN (Hebe API):** Bezpieczne łączenie z kontem eduVULCAN / UONET+ za pomocą Tokenu, Symbolu i PIN-u lub skanu kodu QR. Klucze kryptograficzne RSA-2048 i certyfikaty generowane lokalnie na Twoim urządzeniu.
+- 🎓 **Technologia logowania do konta eduVULCAN:** Bezpośrednie, bezpieczne logowanie do konta eduVULCAN (eduvulcan.pl). Automatyczny wybór profilu ucznia, import sprawdzianów, prac klasowych, kartkówek, zadań domowych oraz ocen i frekwencji.
 - 📅 **Zintegrowany Terminarz:** Sprawdziany, kartkówki i zadania domowe są automatycznie parowane z konkretnymi godzinami lekcji w planie dnia, w siatce tygodnia oraz na widżetach.
 - 🔕 **Auto DND (Wyciszanie w trakcie lekcji):** Automatyczne wyciszanie telefonu podczas trwania realnych zajęć i natychmiastowe przywracanie profilu dźwięku na przerwach w tle (`AlarmManager.setExactAndAllowWhileIdle`).
 - ⏳ **Licznik i Odliczanie do wydarzeń:** Dynamiczne odliczanie do wakacji, ferii, egzaminów zawodowych lub 100-dniówki z wyliczaniem **dni szkolnych (pon–pt)**.
@@ -50,9 +50,11 @@
 
 ## Główne Funkcje
 
-### 🎓 Terminarz i Dziennik VULCAN
-- Import sprawdzianów, kartkówek, prac klasowych i prac domowych bezpośrednio z eduVULCAN / UONET+.
-- Logowanie jednorazowym kodem dostępu (Token, Symbol, PIN) lub poprzez zawartość kodu QR.
+### 🎓 Terminarz, oceny i konto eduVULCAN
+- Obsługa bezpośredniego logowania do konta eduVULCAN (eduvulcan.pl) w bezpiecznym oknie logowania.
+- Automatyczne wykrywanie konta i wybór profilu ucznia.
+- Import sprawdzianów, prac klasowych, kartkówek, prac domowych oraz ocen cząstkowych.
+- Opcjonalny mostek powiadomień z oficjalnej aplikacji eduVULCAN na telefonie.
 - Obsługa zewnętrznych subskrypcji kalendarza iCal (`.ics` / `webcal://`).
 - Zobacz przewodnik konfiguracji: [**PORADNIK_VULCAN.md**](PORADNIK_VULCAN.md).
 
@@ -104,8 +106,8 @@
 ## Bezpieczeństwo i Prywatność
 
 Aplikacja została zaprojektowana z najwyższą dbałością o bezpieczeństwo danych i prywatność użytkownika:
-1. **Brak loginu i hasła do serwera:** Rejestracja w VULCAN opiera się na mechanizmie urządzeń mobilnych – aplikacja nie przetwarza ani nie zapisuje Twojego hasła głównego.
-2. **Klucz prywatny RSA w urządzeniu:** Klucz kryptograficzny generowany jest lokalnie na Twoim smartfonie i nigdy nie opuszcza urządzenia.
+1. **Bezpieczne logowanie eduVULCAN:** Logowanie do konta eduVULCAN odbywa się bezpośrednio w oficjalnym formularzu platformy (`eduvulcan.pl`) bez serwerów pośredniczących.
+2. **Lokalne szyfrowanie danych:** Identyfikatory sesji, oceny oraz wydarzenia są zapisywane wyłącznie w chronionej przestrzeni aplikacji na Twoim urządzeniu.
 3. **Brak wycieków do chmury:** Baza danych oraz pliki autoryzacji są wykluczone z mechanizmu Google Cloud Backup.
 4. **Prywatność:** Brak trackerów, analityki, profilowania i reklam. Szczegóły: [PRYWATNOSC.md](PRYWATNOSC.md).
 
@@ -119,7 +121,7 @@ Projekt wykorzystuje nowoczesny stos technologiczny Androida:
 * **Architektura:** Clean Architecture + MVI/MVVM, Dagger Hilt
 * **Baza Danych:** Room Database v5 (z atomowymi migracjami)
 * **Zadania w tle:** WorkManager, Glance Widgets, AlarmManager
-* **Sieć i Krypto:** OkHttp 4, Jsoup, Java Cryptography Architecture (RSA 2048, X.509 DER)
+* **Sieć i Parsowanie:** OkHttp 4, Jsoup
 
 Wymagania: JDK 17+ (zalecane JDK 21) oraz Android SDK (minSdk 26, targetSdk 35).
 

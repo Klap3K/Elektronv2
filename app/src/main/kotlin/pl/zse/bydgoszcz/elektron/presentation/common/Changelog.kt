@@ -15,7 +15,7 @@ object Changelog {
             "Zmiana nazwy aplikacji na Elektron-Vulcan oraz nowa ikona aplikacji i logo"
         )),
         Entry(37, "2.0.0", listOf(
-            "Elektron-Vulcan: Natywna integracja z Dziennikiem VULCAN (Hebe API) i terminarz sprawdzianów",
+            "Elektron-Vulcan: Obsługa technologii logowania do konta eduVULCAN, terminarz sprawdzianów i oceny",
             "Strażnik Frekwencji: obliczanie procentu obecności, limitu opuszczeń przed 50% i symulator",
             "Dyżurny klasowy: karta dyżuru na pulpicie i automatyczna rotacja tygodniowa",
             "Własne plany i aktywności użytkownika w terminarzu i planie lekcji (Room v5)",

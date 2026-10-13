@@ -16,7 +16,7 @@ Szczegóły: [release-notes/2.0.6.md](release-notes/2.0.6.md).
 
 Szczegóły: [release-notes/2.0.0.md](release-notes/2.0.0.md).
 
-- **Integracja z Dziennikiem VULCAN (Hebe API):** Logowanie jednorazowym kodem dostępu lub kodem QR, kryptografia RSA-2048 i certyfikaty X.509, import sprawdzianów, kartkówek i prac domowych.
+- **Integracja z kontem eduVULCAN:** Obsługa technologii bezpośredniego logowania do konta eduVULCAN (eduvulcan.pl), automatyczny wybór profilu ucznia, import sprawdzianów, prac klasowych, kartkówek, prac domowych i ocen.
 - **Strażnik Frekwencji:** Kalkulator dopuszczalnych opuszczeń, wskaźnik zagrożeń, symulator opuszczeń.
 - **Karta Dyżurnego:** Automatyczna rotacja par uczniów według numerka z dziennika.
 - **Własne Aktywności:** Dodawanie własnych zadań i notatek do planu dnia.

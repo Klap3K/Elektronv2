@@ -2,7 +2,7 @@
 
 Ostatnia aktualizacja: październik 2026
 
-Elektron-Vulcan to nieoficjalna aplikacja z planem lekcji, zastępstwami, terminarzem VULCAN i ogłoszeniami
+Elektron-Vulcan to nieoficjalna aplikacja z planem lekcji, zastępstwami, terminarzem i ocenami z konta eduVULCAN oraz ogłoszeniami
 Zespołu Szkół Elektronicznych w Bydgoszczy. Poniżej opisujemy, jakie dane przetwarza.
 
 ## W skrócie
@@ -93,13 +93,12 @@ Notatki i ustawienie ich przypomnień są zapisywane lokalnie na telefonie, oddz
 
 Udostępnianie zastępstw przekazuje wybrane informacje do aplikacji wskazanej przez użytkownika w systemowym oknie udostępniania. Własne notatki nie są dodawane do udostępnianego planu ani zastępstw.
 
-## Kalendarz i terminarz (VULCAN API / iCal)
+## Kalendarz, oceny i terminarz (Konto eduVULCAN / iCal)
 
-Połączenie z Dziennikiem VULCAN za pomocą API mobilnego (Token, Symbol, PIN) lub linku iCal (.ics) jest w pełni opcjonalne.
-Aplikacja nie prosi o hasło główne do konta. Przy połączeniu przez API generowana jest unikalna para kluczy kryptograficznych RSA i certyfikat urządzenia,
-a zapytania wysyłane są bezpośrednio do oficjalnych serwerów VULCAN. Pobrane wydarzenia (sprawdziany, kartkówki, zadania domowe) oraz klucze uwierzytelniające
-są zapisywane wyłącznie w lokalnej bazie i pamięci DataStore na Twoim telefonie – nie są wysyłane do żadnych zewnętrznych serwisów, serwerów pośredniczących ani dewelopera.
-W każdej chwili możesz odłączyć konto VULCAN i usunąć wszystkie zaimportowane wydarzenia w Ustawieniach aplikacji.
+Połączenie z kontem eduVULCAN (bezpośrednie logowanie lub mostek powiadomień z aplikacji eduVULCAN) oraz link iCal (.ics) są w pełni opcjonalne.
+Logowanie do konta eduVULCAN odbywa się bezpośrednio na oficjalnej platformie eduVULCAN (`eduvulcan.pl`). Aplikacja nie przekazuje Twoich danych logowania do żadnych serwerów pośredniczących ani dewelopera – połączenie nawiązywane jest wyłącznie z oficjalną infrastrukturą VULCAN.
+Identyfikatory sesji i pobrane wydarzenia (sprawdziany, prace klasowe, kartkówki, zadania domowe, oceny i frekwencja) są szyfrowane i przechowywane wyłącznie w lokalnej bazie oraz pamięci DataStore na Twoim telefonie.
+W każdej chwili możesz odłączyć konto eduVULCAN i usunąć wszystkie zaimportowane dane w Ustawieniach aplikacji.
 
 ## Uprawnienia
 
