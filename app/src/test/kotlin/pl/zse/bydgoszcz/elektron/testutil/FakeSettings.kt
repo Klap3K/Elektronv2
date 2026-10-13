@@ -56,7 +56,14 @@ class FakeSettings(
     override suspend fun setTimetableLook(look: TimetableLook) {}
     override val lastSeenVersionCode: Flow<Int> = flowOf(0)
     override suspend fun setLastSeenVersionCode(code: Int) {}
-    override fun groupSelections(classId: String): Flow<Map<String, String>> = groupSelectionsFlow
+    val countdownFlow = MutableStateFlow(pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings())
+    val autoDndFlow = MutableStateFlow(false)
+
+    override val countdownSettings: Flow<pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings> = countdownFlow
+    override suspend fun setCountdownSettings(value: pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings) { countdownFlow.value = value }
+    override val autoDndEnabled: Flow<Boolean> = autoDndFlow
+    override suspend fun setAutoDndEnabled(enabled: Boolean) { autoDndFlow.value = enabled }
+
     override val activeGroupSelections: Flow<Map<String, String>> = groupSelectionsFlow
     override suspend fun setGroupSelection(classId: String, subject: String, choice: String?) {}
     override val groupsConfiguredFor: Flow<String?> = flowOf(classId)
