@@ -58,7 +58,7 @@ class VulcanApiClientTest {
         ]
         """.trimIndent()
 
-        val events = client.parseEduVulcanEventsJson(sampleTermJson)
+        val events = client.parseEduVulcanEventsJson(sampleTermJson)!!
 
         // Wszystkie 4 wpisy powinny zostać zachowane (nawet gdy Sprawdzian i Zadanie domowe mają to samo id=501)
         assertEquals(4, events.size)
