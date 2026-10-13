@@ -4,12 +4,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import pl.zse.bydgoszcz.elektron.domain.model.VulcanRegistrationInput
 import java.io.ByteArrayInputStream
 import java.security.Signature
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class VulcanCryptoTest {
 
     @Test

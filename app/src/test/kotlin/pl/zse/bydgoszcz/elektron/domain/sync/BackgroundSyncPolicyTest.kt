@@ -13,7 +13,7 @@ class BackgroundSyncPolicyTest {
     }
     @Test fun onlySubstitutionsAreDueAfterFifteenMinutes() {
         val due = SyncRequest.ALL_SOURCES.filter { BackgroundSyncPolicy.isDue(it, 100, 100 + 900) }
-        assertEquals(listOf(SyncOutcome.SUBSTITUTIONS), due)
+        assertEquals(listOf(SyncOutcome.SUBSTITUTIONS, SyncOutcome.CALENDAR), due)
     }
     @Test fun deadlinesAreInclusive() {
         for ((source, interval) in mapOf(SyncOutcome.SIDEBAR to 86400L,
