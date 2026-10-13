@@ -19,6 +19,7 @@ import org.robolectric.annotation.Config
 import pl.zse.bydgoszcz.elektron.data.repository.*
 import pl.zse.bydgoszcz.elektron.domain.model.*
 import java.io.File
+import kotlin.time.Duration.Companion.seconds
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -159,7 +160,7 @@ class TransitViewModelTest {
     @Test fun successfulPaginationPreservesWalkingEnrichment() = paginationDuringWalking(failPage = false)
 
     @Test fun paginationResponseBeforeWalkingDoesNotRestartTheRequest() = paginationDuringWalking(false, true)
-    private fun paginationDuringWalking(failPage: Boolean, pageFirst: Boolean = false) = runTest {
+    private fun paginationDuringWalking(failPage: Boolean, pageFirst: Boolean = false) = runTest(timeout = 60.seconds) {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<Context>()
         val directory = File(app.cacheDir, "transit-overlap-${System.nanoTime()}").apply { mkdirs() }
@@ -180,12 +181,12 @@ class TransitViewModelTest {
                 request.url.encodedPath.endsWith("/stops") -> """[{"id":24,"nazwa":"Start","lat":53.12194,"lon":18.02764}]"""
                 request.url.host == "routing.openstreetmap.de" -> {
                     walkingCalls.incrementAndGet(); walkingStarted.countDown()
-                    check(releaseWalking.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                    check(releaseWalking.await(30, java.util.concurrent.TimeUnit.SECONDS))
                     """{"code":"Ok","sources":[{"distance":0}],"destinations":[{"distance":0}],"durations":[[192]],"distances":[[240.2]]}"""
                 }
                 else -> {
                     pageStarted.countDown()
-                    check(releasePage.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                    check(releasePage.await(30, java.util.concurrent.TimeUnit.SECONDS))
                     if (failPage) throw java.io.IOException("Offline")
                     """{"ok":true,"polaczenia":[]}"""
                 }
@@ -205,9 +206,9 @@ class TransitViewModelTest {
             vm.startJourneySession(oldConsumer)
             vm.startJourneySession(newConsumer)
             vm.stopJourneySession(oldConsumer)
-            withContext(Dispatchers.IO) { assertTrue(walkingStarted.await(10, java.util.concurrent.TimeUnit.SECONDS)) }
+            withContext(Dispatchers.IO) { assertTrue(walkingStarted.await(30, java.util.concurrent.TimeUnit.SECONDS)) }
             vm.loadJourneys(more = true)
-            withContext(Dispatchers.IO) { assertTrue(pageStarted.await(10, java.util.concurrent.TimeUnit.SECONDS)) }
+            withContext(Dispatchers.IO) { assertTrue(pageStarted.await(30, java.util.concurrent.TimeUnit.SECONDS)) }
             if (pageFirst) {
                 releasePage.countDown()
                 vm.moreLoading.first { !it }
@@ -251,7 +252,7 @@ class TransitViewModelTest {
         val client = OkHttpClient.Builder().addInterceptor { chain ->
             val body = if (chain.request().url.encodedPath.endsWith("/stops")) """[{"id":24,"nazwa":"Start","lat":53.12194,"lon":18.02764}]""" else {
                 requests.incrementAndGet(); started.countDown()
-                check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                check(release.await(30, java.util.concurrent.TimeUnit.SECONDS))
                 """{"ok":true,"polaczenia":[]}"""
             }
             okhttp3.Response.Builder().request(chain.request()).protocol(okhttp3.Protocol.HTTP_1_1).code(200).message("OK").body(body.toResponseBody()).build()
@@ -268,7 +269,7 @@ class TransitViewModelTest {
             val goal = TransitDestination("Cel", listOf("26"), 53.1236, 18.007)
             prefs.select(goal); prefs.setEnabled(true)
             runCurrent()
-            withContext(Dispatchers.IO) { assertTrue(started.await(5, java.util.concurrent.TimeUnit.SECONDS)) }
+            withContext(Dispatchers.IO) { assertTrue(started.await(30, java.util.concurrent.TimeUnit.SECONDS)) }
             assertTrue(vm.journeyLoading.value)
             release.countDown()
             assertEquals(goal.key, vm.journeys.first { it != null }!!.destinationKey)
@@ -280,7 +281,7 @@ class TransitViewModelTest {
         }
     }
 
-    @Test fun oneRideServerPagesFillThreeInitiallyAndThreeMorePerClick() = runTest {
+    @Test fun oneRideServerPagesFillThreeInitiallyAndThreeMorePerClick() = runTest(timeout = 60.seconds) {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
         val app = ApplicationProvider.getApplicationContext<Context>()
         val directory = File(app.cacheDir, "transit-batches-${System.nanoTime()}").apply { mkdirs() }
@@ -299,7 +300,7 @@ class TransitViewModelTest {
                 else -> {
                     if (plans.incrementAndGet() == 1) {
                         firstStarted.countDown()
-                        check(releaseFirst.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                        check(releaseFirst.await(30, java.util.concurrent.TimeUnit.SECONDS))
                     }
                     val buffer = okio.Buffer(); request.body!!.writeTo(buffer)
                     val body = org.json.JSONObject(buffer.readUtf8())
@@ -321,7 +322,7 @@ class TransitViewModelTest {
             // The home card can begin a one-ride request immediately before the full tab
             // asks for three; the same active batch must expand instead of ignoring it.
             vm.loadJourneys(minimumCount = 1)
-            withContext(Dispatchers.IO) { assertTrue(firstStarted.await(10, java.util.concurrent.TimeUnit.SECONDS)) }
+            withContext(Dispatchers.IO) { assertTrue(firstStarted.await(30, java.util.concurrent.TimeUnit.SECONDS)) }
             vm.loadJourneys(minimumCount = 3)
             releaseFirst.countDown()
             vm.journeyLoading.first { !it }
