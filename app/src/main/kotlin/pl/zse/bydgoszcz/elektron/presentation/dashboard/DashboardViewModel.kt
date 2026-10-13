@@ -47,7 +47,10 @@ import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.UserActivity
 import pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository
-import pl.zse.bydgoszcz.elektron.domain.repository.UserActivityRepository
+import pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings
+import pl.zse.bydgoszcz.elektron.service.AutoDndManager
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -62,10 +65,15 @@ class DashboardViewModel @Inject constructor(
     private val coordinator: SyncCoordinator,
     private val dutyRepo: DutyRepository,
     private val attendanceRepo: AttendanceRepository,
-    private val activityRepo: UserActivityRepository
+    private val activityRepo: UserActivityRepository,
+    private val dndScheduler: pl.zse.bydgoszcz.elektron.service.AutoDndScheduler,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     private val visible = MutableStateFlow(false)
-    fun setVisible(value: Boolean) { visible.value = value }
+    fun setVisible(value: Boolean) {
+        visible.value = value
+        if (value) dndScheduler.requestReschedule()
+    }
 
 
     /** Break = przerwa między dwiema lekcjami dziś (pokazujemy następną lekcję + czas przerwy). */
@@ -102,6 +110,8 @@ class DashboardViewModel @Inject constructor(
         val overallAttendance: OverallAttendance? = null,
         val atRiskSubjectsCount: Int = 0,
         val todayActivities: List<UserActivity> = emptyList(),
+        val countdown: CountdownSettings = CountdownSettings(),
+        val autoDndActive: Boolean = false,
         /** Pierwsze dane już są (do tego czasu ekran jest niewidoczny, bez mignięć). */
         val ready: Boolean = false
     )
@@ -132,7 +142,9 @@ class DashboardViewModel @Inject constructor(
         val showAnnouncements: Boolean = true,
         val duty: ClassroomDuty? = null,
         val overallAttendance: OverallAttendance? = null,
-        val todayActivities: List<UserActivity> = emptyList()
+        val todayActivities: List<UserActivity> = emptyList(),
+        val countdown: CountdownSettings? = null,
+        val autoDnd: Boolean = false
     )
 
     private val refreshing = MutableStateFlow(false)
@@ -176,6 +188,8 @@ class DashboardViewModel @Inject constructor(
         .combine(dutyRepo.observeDuty()) { core, d -> core.copy(duty = d) }
         .combine(attendanceRepo.observeOverall()) { core, a -> core.copy(overallAttendance = a) }
         .combine(todayFlow.flatMapLatest { activityRepo.observeForDate(it) }) { core, acts -> core.copy(todayActivities = acts) }
+        .combine(settings.countdownSettings) { core, cs -> core.copy(countdown = cs) }
+        .combine(settings.autoDndEnabled) { core, dnd -> core.copy(autoDnd = dnd) }
         .combine(visibleMinuteTicker(visible)) { core, _ -> core }
         .map { core -> compute(core).copy(ready = true) }
         // Przeliczanie stanu (filtry grup, zastępstwa, odliczanie) poza wątkiem UI.
@@ -190,7 +204,9 @@ class DashboardViewModel @Inject constructor(
                 latestAnnouncements = emptyList(), lastSyncAt = c.lastSync,
                 isSyncing = c.syncing, lastSyncError = c.error,
                 showNextLesson = c.showNextLesson, showSubstitutions = c.showSubstitutions,
-                showAnnouncements = c.showAnnouncements)
+                showAnnouncements = c.showAnnouncements,
+                countdown = c.countdown ?: CountdownSettings(),
+                autoDndActive = false)
         }
 
         // Bug #1 (drugorzędny): today/now liczone na nowo przy każdym przeliczeniu, nie raz
@@ -249,6 +265,8 @@ class DashboardViewModel @Inject constructor(
         // załadowany, a nie mamy jeszcze danych do pokazania — pokazujemy "Ładowanie",
         // nie pusty/"brak" stan.
         val stillLoadingBase = c.initialSyncPending
+        val isLessonOngoing = (status == LessonStatus.Now)
+        val autoDndActive = AutoDndManager.isSilenced(appContext) || (c.autoDnd && isLessonOngoing)
 
         return State(
             selectedClassId = cid,
@@ -291,7 +309,9 @@ class DashboardViewModel @Inject constructor(
             duty = c.duty,
             overallAttendance = c.overallAttendance,
             atRiskSubjectsCount = c.overallAttendance?.criticalSubjectsCount ?: 0,
-            todayActivities = c.todayActivities
+            todayActivities = c.todayActivities,
+            countdown = c.countdown ?: CountdownSettings(),
+            autoDndActive = autoDndActive
         )
     }
 
@@ -313,6 +333,17 @@ class DashboardViewModel @Inject constructor(
 
     fun deleteActivity(id: String) {
         viewModelScope.launch { activityRepo.delete(id) }
+    }
+
+    fun setCountdownSettings(settings: CountdownSettings) {
+        viewModelScope.launch { this@DashboardViewModel.settings.setCountdownSettings(settings) }
+    }
+
+    fun setAutoDndEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            this@DashboardViewModel.settings.setAutoDndEnabled(enabled)
+            dndScheduler.requestReschedule()
+        }
     }
 
     /** Pull-to-refresh: pełna synchronizacja przez koordynator i odświeżenie frekwencji. */

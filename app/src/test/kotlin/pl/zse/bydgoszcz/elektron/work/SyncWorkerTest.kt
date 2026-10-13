@@ -106,9 +106,15 @@ class SyncWorkerTest {
         val t = TestCoordinator(context, db, settings, timetableSource, subsSource, Anns(), sink)
         time?.let { at -> t.coordinator.localTime = { at } }
         notificationsRepo = t.notificationsRepo
+        val fakeUpdateRepo = object : pl.zse.bydgoszcz.elektron.domain.repository.UpdateRepository {
+            override val availableUpdate = kotlinx.coroutines.flow.flowOf(null)
+            override suspend fun check(force: Boolean) = Result.success(null)
+            override suspend fun dismiss(versionName: String) {}
+        }
+        val dndScheduler = pl.zse.bydgoszcz.elektron.service.AutoDndScheduler(context, settings, t.timetableRepo)
         val factory = object : WorkerFactory() {
             override fun createWorker(appContext: Context, workerClassName: String, workerParameters: WorkerParameters) =
-                SyncWorker(appContext, workerParameters, t.coordinator, t.notificationsRepo)
+                SyncWorker(appContext, workerParameters, t.coordinator, t.notificationsRepo, fakeUpdateRepo, dndScheduler)
         }
         val worker = TestListenableWorkerBuilder<SyncWorker>(context).setWorkerFactory(factory)
             .setInputData(androidx.work.workDataOf("background" to background)).build()

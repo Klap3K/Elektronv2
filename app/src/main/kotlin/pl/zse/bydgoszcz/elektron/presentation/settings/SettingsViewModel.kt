@@ -17,6 +17,7 @@ import pl.zse.bydgoszcz.elektron.domain.model.QuietHours
 import pl.zse.bydgoszcz.elektron.domain.model.ReminderSettings
 import pl.zse.bydgoszcz.elektron.domain.model.StartScreen
 import pl.zse.bydgoszcz.elektron.domain.model.TimetableLook
+import pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +48,7 @@ class SettingsViewModel @Inject constructor(
     private val reminders: LessonReminderScheduler,
     private val notificationsRepo: NotificationsRepository,
     private val developerTools: DeveloperTools,
+    private val dndScheduler: pl.zse.bydgoszcz.elektron.service.AutoDndScheduler,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -180,6 +182,8 @@ class SettingsViewModel @Inject constructor(
         val widgetLook: WidgetLook = WidgetLook(),
         val accent: AccentSetting = AccentSetting(),
         val updateChannel: UpdateChannel = UpdateChannel.STABLE,
+        val countdownSettings: CountdownSettings = CountdownSettings(),
+        val autoDndEnabled: Boolean = false,
         /** Pierwsze dane już są (do tego czasu ekran jest niewidoczny, bez mignięć). */
         val ready: Boolean = false
     )
@@ -195,7 +199,9 @@ class SettingsViewModel @Inject constructor(
         settings.quietHours,
         settings.widgetLook,
         settings.accent,
-        settings.updateChannel
+        settings.updateChannel,
+        settings.countdownSettings,
+        settings.autoDndEnabled
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         State(
@@ -215,7 +221,9 @@ class SettingsViewModel @Inject constructor(
             quiet = values[12] as QuietHours,
             widgetLook = values[13] as WidgetLook,
             accent = values[14] as AccentSetting,
-            updateChannel = values[15] as UpdateChannel
+            updateChannel = values[15] as UpdateChannel,
+            countdownSettings = values[16] as CountdownSettings,
+            autoDndEnabled = values[17] as Boolean
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), State())
 
@@ -298,6 +306,11 @@ class SettingsViewModel @Inject constructor(
     fun setShowNextLesson(b: Boolean) = writeSetting { settings.setShowNextLesson(b) }
     fun setShowSubstitutions(b: Boolean) = writeSetting { settings.setShowSubstitutions(b) }
     fun setShowAnnouncements(b: Boolean) = writeSetting { settings.setShowAnnouncements(b) }
+    fun setCountdownSettings(value: CountdownSettings) = writeSetting { settings.setCountdownSettings(value) }
+    fun setAutoDndEnabled(value: Boolean) = writeSetting {
+        settings.setAutoDndEnabled(value)
+        dndScheduler.requestReschedule()
+    }
 
     companion object { private const val TAG = "SettingsViewModel" }
 }

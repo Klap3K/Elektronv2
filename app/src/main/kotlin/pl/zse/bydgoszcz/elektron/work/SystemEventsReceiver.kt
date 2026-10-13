@@ -19,6 +19,7 @@ interface SystemEventsEntryPoint {
     fun noteScheduler(): NoteReminderScheduler
     fun scheduler(): LessonReminderScheduler
     fun widgetUpdater(): WidgetUpdater
+    fun dndScheduler(): pl.zse.bydgoszcz.elektron.service.AutoDndScheduler
 }
 
 /**
@@ -46,6 +47,8 @@ class SystemEventsReceiver : BroadcastReceiver() {
                         .onFailure { android.util.Log.w("SystemEvents", "Błąd przypomnień notatek", it) }
                     pl.zse.bydgoszcz.elektron.domain.util.runCatchingCancellable { ep.scheduler().reschedule() }
                         .onFailure { android.util.Log.w("SystemEvents", "Błąd przypomnień lekcji", it) }
+                    pl.zse.bydgoszcz.elektron.domain.util.runCatchingCancellable { ep.dndScheduler().requestReschedule() }
+                        .onFailure { android.util.Log.w("SystemEvents", "Błąd harmonogramu Auto DND", it) }
                     // updateNow (czekamy), nie requestUpdate: tamto tylko startuje korutynę
                     // i od razu wraca, więc po finish() proces mógł zostać zamknięty, zanim
                     // widżety (np. z nowymi akcjami wierszy po aktualizacji) się przerysowały.

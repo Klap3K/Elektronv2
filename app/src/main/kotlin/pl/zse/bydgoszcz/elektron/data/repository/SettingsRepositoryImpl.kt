@@ -92,6 +92,10 @@ class SettingsRepositoryImpl internal constructor(
         val LOOK_WEEK = booleanPreferencesKey("timetable_week_view")
         val LOOK_ROOM = booleanPreferencesKey("timetable_show_room")
         val LOOK_TEACHER = booleanPreferencesKey("timetable_show_teacher")
+        val COUNTDOWN_ENABLED = booleanPreferencesKey("countdown_enabled")
+        val COUNTDOWN_TITLE = stringPreferencesKey("countdown_title")
+        val COUNTDOWN_TARGET_EPOCH = longPreferencesKey("countdown_target_epoch")
+        val AUTO_DND_ENABLED = booleanPreferencesKey("auto_dnd_enabled")
         val LAST_SEEN_VERSION = intPreferencesKey("last_seen_version_code")
         val UPDATE_CHANNEL = stringPreferencesKey("update_channel")
         val GROUPS_CONFIGURED_FOR = stringPreferencesKey("groups_configured_for")
@@ -237,6 +241,36 @@ class SettingsRepositoryImpl internal constructor(
             it[Keys.LOOK_WEEK] = look.weekView
             it[Keys.LOOK_ROOM] = look.showRoom
             it[Keys.LOOK_TEACHER] = look.showTeacher
+        }
+    }
+
+    override val countdownSettings: Flow<pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings> = prefs.map {
+        val enabled = it[Keys.COUNTDOWN_ENABLED] ?: false
+        val title = it[Keys.COUNTDOWN_TITLE]?.takeIf { t -> t.isNotBlank() } ?: "Wakacje"
+        val epoch = it[Keys.COUNTDOWN_TARGET_EPOCH]
+        val targetDate = if (epoch != null) {
+            java.time.LocalDate.ofEpochDay(epoch)
+        } else {
+            pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings.defaultTargetDate()
+        }
+        pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings(enabled, title, targetDate)
+    }.distinctUntilChanged()
+
+    override suspend fun setCountdownSettings(value: pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings) {
+        safeEdit {
+            it[Keys.COUNTDOWN_ENABLED] = value.enabled
+            it[Keys.COUNTDOWN_TITLE] = value.title
+            it[Keys.COUNTDOWN_TARGET_EPOCH] = value.targetDate.toEpochDay()
+        }
+    }
+
+    override val autoDndEnabled: Flow<Boolean> = prefs.map {
+        it[Keys.AUTO_DND_ENABLED] ?: false
+    }.distinctUntilChanged()
+
+    override suspend fun setAutoDndEnabled(enabled: Boolean) {
+        safeEdit {
+            it[Keys.AUTO_DND_ENABLED] = enabled
         }
     }
 

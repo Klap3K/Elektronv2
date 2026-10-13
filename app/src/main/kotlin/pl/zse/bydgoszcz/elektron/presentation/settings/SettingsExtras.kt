@@ -148,14 +148,36 @@ internal fun TransitSection(
 @Composable
 internal fun NotificationsSection(
     substitutions: Boolean, announcements: Boolean, quiet: QuietHours,
-    onSubs: (Boolean) -> Unit, onAnnouncements: (Boolean) -> Unit, onQuiet: (QuietHours) -> Unit
+    autoDnd: Boolean = false,
+    onSubs: (Boolean) -> Unit, onAnnouncements: (Boolean) -> Unit, onQuiet: (QuietHours) -> Unit,
+    onAutoDnd: (Boolean) -> Unit = {}
 ) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var dndGranted by remember { mutableStateOf(pl.zse.bydgoszcz.elektron.service.AutoDndManager.isDndPermissionGranted(ctx)) }
+    OnResume { dndGranted = pl.zse.bydgoszcz.elektron.service.AutoDndManager.isDndPermissionGranted(ctx) }
     var picking by remember { mutableStateOf<Boolean?>(null) }   // true = od, false = do
-    GroupedSection("Powiadomienia", icon = Icons.Outlined.Notifications) {
+    GroupedSection("Powiadomienia i dźwięk", icon = androidx.compose.material.icons.Icons.Outlined.Notifications) {
         SystemNotificationStatus()
         SwitchRow("Nowe zastępstwa", substitutions, supporting = "Zmiany w planie Twojej klasy", onChange = onSubs)
         RowDivider()
         SwitchRow("Nowe ogłoszenia", announcements, supporting = "Wpisy na stronie szkoły", onChange = onAnnouncements)
+        RowDivider()
+        SwitchRow(
+            "Wyciszanie na lekcjach (Auto DND)",
+            autoDnd,
+            supporting = "Automatycznie wycisza telefon w trakcie lekcji i przywraca dźwięk na przerwach",
+            onChange = onAutoDnd
+        )
+        if (autoDnd && !dndGranted) {
+            RowDivider()
+            ActionRow(
+                "Zezwól na sterowanie trybem Nie Przeszkadzać",
+                supporting = "Dotknij, aby nadać uprawnienie w ustawieniach systemu",
+                trailingChevron = true
+            ) {
+                pl.zse.bydgoszcz.elektron.service.AutoDndManager.openDndSettings(ctx)
+            }
+        }
         RowDivider()
         SwitchRow("Ciche godziny", quiet.enabled, supporting = "Bez dźwięku i wibracji - nic nie ginie") { onQuiet(quiet.copy(enabled = it)) }
         if (quiet.enabled) {

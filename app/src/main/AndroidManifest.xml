@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Automatyczne wyciszanie telefonu w trakcie trwania lekcji (Auto DND) -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Przypomnienia przed lekcją o czasie (Android 12+: użytkownik może odmówić -
          wtedy alarm niedokładny, kilka minut opóźnienia). -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -137,6 +140,11 @@
         <!-- Alarm przypomnienia o notatce (tylko z własnego PendingIntent). -->
         <receiver
             android:name=".work.NoteReminderReceiver"
+            android:exported="false" />
+
+        <!-- Automatyczne wyciszanie telefonu na lekcjach (Auto DND) -->
+        <receiver
+            android:name=".service.AutoDndReceiver"
             android:exported="false" />
 
         <!-- Kafelek w szybkich ustawieniach: najbliższa lekcja. -->

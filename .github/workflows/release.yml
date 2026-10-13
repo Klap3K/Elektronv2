@@ -70,10 +70,10 @@ jobs:
             - **[Elektron-Vulcan.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Elektron-Vulcan.apk)** — Podpisana stałym kluczem, zoptymalizowana wersja gotowa do bezpośredniej instalacji oraz aktualizacji w miejscu (Android 8.0+).
             - **[Elektron-Vulcan-debug.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Elektron-Vulcan-debug.apk)** — Wersja debug z włączoną diagnostyką.
             
-            #### 🌟 Kluczowe nowości i poprawki:
-            - 🖱️ **Poprawiony wybór profilu ucznia i przewijanie w eduVULCAN:** Natywne kafelki wykrytych profili w oknie logowania (wybór jednym dotknięciem), pełna obsługa przewijania strony WebView oraz automatyczne pomijanie nieaktywnych kont (`/End/NieaktywnyUczen`).
-            - 🎓 **Import ocen i średnich z dziennika eduVULCAN:** Pobieranie ocen cząstkowych, wag, kategorii, ocen proponowanych i końcowych z `uczen.eduvulcan.pl` oraz kalkulator/symulator średniej ważonej.
-            - 🔄 **Aktualizacje w aplikacji bez odinstalowywania:** Stały certyfikat podpisu wydań (`release.jks`) oraz wbudowana funkcja **„Sprawdź aktualizacje”** w Ustawieniach i baner na Stronie głównej pobierający i instalujący nowe wersje bezpośrednio w aplikacji.
-            - 🛡️ **Strażnik Frekwencji, Dyżurny Klasowy, Własne Plany i Widżety ze sprawdzianami.**
+            #### 🌟 Kluczowe nowości w wersji ${{ github.ref_name }}:
+            - ⏳ **Odliczanie do wydarzeń (Wakacje, ferie, 100-dniówka, matura):** Konfigurowalna karta na Stronie głównej odliczająca dni ogółem oraz dni nauki szkolnej (pon-pt), z opcją ustawienia własnej daty/tytułu lub wyboru szybkich szablonów.
+            - 🔕 **Automatyczne wyciszanie na lekcjach (Auto DND):** Wycisza telefon podczas realnych lekcji i przywraca poprzedni profil dźwięku na przerwach, okienkach i po szkole; działa w tle dzięki precyzyjnemu harmonogramowi dzwonków (`AlarmManager`).
+            - 🚀 **Automatyzacja sprawdzania wersji i aktualizacja 1 kliknięciem:** Sprawdzanie nowej wersji w tle przez `SyncWorker` oraz wbudowany instalator APK pobierający nową wersję z paskiem postępu i instalujący ją bez odinstalowywania aplikacji i bez otwierania przeglądarki.
+            - 🎓 **Import ocen, sprawdzianów i frekwencji z eduVULCAN:** Poprawiona synchronizacja terminarza i ocen z dziennika.
           draft: false
           prerelease: false

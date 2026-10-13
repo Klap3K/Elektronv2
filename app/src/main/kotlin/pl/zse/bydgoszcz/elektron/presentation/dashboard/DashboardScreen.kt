@@ -20,8 +20,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.HourglassTop
+import java.util.Locale
+import pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.FreeBreakfast
 import androidx.compose.material.icons.filled.Info
@@ -116,6 +120,7 @@ fun DashboardScreen(
     var showGradesDialog by rememberSaveable { mutableStateOf(false) }
     var showExamsDialog by rememberSaveable { mutableStateOf(false) }
     var showDutyConfigDialog by rememberSaveable { mutableStateOf(false) }
+    var showCountdownDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showAttendanceDialog) {
         pl.zse.bydgoszcz.elektron.presentation.attendance.AttendanceGuardianDialog(
@@ -144,6 +149,16 @@ fun DashboardScreen(
                 viewModel.setStudentNumber(num)
                 viewModel.setClassSize(size)
                 showDutyConfigDialog = false
+            }
+        )
+    }
+    if (showCountdownDialog) {
+        CountdownConfigDialog(
+            initialSettings = state.countdown,
+            onDismiss = { showCountdownDialog = false },
+            onSave = { updated ->
+                viewModel.setCountdownSettings(updated)
+                showCountdownDialog = false
             }
         )
     }
@@ -210,6 +225,15 @@ fun DashboardScreen(
                         item(key = "next") {
                             if (state.loadingTimetable) DelayedLoading { LoadingCard("Ładowanie planu lekcji…") }
                             else NextLessonCard(state) { onOpenTimetable(state.nextLesson?.date) }
+                        }
+                    }
+
+                    if (state.countdown.enabled) {
+                        item(key = "countdown_card") {
+                            CountdownCard(
+                                countdown = state.countdown,
+                                onClick = { showCountdownDialog = true }
+                            )
                         }
                     }
 
@@ -482,6 +506,21 @@ private fun NextLessonCard(state: DashboardViewModel.State, onClick: () -> Unit)
                         Text("Za $mins min",
                             Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelLarge, color = onContainer)
+                    }
+                }
+                if (state.autoDndActive) {
+                    Spacer(Modifier.height(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = onContainer.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            "🔕 Auto DND wycisza telefon",
+                            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = onContainer
+                        )
                     }
                 }
             }
@@ -1036,4 +1075,67 @@ private fun DutyConfigDialog(
         }
     )
 }
+
+@Composable
+private fun CountdownCard(
+    countdown: CountdownSettings,
+    onClick: () -> Unit
+) {
+    val totalDays = countdown.daysRemaining
+    val schoolDays = countdown.schoolDaysRemaining
+    val fmt = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale("pl", "PL"))
+
+    ElektronCard(onClick = onClick) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(
+                    modifier = Modifier.size(54.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.HourglassTop,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        countdown.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        if (totalDays > 0) "za ${CountdownSettings.formatDays(totalDays)}" else "Dziś! 🎉",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    countdown.targetDate.format(fmt) + if (totalDays > 0) " · ${CountdownSettings.formatSchoolDays(schoolDays)}" else "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
 

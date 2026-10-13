@@ -22,7 +22,9 @@ class SyncWorker @AssistedInject constructor(
     @Assisted ctx: Context,
     @Assisted params: WorkerParameters,
     private val coordinator: SyncCoordinator,
-    private val notificationsRepo: NotificationsRepository
+    private val notificationsRepo: NotificationsRepository,
+    private val updateRepo: pl.zse.bydgoszcz.elektron.domain.repository.UpdateRepository,
+    private val dndScheduler: pl.zse.bydgoszcz.elektron.service.AutoDndScheduler
 ) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
@@ -40,6 +42,17 @@ class SyncWorker @AssistedInject constructor(
                 return if (runAttemptCount >= MAX_RETRY_ATTEMPTS) Result.failure() else Result.retry()
             }
             notificationsRepo.pruneHistory()
+
+            // Automatyczne sprawdzanie nowej wersji aplikacji w tle (co 12h, bezpieczne dzięki ETag/cache)
+            pl.zse.bydgoszcz.elektron.domain.util.runCatchingCancellable {
+                updateRepo.check(force = false)
+            }
+
+            // Automatyczne zarządzanie wyciszaniem telefonu na lekcjach (Auto DND)
+            pl.zse.bydgoszcz.elektron.domain.util.runCatchingCancellable {
+                dndScheduler.evaluateAndSchedule()
+            }
+
             return Result.success()
         } catch (e: CancellationException) {
             throw e

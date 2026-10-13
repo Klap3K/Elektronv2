@@ -153,6 +153,7 @@ fun SettingsScreen(
         }
     }
     var confirmCrash by remember { mutableStateOf(false) }
+    var showCountdownConfig by remember { mutableStateOf(false) }
     if (confirmCrash) {
         AlertDialog(
             onDismissRequest = { confirmCrash = false },
@@ -160,6 +161,17 @@ fun SettingsScreen(
             text = { Text("Aplikacja zamknie się z błędem. Po ponownym uruchomieniu pojawi się okno raportu (kopiowanie logów, e-mail, GitHub).") },
             confirmButton = { TextButton(onClick = { confirmCrash = false; viewModel.devCrash() }) { Text("Zamknij z błędem") } },
             dismissButton = { TextButton(onClick = { confirmCrash = false }) { Text("Anuluj") } }
+        )
+    }
+
+    if (showCountdownConfig) {
+        pl.zse.bydgoszcz.elektron.presentation.dashboard.CountdownConfigDialog(
+            initialSettings = state.countdownSettings,
+            onDismiss = { showCountdownConfig = false },
+            onSave = {
+                viewModel.setCountdownSettings(it)
+                showCountdownConfig = false
+            }
         )
     }
 
@@ -196,8 +208,16 @@ fun SettingsScreen(
             item(key = "class") { ClassCard(state.classes, state.selectedClassId, onSelect = viewModel::setClass, onOpenGroups = onOpenGroups) }
 
             item(key = "notifications") {
-                NotificationsSection(state.notifSubs, state.notifAnn, state.quiet,
-                    onSubs = viewModel::setNotifSubs, onAnnouncements = viewModel::setNotifAnn, onQuiet = viewModel::setQuietHours)
+                NotificationsSection(
+                    substitutions = state.notifSubs,
+                    announcements = state.notifAnn,
+                    quiet = state.quiet,
+                    autoDnd = state.autoDndEnabled,
+                    onSubs = viewModel::setNotifSubs,
+                    onAnnouncements = viewModel::setNotifAnn,
+                    onQuiet = viewModel::setQuietHours,
+                    onAutoDnd = viewModel::setAutoDndEnabled
+                )
             }
 
             item(key = "reminders") {
@@ -232,6 +252,12 @@ fun SettingsScreen(
                     SwitchRow("Zastępstwa", state.showSubstitutions) { viewModel.setShowSubstitutions(it) }
                     RowDivider()
                     SwitchRow("Najnowsze ogłoszenia", state.showAnnouncements) { viewModel.setShowAnnouncements(it) }
+                    RowDivider()
+                    ValueRow(
+                        "Odliczanie na stronie głównej",
+                        if (state.countdownSettings.enabled) "${state.countdownSettings.title} (${state.countdownSettings.daysRemaining} dni)" else "Wyłączone",
+                        supporting = "Karta odliczająca dni do wybranego wydarzenia"
+                    ) { showCountdownConfig = true }
                 }
             }
 
@@ -298,8 +324,8 @@ fun SettingsScreen(
                     var choosingChannel by remember { mutableStateOf(false) }
                     GroupedSection("Aktualizacje", icon = Icons.Outlined.SystemUpdate,
                         footer = if (state.updateChannel == UpdateChannel.BETA)
-                            "Wersje beta są testowe i mogą zawierać błędy. Gdy ukaże się wersja stabilna, też ją dostaniesz."
-                        else null) {
+                            "Wersje beta są testowe i mogą zawierać błędy. Gdy ukaże się wersja stabilna, też ją dostaniesz. Nową wersję możesz zainstalować 1 kliknięciem."
+                        else "Aktualizacje są sprawdzane automatycznie w tle. Nową wersję pobierzesz i zainstalujesz jednym kliknięciem bez odinstalowywania aplikacji.") {
                         ValueRow("Kanał", state.updateChannel.label) { choosingChannel = true }
                         RowDivider()
                         ActionRow("Sprawdź aktualizacje", enabled = updateStatus != SettingsViewModel.UpdateStatus.Checking) { viewModel.checkForUpdates() }

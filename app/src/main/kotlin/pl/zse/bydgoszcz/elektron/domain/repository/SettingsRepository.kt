@@ -64,6 +64,14 @@ interface SettingsRepository {
     val timetableLook: Flow<TimetableLook>
     suspend fun setTimetableLook(look: TimetableLook)
 
+    /** Odliczanie do wybranego wydarzenia (np. Wakacje, 100-dniówka, Egzamin zawodowy). */
+    val countdownSettings: Flow<pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings>
+    suspend fun setCountdownSettings(value: pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings)
+
+    /** Automatyczne wyciszanie telefonu podczas trwania lekcji (Auto DND). */
+    val autoDndEnabled: Flow<Boolean>
+    suspend fun setAutoDndEnabled(enabled: Boolean)
+
     /** Kanał aktualizacji z GitHuba; domyślnie stabilny. */
     val updateChannel: Flow<UpdateChannel> get() = flowOf(UpdateChannel.STABLE)
     suspend fun setUpdateChannel(channel: UpdateChannel) {}
