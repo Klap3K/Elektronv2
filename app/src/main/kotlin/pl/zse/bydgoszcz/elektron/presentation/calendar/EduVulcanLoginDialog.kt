@@ -6,6 +6,7 @@ import android.os.Looper
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -67,6 +68,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
+import org.json.JSONObject
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanProfileTile
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanWebAuthenticator
 import pl.zse.bydgoszcz.elektron.domain.model.EduVulcanSession
@@ -84,6 +86,7 @@ fun EduVulcanLoginDialog(
     var passwordVisible by remember { mutableStateOf(false) }
 
     var isLoggingIn by remember { mutableStateOf(false) }
+    var isOpeningProfile by remember { mutableStateOf(false) }
     var showWebViewPreview by remember { mutableStateOf(false) }
     var forceShowInputs by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Wpisz login/e-mail oraz hasło do konta eduVULCAN") }
@@ -107,7 +110,7 @@ fun EduVulcanLoginDialog(
                 webViewRef?.evaluateJavascript(js, null)
                 // Jeśli po 5 sekundach logowanie nadal trwa (np. pojawiła się Captcha lub wybór profilu),
                 // automatycznie odsłaniamy podgląd strony i ukrywamy formularz, aby dać pełną przestrzeń do przewijania
-                if (secondsElapsed == 4 && !showWebViewPreview && detectedProfiles.isEmpty()) {
+                if (secondsElapsed == 4 && !showWebViewPreview && detectedProfiles.isEmpty() && !isOpeningProfile) {
                     showWebViewPreview = true
                     statusMessage = "Wybierz swój profil ucznia lub dokończ logowanie poniżej:"
                 }
@@ -278,12 +281,30 @@ fun EduVulcanLoginDialog(
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
                                     .clickable {
+                                        isOpeningProfile = true
                                         statusMessage = "Otwieranie profilu: ${profile.title}..."
-                                        webViewRef?.evaluateJavascript(
-                                            "try { sessionStorage.setItem('__evLastTriedProfileUrl', '${profile.url}'); } catch(e) {}",
-                                            null
-                                        )
-                                        webViewRef?.loadUrl(profile.url)
+                                        val quotedUrl = JSONObject.quote(profile.url)
+                                        val openJs = """
+                                            (function() {
+                                                try {
+                                                    if (typeof window.__evOpenProfileUrl === 'function') {
+                                                        window.__evOpenProfileUrl($quotedUrl);
+                                                    } else {
+                                                        try {
+                                                            sessionStorage.setItem('__evOpeningProfile', '1');
+                                                            sessionStorage.setItem('__evLastTriedProfileUrl', $quotedUrl);
+                                                        } catch(e) {}
+                                                        window.location.assign($quotedUrl);
+                                                    }
+                                                } catch(e) {
+                                                    window.location.assign($quotedUrl);
+                                                }
+                                            })();
+                                        """.trimIndent()
+                                        val wv = webViewRef
+                                        if (wv != null) {
+                                            wv.evaluateJavascript(openJs, null)
+                                        }
                                     }
                             ) {
                                 Row(
@@ -369,6 +390,7 @@ fun EduVulcanLoginDialog(
                                     settings.apply {
                                         javaScriptEnabled = true
                                         domStorageEnabled = true
+                                        javaScriptCanOpenWindowsAutomatically = true
                                         useWideViewPort = true
                                         loadWithOverviewMode = true
                                         builtInZoomControls = true
@@ -402,6 +424,7 @@ fun EduVulcanLoginDialog(
                                             fun onLoginError(err: String) {
                                                 mainHandler.post {
                                                     errorMessage = err
+                                                    isOpeningProfile = false
                                                     showWebViewPreview = true
                                                     forceShowInputs = true
                                                     statusMessage = "Sprawdź dane logowania lub dokończ w oknie poniżej"
@@ -411,6 +434,7 @@ fun EduVulcanLoginDialog(
                                             @JavascriptInterface
                                             fun onContextSuccess(domain: String, city: String, contextJson: String) {
                                                 mainHandler.post {
+                                                    if (!isLoggingIn) return@post
                                                     val parsed = EduVulcanWebAuthenticator.parseContextJson(
                                                         domain = domain,
                                                         symbol = city,
@@ -421,9 +445,11 @@ fun EduVulcanLoginDialog(
                                                     parsed.fold(
                                                         onSuccess = { session ->
                                                             isLoggingIn = false
+                                                            isOpeningProfile = false
                                                             onSessionConnected(session)
                                                         },
                                                         onFailure = { e ->
+                                                            isOpeningProfile = false
                                                             errorMessage = e.localizedMessage ?: "Błąd odczytu danych ucznia"
                                                             showWebViewPreview = true
                                                         }
@@ -434,6 +460,7 @@ fun EduVulcanLoginDialog(
                                         "AndroidEduVulcan"
                                     )
 
+                                    webChromeClient = WebChromeClient()
                                     webViewClient = object : WebViewClient() {
                                         override fun onPageFinished(view: WebView?, url: String?) {
                                             super.onPageFinished(view, url)
@@ -470,6 +497,7 @@ fun EduVulcanLoginDialog(
                         onClick = {
                             if (isLoggingIn) {
                                 isLoggingIn = false
+                                isOpeningProfile = false
                                 showWebViewPreview = false
                                 forceShowInputs = false
                                 detectedProfiles = emptyList()
@@ -487,6 +515,7 @@ fun EduVulcanLoginDialog(
                             OutlinedButton(
                                 onClick = {
                                     errorMessage = null
+                                    isOpeningProfile = false
                                     showWebViewPreview = true
                                     forceShowInputs = false
                                     detectedProfiles = emptyList()
@@ -502,6 +531,7 @@ fun EduVulcanLoginDialog(
                             enabled = !isLoggingIn && username.isNotBlank() && password.isNotBlank(),
                             onClick = {
                                 errorMessage = null
+                                isOpeningProfile = false
                                 showWebViewPreview = false
                                 forceShowInputs = false
                                 detectedProfiles = emptyList()

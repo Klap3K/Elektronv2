@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -52,8 +53,11 @@ class EduVulcanWebAuthenticator @Inject constructor(
             runCatching { cm.flush() }
 
             val urls = listOf(
+                "https://uczen.$domain/$symbol/api/Context",
+                "https://uczen.$domain/$symbol/App",
                 "https://uczen.$domain/$symbol",
                 "https://uczen.$domain",
+                "https://wiadomosci.$domain/$symbol",
                 "https://$domain"
             )
             val cookieMap = LinkedHashMap<String, String>()
@@ -78,31 +82,51 @@ class EduVulcanWebAuthenticator @Inject constructor(
 
         /**
          * Parsuje listę profili przekazaną z JS (`onProfilesFound`).
+         * Obsługuje zarówno format tablicy JSON `[{"title":..., "subtitle":..., "url":...}]`,
+         * jak i format tekstowy `tytul||url`.
          */
-        fun parseProfileTiles(jsonArrayStr: String): List<EduVulcanProfileTile> {
-            return runCatching {
-                val arr = JSONArray(jsonArrayStr)
-                val result = mutableListOf<EduVulcanProfileTile>()
-                val seenUrls = HashSet<String>()
-                for (i in 0 until arr.length()) {
-                    val obj = arr.optJSONObject(i) ?: continue
-                    val url = obj.optString("url").trim()
-                    if (!url.startsWith("https://") || !seenUrls.add(url)) continue
-                    val rawTitle = obj.optString("title").trim()
-                        .replace(Regex("\\s+"), " ")
-                        .ifBlank { "Profil ucznia #${result.size + 1}" }
-                    val rawSubtitle = obj.optString("subtitle").trim()
-                        .replace(Regex("\\s+"), " ")
-                    result.add(
-                        EduVulcanProfileTile(
-                            title = rawTitle,
-                            subtitle = rawSubtitle,
-                            url = url
+        fun parseProfileTiles(rawPayload: String): List<EduVulcanProfileTile> {
+            val trimmed = rawPayload.trim()
+            if (trimmed.isEmpty()) return emptyList()
+
+            if (trimmed.startsWith("[")) {
+                return runCatching {
+                    val arr = JSONArray(trimmed)
+                    val result = mutableListOf<EduVulcanProfileTile>()
+                    val seenUrls = HashSet<String>()
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.optJSONObject(i) ?: continue
+                        val url = obj.optString("url").trim()
+                        if (!url.startsWith("https://") || !seenUrls.add(url)) continue
+                        val rawTitle = obj.optString("title").trim()
+                            .replace(Regex("\\s+"), " ")
+                            .ifBlank { "Profil ucznia #${result.size + 1}" }
+                        val rawSubtitle = obj.optString("subtitle").trim()
+                            .replace(Regex("\\s+"), " ")
+                        result.add(
+                            EduVulcanProfileTile(
+                                title = rawTitle,
+                                subtitle = rawSubtitle,
+                                url = url
+                            )
                         )
-                    )
+                    }
+                    result
+                }.getOrDefault(emptyList())
+            }
+
+            return trimmed.lines()
+                .mapNotNull { line ->
+                    val parts = line.split("||", limit = 2)
+                    if (parts.size == 2 && parts[1].trim().startsWith("https://")) {
+                        val label = parts[0].trim().ifBlank { "Profil ucznia" }
+                        EduVulcanProfileTile(
+                            title = label,
+                            subtitle = "",
+                            url = parts[1].trim()
+                        )
+                    } else null
                 }
-                result
-            }.getOrDefault(emptyList())
         }
 
         /**
@@ -118,6 +142,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
             return runCatching {
                 val root = JSONObject(contextJson)
                 val arr = root.optJSONArray("uczniowie")
+                    ?: root.optJSONArray("Uczniowie")
                     ?: throw IOException("Brak listy uczniów w odpowiedzi /api/Context")
                 if (arr.length() == 0) {
                     throw IOException("Na tym koncie eduVULCAN nie znaleziono przypisanego ucznia.")
@@ -127,7 +152,8 @@ class EduVulcanWebAuthenticator @Inject constructor(
                 var chosen: JSONObject? = null
                 for (i in 0 until arr.length()) {
                     val item = arr.optJSONObject(i) ?: continue
-                    if (!item.optBoolean("isPrzedszkolak", false) && item.optString("key").isNotBlank()) {
+                    val keyCandidate = item.optString("key").ifBlank { item.optString("Key") }
+                    if (!item.optBoolean("isPrzedszkolak", false) && keyCandidate.isNotBlank()) {
                         chosen = item
                         break
                     }
@@ -137,15 +163,15 @@ class EduVulcanWebAuthenticator @Inject constructor(
                 }
                 val u = chosen ?: throw IOException("Nie udało się odczytać danych ucznia z eduVULCAN.")
 
-                val key = u.optString("key").trim()
+                val key = u.optString("key").ifBlank { u.optString("Key") }.trim()
                 if (key.isBlank()) {
                     throw IOException("Brak klucza ucznia (key) w /api/Context.")
                 }
 
-                val pupilName = u.optString("uczen").trim().ifBlank { "Uczeń" }
-                val idDziennik = u.optInt("idDziennik", 0)
-                val schoolName = u.optString("jednostka").trim().ifBlank { symbol }
-                val className = u.optString("oddzial").trim()
+                val pupilName = u.optString("uczen").ifBlank { u.optString("Uczen") }.trim().ifBlank { "Uczeń" }
+                val idDziennik = u.optInt("idDziennik", u.optString("idDziennik").toIntOrNull() ?: 0)
+                val schoolName = u.optString("jednostka").ifBlank { u.optString("Jednostka") }.trim().ifBlank { symbol }
+                val className = u.optString("oddzial").ifBlank { u.optString("Oddzial") }.trim()
 
                 val cookiesHeader = collectCookiesHeader(domain, symbol)
 
@@ -166,12 +192,13 @@ class EduVulcanWebAuthenticator @Inject constructor(
 
         /**
          * Buduje skrypt JS wykonujący krok po kroku:
-         * - odblokowanie przewijania strony (CSS overflow: auto !important),
+         * - odblokowanie przewijania strony (CSS overflow: auto !important) i przekierowanie window.open w tym samym oknie,
          * - zamknięcie banera cookies,
          * - logowanie na eduvulcan.pl,
-         * - wykrycie wszystkich kafelków profili na /dostep-do-dziennika/ (przekazanie ich do UI
-         *   oraz automatyczny wybór aktywnego profilu z pominięciem /End/NieaktywnyUczen),
-         * - pobranie /api/Context z uczen.eduvulcan.pl.
+         * - wykrycie wyłącznie właściwych kafelków profili uczniów na /dostep-do-dziennika/ (z pominięciem
+         *   przycisków "Kup usługę rozszerzoną" i "Dodaj dostęp"),
+         * - automatyczne lub ręczne przejście do dziennika ucznia bez cofania przekierowań SSO,
+         * - pobranie /api/Context z uczen.{domain}/{city}/api/Context.
          */
         fun buildAutomationJs(
             username: String,
@@ -192,18 +219,53 @@ class EduVulcanWebAuthenticator @Inject constructor(
                         var path = window.location.pathname || '';
                         var href = window.location.href || '';
 
-                        // 0. Odblokowanie natywnego przewijania na wypadek zablokowanego overflow przez modale cookies eduVULCAN
+                        // 0. Odblokowanie przewijania oraz przechwycenie window.open / target="_blank" w tym samym WebView
                         try {
+                            window.open = function(url) {
+                                if (url && typeof url === 'string') {
+                                    window.location.href = url;
+                                }
+                                return window;
+                            };
                             if (document.documentElement) {
                                 document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
                                 document.documentElement.style.setProperty('height', 'auto', 'important');
+                                document.documentElement.style.setProperty('max-height', 'none', 'important');
                             }
                             if (document.body) {
                                 document.body.style.setProperty('overflow-y', 'auto', 'important');
                                 document.body.style.setProperty('height', 'auto', 'important');
+                                document.body.style.setProperty('max-height', 'none', 'important');
                                 document.body.style.setProperty('position', 'static', 'important');
                             }
                         } catch (e) {}
+
+                        // Funkcja pomocnicza wywoływana przy kliknięciu profilu z natywnego UI w dialogu Androida
+                        window.__evOpenProfileUrl = function(targetUrl) {
+                            try {
+                                window.__evFollowingTile = true;
+                                sessionStorage.setItem('__evOpeningProfile', '1');
+                                sessionStorage.setItem('__evLastTriedProfileUrl', targetUrl);
+                            } catch (e) {}
+                            try {
+                                var allLinks = document.querySelectorAll('a[href]');
+                                for (var i = 0; i < allLinks.length; i++) {
+                                    var a = allLinks[i];
+                                    var h = a.href || a.getAttribute('href') || '';
+                                    if (h === targetUrl) {
+                                        a.removeAttribute('target');
+                                        a.click();
+                                        setTimeout(function() {
+                                            if (window.location.href === href) {
+                                                window.location.assign(targetUrl);
+                                            }
+                                        }, 250);
+                                        return;
+                                    }
+                                }
+                            } catch (e) {}
+                            window.location.assign(targetUrl);
+                        };
 
                         // 1. Akceptacja banera cookies (w głównym oknie lub iframe)
                         try {
@@ -238,6 +300,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
                         // 2. Obsługa nieaktywnego ucznia (/End/NieaktywnyUczen) – powrót do wyboru profilu
                         if (href.indexOf('/End/NieaktywnyUczen') !== -1 || path.toLowerCase().indexOf('nieaktywnyuczen') !== -1) {
                             try {
+                                sessionStorage.removeItem('__evOpeningProfile');
                                 var lastTried = sessionStorage.getItem('__evLastTriedProfileUrl');
                                 if (lastTried) {
                                     var skippedRaw = sessionStorage.getItem('__evSkippedUrls') || '[]';
@@ -257,39 +320,81 @@ class EduVulcanWebAuthenticator @Inject constructor(
                         if (host.indexOf('uczen.') === 0) {
                             var domain = host.substring('uczen.'.length);
                             var segs = path.split('/').filter(function(s) { return s.length > 0; });
-                            var city = segs.length > 0 ? segs[0] : '';
-                            if (city && city.toLowerCase() !== 'end') {
-                                if (!window.__evContextFetching) {
-                                    window.__evContextFetching = true;
-                                    AndroidEduVulcan.onStatus('Pobieranie danych ucznia z dziennika (' + city + ')...');
-                                    fetch('/' + city + '/api/Context', {
-                                        method: 'GET',
-                                        credentials: 'include',
-                                        headers: { 'Accept': 'application/json' }
-                                    })
-                                    .then(function(r) { return r.text(); })
-                                    .then(function(txt) {
-                                        if (txt && txt.indexOf('uczniowie') !== -1) {
-                                            AndroidEduVulcan.onContextSuccess(domain, city, txt);
-                                        } else {
-                                            window.__evContextFetching = false;
-                                        }
-                                    })
-                                    .catch(function(err) {
-                                        window.__evContextFetching = false;
-                                    });
+                            var firstSeg = segs.length > 0 ? segs[0] : '';
+                            var lowerSeg = firstSeg.toLowerCase();
+
+                            // Ignorujemy ścieżki techniczne OIDC/logowania zanim nastąpi przekierowanie do /{city}/
+                            var reservedSegs = ['end', 'signin-oidc', 'signout-oidc', 'account', 'login', 'logowanie', 'api', 'error'];
+                            if (!firstSeg || reservedSegs.indexOf(lowerSeg) !== -1 || lowerSeg.indexOf('.aspx') !== -1) {
+                                AndroidEduVulcan.onStatus('Autoryzacja sesji dziennika (' + host + ')...');
+                                return;
+                            }
+
+                            var city = firstSeg;
+
+                            // 3a. Jeśli przeglądarka otworzyła bezpośrednio /{city}/api/Context, odczytaj JSON z body
+                            if (path.toLowerCase().indexOf('/api/context') !== -1) {
+                                var rawBody = (document.body && (document.body.innerText || document.body.textContent)) || '';
+                                if ((rawBody.indexOf('uczniowie') !== -1 || rawBody.indexOf('Uczniowie') !== -1) && !window.__evContextReported) {
+                                    window.__evContextReported = true;
+                                    AndroidEduVulcan.onContextSuccess(domain, city, rawBody.trim());
                                 }
+                                return;
+                            }
+
+                            // 3b. Jeśli trwa jeszcze przekierowanie LoginEndpoint.aspx w obrębie /{city}/, poczekaj na docelową stronę
+                            if (path.toLowerCase().indexOf('loginendpoint') !== -1 || path.toLowerCase().indexOf('signin') !== -1) {
+                                AndroidEduVulcan.onStatus('Finalizowanie logowania w dzienniku (' + city + ')...');
+                                return;
+                            }
+
+                            if (!window.__evContextFetching && !window.__evContextReported) {
+                                window.__evContextFetching = true;
+                                window.__evContextAttempts = (window.__evContextAttempts || 0) + 1;
+                                AndroidEduVulcan.onStatus('Pobieranie danych ucznia z dziennika (' + city + ')...');
+                                fetch('https://uczen.' + domain + '/' + city + '/api/Context', {
+                                    method: 'GET',
+                                    credentials: 'include',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    }
+                                })
+                                .then(function(r) { return r.text(); })
+                                .then(function(txt) {
+                                    if (txt && (txt.indexOf('uczniowie') !== -1 || txt.indexOf('Uczniowie') !== -1)) {
+                                        if (!window.__evContextReported) {
+                                            window.__evContextReported = true;
+                                            AndroidEduVulcan.onContextSuccess(domain, city, txt);
+                                        }
+                                    } else {
+                                        window.__evContextFetching = false;
+                                        // Fallback jak w vultron.py: bezpośrednie otwarcie /api/Context w oknie przeglądarki
+                                        if (window.__evContextAttempts >= 2 && !window.__evNavigatedContext) {
+                                            window.__evNavigatedContext = true;
+                                            window.location.assign('https://uczen.' + domain + '/' + city + '/api/Context');
+                                        }
+                                    }
+                                })
+                                .catch(function(err) {
+                                    window.__evContextFetching = false;
+                                    if (window.__evContextAttempts >= 2 && !window.__evNavigatedContext) {
+                                        window.__evNavigatedContext = true;
+                                        window.location.assign('https://uczen.' + domain + '/' + city + '/api/Context');
+                                    }
+                                });
                             }
                             return;
                         }
 
-                        // 4. Strona wyboru dziennika (/dostep-do-dziennika lub po zalogowaniu)
-                        var selectors = [
+                        // 4. Strona wyboru dziennika (/dostep-do-dziennika)
+                        // Używamy wyłącznie oficjalnych selektorów profili ucznia (kolejno: nowy WordPress, stary ASP.NET, historyczny),
+                        // zatrzymując się na pierwszym pasującym wariancie szablonu, aby NIE łapać linków "Kup usługę rozszerzoną" ani "Dodaj dostęp".
+                        var selectorGroups = [
                             'a.panel-access__profile',
                             'a.connected-account.access-row',
                             'a[title="Przejdź do Dziennika"]',
-                            'a[href*="uczen."]',
-                            '.panel-access a[href^="https://"]'
+                            'a[href*="uczen."]'
                         ];
                         var foundProfiles = [];
                         var seenHrefs = {};
@@ -298,23 +403,62 @@ class EduVulcanWebAuthenticator @Inject constructor(
                             skippedList = JSON.parse(sessionStorage.getItem('__evSkippedUrls') || '[]');
                         } catch (e) {}
 
-                        for (var s = 0; s < selectors.length; s++) {
-                            var links = document.querySelectorAll(selectors[s]);
+                        function isNonProfileLink(text, url) {
+                            var t = (text || '').toLowerCase();
+                            var u = (url || '').toLowerCase();
+                            if (t.indexOf('kup usług') !== -1 || t.indexOf('kup uslug') !== -1) return true;
+                            if (t.indexOf('dodaj dostęp') !== -1 || t.indexOf('dodaj dostep') !== -1) return true;
+                            if (t.indexOf('wyloguj') !== -1 || t.indexOf('zmień hasło') !== -1) return true;
+                            if (u.indexOf('/End/NieaktywnyUczen') !== -1) return true;
+                            if (u.indexOf('/logowanie') !== -1) return true;
+                            if (u.indexOf('eduvulcan.pl/konto') !== -1) return true;
+                            if (u.indexOf('dodaj-dostep') !== -1 || u.indexOf('sklep') !== -1 || u.indexOf('zakup') !== -1) return true;
+                            return false;
+                        }
+
+                        for (var s = 0; s < selectorGroups.length; s++) {
+                            var links = document.querySelectorAll(selectorGroups[s]);
                             for (var l = 0; l < links.length; l++) {
                                 var aEl = links[l];
-                                var linkHref = aEl.href || aEl.getAttribute('href') || '';
+                                aEl.removeAttribute('target');
+                                var rawAttrHref = aEl.getAttribute('href') || '';
+                                var linkHref = aEl.href || rawAttrHref || '';
+                                if (!rawAttrHref || rawAttrHref === '#' || rawAttrHref.indexOf('javascript:') === 0) {
+                                    continue;
+                                }
+                                var rawText = (aEl.innerText || aEl.textContent || '').trim();
                                 if (linkHref.indexOf('https://') === 0 &&
-                                    linkHref.indexOf('/End/NieaktywnyUczen') === -1 &&
-                                    linkHref.indexOf('/logowanie') === -1 &&
-                                    linkHref.indexOf('eduvulcan.pl/konto') === -1 &&
+                                    !isNonProfileLink(rawText, linkHref) &&
                                     !seenHrefs[linkHref]) {
                                     seenHrefs[linkHref] = true;
-                                    var lines = (aEl.innerText || aEl.textContent || '')
+                                    var lines = rawText
                                         .split('\n')
                                         .map(function(x) { return x.trim(); })
                                         .filter(function(x) { return x.length > 0; });
+                                    // Pomiń pojedynczą literę inicjału awatara (np. "I" przed "Igor Szwarc (ZSE)")
+                                    if (lines.length > 1 && lines[0].length <= 2) {
+                                        lines = lines.slice(1);
+                                    }
                                     var pTitle = lines.length > 0 ? lines[0] : (aEl.getAttribute('title') || 'Dziennik ucznia');
                                     var pSub = lines.length > 1 ? lines.slice(1).join(' • ') : '';
+                                    if (!aEl.__evBoundClick) {
+                                        aEl.__evBoundClick = true;
+                                        (function(targetHref, targetTitle) {
+                                            aEl.addEventListener('click', function() {
+                                                try {
+                                                    window.__evFollowingTile = true;
+                                                    sessionStorage.setItem('__evOpeningProfile', '1');
+                                                    sessionStorage.setItem('__evLastTriedProfileUrl', targetHref);
+                                                    AndroidEduVulcan.onStatus('Otwieranie dziennika: ' + targetTitle + '...');
+                                                } catch (e) {}
+                                                setTimeout(function() {
+                                                    if (window.location.href === href) {
+                                                        window.location.assign(targetHref);
+                                                    }
+                                                }, 300);
+                                            });
+                                        })(linkHref, pTitle);
+                                    }
                                     foundProfiles.push({
                                         title: pTitle,
                                         subtitle: pSub,
@@ -324,10 +468,16 @@ class EduVulcanWebAuthenticator @Inject constructor(
                                     });
                                 }
                             }
+                            if (foundProfiles.length > 0) {
+                                break;
+                            }
                         }
 
                         if (foundProfiles.length > 0) {
-                            // Przewiń pierwszy kafelek do widoku, żeby użytkownik widział profile w WebView
+                            try {
+                                sessionStorage.setItem('__evVisitedAccessPage', '1');
+                            } catch (e) {}
+
                             if (!window.__evScrolledToProfiles) {
                                 window.__evScrolledToProfiles = true;
                                 try {
@@ -335,7 +485,6 @@ class EduVulcanWebAuthenticator @Inject constructor(
                                 } catch (e) {}
                             }
 
-                            // Przekaż listę profili do natywnego UI w dialogu Androida
                             var payload = JSON.stringify(foundProfiles.map(function(p) {
                                 return { title: p.title, subtitle: p.subtitle, url: p.url };
                             }));
@@ -344,19 +493,27 @@ class EduVulcanWebAuthenticator @Inject constructor(
                                 AndroidEduVulcan.onProfilesFound(payload);
                             }
 
-                            // Aktywne (niepominięte) profile
                             var activeProfiles = foundProfiles.filter(function(p) { return !p.skipped; });
 
-                            // Jeśli jest dokładnie 1 aktywny profil i włączony autoSelect (lub ciche odświeżanie w tle)
+                            // Jeśli jest dokładnie 1 aktywny profil ucznia, otwórz go automatycznie!
                             if (activeProfiles.length === 1 && autoSelect) {
                                 if (!window.__evFollowingTile) {
                                     window.__evFollowingTile = true;
-                                    var targetUrl = activeProfiles[0].url;
-                                    try { sessionStorage.setItem('__evLastTriedProfileUrl', targetUrl); } catch (e) {}
-                                    AndroidEduVulcan.onStatus('Otwieranie dziennika: ' + activeProfiles[0].title + '...');
-                                    window.location.href = targetUrl;
+                                    var chosen = activeProfiles[0];
+                                    try {
+                                        sessionStorage.setItem('__evOpeningProfile', '1');
+                                        sessionStorage.setItem('__evLastTriedProfileUrl', chosen.url);
+                                    } catch (e) {}
+                                    AndroidEduVulcan.onStatus('Otwieranie dziennika: ' + chosen.title + '...');
+                                    try {
+                                        chosen.element.removeAttribute('target');
+                                        chosen.element.click();
+                                    } catch (e) {}
+                                    setTimeout(function() {
+                                        window.location.assign(chosen.url);
+                                    }, 150);
                                 }
-                            } else {
+                            } else if (!window.__evFollowingTile) {
                                 AndroidEduVulcan.onStatus('Wybierz profil ucznia z listy poniżej:');
                             }
                             return;
@@ -414,10 +571,18 @@ class EduVulcanWebAuthenticator @Inject constructor(
                             return;
                         }
 
-                        // Jeśli jesteśmy zalogowani na eduvulcan.pl, ale nie na /dostep-do-dziennika i nie na /logowanie
-                        if (host.indexOf('eduvulcan.pl') !== -1 &&
-                            path.toLowerCase().indexOf('/logowanie') === -1 &&
-                            path.toLowerCase().indexOf('/dostep-do-dziennika') === -1 &&
+                        // 6. Zapasowe przejście na /dostep-do-dziennika/ TYLKO gdy po zalogowaniu wylądowaliśmy na stronie głównej eduvulcan.pl
+                        // i JESZCZE NIE byliśmy na /dostep-do-dziennika/ oraz NIE trwa otwieranie profilu (aby nie przerywać przekierowań SSO!).
+                        var visitedAccess = false;
+                        var openingProfile = false;
+                        try {
+                            visitedAccess = sessionStorage.getItem('__evVisitedAccessPage') === '1';
+                            openingProfile = sessionStorage.getItem('__evOpeningProfile') === '1';
+                        } catch (e) {}
+
+                        if (!visitedAccess && !openingProfile &&
+                            (host === 'eduvulcan.pl' || host === 'www.eduvulcan.pl') &&
+                            (path === '/' || path === '' || path.toLowerCase() === '/konto') &&
                             !userField && !passField) {
                             if (!window.__evRedirectedAccess) {
                                 window.__evRedirectedAccess = true;
@@ -459,6 +624,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
                         wv.settings.apply {
                             javaScriptEnabled = true
                             domStorageEnabled = true
+                            javaScriptCanOpenWindowsAutomatically = true
                             userAgentString = USER_AGENT
                         }
 
@@ -477,12 +643,14 @@ class EduVulcanWebAuthenticator @Inject constructor(
 
                                 @JavascriptInterface
                                 fun onProfilesFound(profilesJson: String) {
-                                    // W tle: jeśli jest kilka profili, wybierz pierwszy nie-przedszkolny
                                     val tiles = parseProfileTiles(profilesJson)
                                     if (tiles.size > 1) {
-                                        val firstUrl = tiles.first().url
+                                        val firstUrl = JSONObject.quote(tiles.first().url)
                                         wv.post {
-                                            wv.loadUrl(firstUrl)
+                                            wv.evaluateJavascript(
+                                                "if (window.__evOpenProfileUrl) window.__evOpenProfileUrl($firstUrl); else window.location.assign($firstUrl);",
+                                                null
+                                            )
                                         }
                                     }
                                 }
@@ -505,6 +673,7 @@ class EduVulcanWebAuthenticator @Inject constructor(
                             "AndroidEduVulcan"
                         )
 
+                        wv.webChromeClient = WebChromeClient()
                         wv.webViewClient = object : WebViewClient() {
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)

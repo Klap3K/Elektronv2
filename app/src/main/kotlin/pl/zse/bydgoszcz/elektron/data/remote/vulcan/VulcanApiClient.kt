@@ -633,7 +633,7 @@ class VulcanApiClient @Inject constructor(
             throw EduVulcanSessionExpiredException("Sesja eduVULCAN wygasła – wymagane ponowne logowanie.")
         }
         val json = runCatching { JSONObject(body) }.getOrNull()
-        if (json == null || !json.has("uczniowie")) {
+        if (json == null || (!json.has("uczniowie") && !json.has("Uczniowie"))) {
             throw EduVulcanSessionExpiredException("Sesja eduVULCAN jest nieaktywna.")
         }
         return json
