@@ -72,6 +72,10 @@ class FakeSettings(
     override val dashboardCardsOrder: Flow<String?> = dashboardCardsOrderFlow
     override suspend fun setDashboardCardsOrder(order: String) { dashboardCardsOrderFlow.value = order }
 
+    val attendanceTargetPercentFlow = MutableStateFlow(75)
+    override val attendanceTargetPercent: Flow<Int> = attendanceTargetPercentFlow
+    override suspend fun setAttendanceTargetPercent(percent: Int) { attendanceTargetPercentFlow.value = percent }
+
     override fun groupSelections(classId: String): Flow<Map<String, String>> = groupSelectionsFlow
     override val activeGroupSelections: Flow<Map<String, String>> = groupSelectionsFlow
     override suspend fun setGroupSelection(classId: String, subject: String, choice: String?) {}

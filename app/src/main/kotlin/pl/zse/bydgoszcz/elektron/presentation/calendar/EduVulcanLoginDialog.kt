@@ -91,7 +91,7 @@ fun EduVulcanLoginDialog(
     var showWebViewPreview by remember { mutableStateOf(false) }
     var forceShowInputs by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Wpisz login/e-mail oraz hasło do konta eduVULCAN") }
-    var errorMessage by remember(initialErrorMessage) { mutableStateOf<String?>(initialErrorMessage) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var detectedProfiles by remember { mutableStateOf<List<EduVulcanProfileTile>>(emptyList()) }
 
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
