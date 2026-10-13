@@ -47,6 +47,7 @@ import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.UserActivity
 import pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository
+import pl.zse.bydgoszcz.elektron.domain.repository.UserActivityRepository
 import pl.zse.bydgoszcz.elektron.domain.model.CountdownSettings
 import pl.zse.bydgoszcz.elektron.service.AutoDndManager
 import android.content.Context
