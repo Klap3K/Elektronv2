@@ -343,7 +343,7 @@ class DashboardViewModel @Inject constructor(
     fun setAutoDndEnabled(enabled: Boolean) {
         viewModelScope.launch {
             this@DashboardViewModel.settings.setAutoDndEnabled(enabled)
-            dndScheduler.requestReschedule()
+            dndScheduler?.requestReschedule()
         }
     }
 
