@@ -39,6 +39,7 @@ import pl.zse.bydgoszcz.elektron.domain.model.DashboardCardItem
 import pl.zse.bydgoszcz.elektron.domain.model.DashboardLayoutUtils
 import pl.zse.bydgoszcz.elektron.domain.repository.DutyRepository
 import pl.zse.bydgoszcz.elektron.service.LiveBellScheduler
+import pl.zse.bydgoszcz.elektron.widget.WidgetUpdater
 import javax.inject.Inject
 
 @HiltViewModel
