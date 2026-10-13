@@ -81,7 +81,7 @@ fun UpdateActions(
                 else LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
             is InstallState.NeedsPermission -> {
-                Text("Zezwól eLektronowi na instalowanie aplikacji, a potem wróć tutaj.",
+                Text("Zezwól aplikacji Elektron-Vulcan na instalowanie aplikacji, a potem wróć tutaj.",
                     style = MaterialTheme.typography.bodyMedium, color = contentColor)
                 Spacer(Modifier.height(8.dp))
                 FilledTonalButton(onClick = viewModel::install) { Text("Zainstaluj") }

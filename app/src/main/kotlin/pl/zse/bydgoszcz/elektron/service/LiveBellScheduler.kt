@@ -71,6 +71,13 @@ class LiveBellScheduler @Inject constructor(
         val heldLessons = lessons.filter(SubstitutionDisplay::takesPlace).sortedBy { it.timeFrom }
 
         val todayTransitions = mutableListOf<LocalTime>()
+        val firstLesson = heldLessons.firstOrNull()
+        if (firstLesson != null) {
+            val preBellTime = firstLesson.timeFrom.minusMinutes(45)
+            if (preBellTime.isBefore(firstLesson.timeFrom)) {
+                todayTransitions.add(preBellTime)
+            }
+        }
         heldLessons.forEach {
             todayTransitions.add(it.timeFrom)
             todayTransitions.add(it.timeTo)
@@ -85,9 +92,8 @@ class LiveBellScheduler @Inject constructor(
             val futureLessons = timetableRepo.getLessonsOnce(classId, today.plusDays(1), today.plusDays(7))
             val filteredFuture = LessonGroups.filter(futureLessons, groups).filter(SubstitutionDisplay::takesPlace)
             filteredFuture.minWithOrNull(compareBy({ it.date }, { it.timeFrom }))?.let { nextLesson ->
-                // Obudź 30 min przed pierwszą lekcją, żeby pokazać powiadomienie przedlekcyjne
-                val beforeTime = nextLesson.timeFrom.minusMinutes(30)
-                nextLesson.date.atTime(beforeTime)
+                // Obudź 45 min przed pierwszą lekcją, żeby pokazać powiadomienie przedlekcyjne
+                LocalDateTime.of(nextLesson.date, nextLesson.timeFrom).minusMinutes(45)
             }
         }
 

@@ -312,7 +312,7 @@ fun DashboardScreen(
                                     when {
                                         state.loadingSubs -> item(key = "subs_loading") { DelayedLoading { LoadingCard("Ładowanie zastępstw…") } }
                                         state.upcomingSubstitutions.isEmpty() -> item(key = "subs_empty") { EmptyCard("Brak zastępstw") }
-                                        else -> items(state.upcomingSubstitutions, key = { "sub_${it.id}" }) {
+                                        else -> items(state.upcomingSubstitutions, key = { "sub_${it.id}_${it.lessonNumber}_${it.date}" }) {
                                             SubstitutionRow(it, Modifier.animateItem().semantics(mergeDescendants = true) {}, onOpenSubstitutions)
                                         }
                                     }

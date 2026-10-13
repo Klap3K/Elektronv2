@@ -181,6 +181,7 @@ class LiveBellNotificationManager @Inject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setProgress(totalMinutes, elapsedMinutes, false)
             .setWhen(targetEpochMs)
+            .setShowWhen(true)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
 
@@ -221,6 +222,7 @@ class LiveBellNotificationManager @Inject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setProgress(totalBreakMin, elapsedBreakMin, false)
             .setWhen(targetEpochMs)
+            .setShowWhen(true)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
 
@@ -257,6 +259,7 @@ class LiveBellNotificationManager @Inject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setProgress(45, (45 - minutesUntil).coerceIn(0, 45), false)
             .setWhen(targetEpochMs)
+            .setShowWhen(true)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
 
@@ -284,7 +287,6 @@ class LiveBellNotificationManager @Inject constructor(
             .setContentIntent(pi)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setShowWhen(false)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSilent(true)
@@ -305,9 +307,19 @@ class LiveBellNotificationManager @Inject constructor(
             notificationManager.notify(NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
             Log.w(TAG, "Brak uprawnień do powiadomień", e)
+        } catch (e: Exception) {
+            Log.w(TAG, "Błąd wysyłania powiadomienia", e)
         }
     }
 
-    private fun canNotify(): Boolean =
-        notificationManager.areNotificationsEnabled()
+    private fun canNotify(): Boolean {
+        if (!notificationManager.areNotificationsEnabled()) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = notificationManager.getNotificationChannel(CHANNEL_ID)
+            if (channel != null && channel.importance == NotificationManager.IMPORTANCE_NONE) {
+                return false
+            }
+        }
+        return true
+    }
 }
