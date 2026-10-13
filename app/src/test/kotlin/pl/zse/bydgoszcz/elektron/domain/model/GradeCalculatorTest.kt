@@ -3,9 +3,14 @@ package pl.zse.bydgoszcz.elektron.domain.model
 import okhttp3.OkHttpClient
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.EduVulcanWebAuthenticator
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.VulcanApiClient
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class GradeCalculatorTest {
 
     @Test
