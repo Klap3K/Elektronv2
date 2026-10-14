@@ -51,8 +51,12 @@ fix_*.sh
 /local-notes/
 *REPORT*.md
 *report*.md
+*RAPORT*.md
+*raport*.md
 *AUDIT*.md
 *audit*.md
+*AUDYT*.md
+*audyt*.md
 *_PLAN.md
 *_plan.md
 *-iter*.md

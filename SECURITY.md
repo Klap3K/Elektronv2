@@ -59,7 +59,8 @@ z współpracownikami i osobnej autoryzacji force-push; nie jest częścią zwyk
 
 ## Poświadczenia na urządzeniu
 
-Poświadczenia kalendarza są szyfrowane AES-GCM kluczem Android Keystore. Stare wartości
-DataStore są migrowane atomowo przed pierwszym odczytem. Plik kalendarza, baza i raporty
-awarii są wykluczone z kopii zapasowej. Logowanie działa wyłącznie przez HTTPS do domen
-VULCAN. Zgłoszenia nie mogą zawierać danych tych magazynów.
+Poświadczenia konta eduVULCAN (ciasteczka sesyjne, tokeny) są szyfrowane AES-GCM kluczem Android Keystore.
+Stare wartości DataStore są migrowane atomowo przed pierwszym odczytem. Baza danych Room, pliki sesji
+oraz raporty awarii są wykluczone z systemowej kopii zapasowej w chmurze (Google Cloud Backup).
+Logowanie i komunikacja API działają wyłącznie przez bezpośrednie połączenia HTTPS z domenami
+VULCAN (`eduvulcan.pl`, `uczen.eduvulcan.pl`, `bcu.gov.pl`). Zgłoszenia nie mogą zawierać danych tych magazynów.

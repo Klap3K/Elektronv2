@@ -1,147 +1,214 @@
 <div align="center">
 
-<img src="docs/logo.png" alt="Elektron-Vulcan" width="112">
+<img src="docs/logo.png" alt="Elektron-Vulcan" width="128">
 
 # Elektron-Vulcan
 
-**Nowoczesna aplikacja na Androida dla uczniów ZSE w Bydgoszczy – plan lekcji, zastępstwa, ogłoszenia, odjazdy, terminarz sprawdzianów i oceny z konta eduVULCAN, Strażnik Frekwencji oraz inteligentne funkcje szkolne.**
+**Nowoczesna, otwartoźródłowa aplikacja na Androida dla uczniów ZSE w Bydgoszczy – plan lekcji, zastępstwa, ogłoszenia szkolne, oceny i terminarz z konta eduVULCAN, Symulator Ocen, Strażnik Frekwencji oraz powiadomienia na żywo „Kiedy dzwonek?”.**
 
-[![Licencja: GPL v3+](https://img.shields.io/badge/licencja-GPL--3.0--or--later-blue)](LICENSE)
-![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-[![eduVULCAN](https://img.shields.io/badge/eduVULCAN-Logowanie%20do%20konta-blueviolet)](#główne-funkcje)
-[![Pobierz APK](https://img.shields.io/badge/Wydanie-v2.0.6-success?logo=android&logoColor=white)](https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6)
+[![Build i testy](https://github.com/Klap3K/Elektronv2/actions/workflows/ci.yml/badge.svg)](https://github.com/Klap3K/Elektronv2/actions/workflows/ci.yml)
+[![Wydanie v2.1.1](https://img.shields.io/badge/Wydanie-v2.1.1-success?logo=android&logoColor=white)](https://github.com/Klap3K/Elektronv2/releases/latest)
+[![Licencja: GPL v3+](https://img.shields.io/badge/Licencja-GPL--3.0--or--later-blue.svg)](LICENSE)
+![Kotlin 2.0.20](https://img.shields.io/badge/Kotlin-2.0.20-7F52FF?logo=kotlin&logoColor=white)
+![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B%20(API%2026%2B)-3DDC84?logo=android&logoColor=white)
+![Target SDK 35](https://img.shields.io/badge/Target%20SDK-35-00599C)
 
-[**Pobierz najnowszą wersję (v2.0.6)**](https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6) • [**Poradnik eduVULCAN**](PORADNIK_VULCAN.md) • [**Polityka Prywatności**](PRYWATNOSC.md) • [**Zgłoś błąd / Sugestie**](https://github.com/Klap3K/Elektronv2/issues/new)
+[**Pobierz najnowsze wydanie (v2.1.1 APK)**](https://github.com/Klap3K/Elektronv2/releases/latest) • [**Poradnik eduVULCAN**](PORADNIK_VULCAN.md) • [**Polityka Prywatności**](PRYWATNOSC.md) • [**Bezpieczeństwo**](SECURITY.md) • [**Zgłoś błąd / Sugestie**](https://github.com/Klap3K/Elektronv2/issues/new)
 
 </div>
 
 ---
 
-## O projekcie Elektron-Vulcan
+## 📖 O projekcie Elektron-Vulcan
 
-**Elektron-Vulcan** to zaawansowana, w pełni otwartoźródłowa aplikacja mobilna stworzona z myślą o uczniach Zespołu Szkół Elektronicznych w Bydgoszczy. Aplikacja gromadzi w jednym, przejrzystym miejscu wszystkie informacje niezbędne w szkolnej codzienności: od planu lekcji i zmian sal, przez ogłoszenia i rozkłady odjazdów ZDMiKP, aż po **obsługę technologii bezpośredniego logowania do konta eduVULCAN** oraz narzędzia wspomagające naukę i organizację roku szkolnego.
+**Elektron-Vulcan** to kompletne, w pełni otwartoźródłowe środowisko mobilne dla społeczności Zespołu Szkół Elektronicznych w Bydgoszczy. Aplikacja eliminuje konieczność ciągłego sprawdzania wielu stron i systemów: łączy szkolny plan lekcji, zmiany sal i zastępstwa, oficjalne ogłoszenia oraz odjazdy komunikacji miejskiej ZDMiKP z **bezpośrednią integracją z kontem eduVULCAN** (oceny cząstkowe, sprawdziany, kartkówki, prace domowe i frekwencja).
 
-### Najważniejsze atuty
-- 🎓 **Technologia logowania do konta eduVULCAN:** Bezpośrednie, bezpieczne logowanie do konta eduVULCAN (eduvulcan.pl). Automatyczny wybór profilu ucznia, import sprawdzianów, prac klasowych, kartkówek, zadań domowych oraz ocen i frekwencji.
-- 📅 **Zintegrowany Terminarz:** Sprawdziany, kartkówki i zadania domowe są automatycznie parowane z konkretnymi godzinami lekcji w planie dnia, w siatce tygodnia oraz na widżetach.
-- 🔕 **Auto DND (Wyciszanie w trakcie lekcji):** Automatyczne wyciszanie telefonu podczas trwania realnych zajęć i natychmiastowe przywracanie profilu dźwięku na przerwach w tle (`AlarmManager.setExactAndAllowWhileIdle`).
-- ⏳ **Licznik i Odliczanie do wydarzeń:** Dynamiczne odliczanie do wakacji, ferii, egzaminów zawodowych lub 100-dniówki z wyliczaniem **dni szkolnych (pon–pt)**.
-- 🛡️ **Strażnik Frekwencji (Attendance Guardian):** Matematyczny kalkulator wyliczający dopuszczalne nieobecności przed spadkiem poniżej ustawowego progu 50% oraz interaktywny symulator opuszczeń.
-- ⚡ **Wbudowane aktualizacje 1 kliknięciem:** Sprawdzanie wydań w tle, pobieranie APK wewnątrz aplikacji i natychmiastowe uruchomienie instalatora systemowego bez odinstalowywania.
+Wszystkie dane przechowywane są lokalnie na telefonie (architektura **Offline-First**), a newralgiczne informacje sesyjne podlegają szyfrowaniu sprzętowemu w module **Android Keystore (AES-GCM)**.
 
 ---
 
-## Zrzuty ekranu
+## ✨ Główne Funkcje
 
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" alt="Strona główna" title="Strona główna" width="23%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" alt="Plan lekcji" title="Plan lekcji" width="23%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" alt="Zastępstwa" title="Zastępstwa" width="23%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" alt="Odjazdy" title="Odjazdy" width="23%">
-</p>
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" alt="Ogłoszenia" title="Ogłoszenia" width="23%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" alt="Ustawienia" title="Ustawienia" width="23%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" alt="Widżety" title="Widżety" width="23%">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" alt="Powiadomienia" title="Powiadomienia" width="23%">
-</p>
+### 🎓 Dziennik eduVULCAN, Terminarz i Oceny
+- **Bezpośrednie logowanie do konta eduVULCAN (`eduvulcan.pl`):** bezpieczna autoryzacja bez pośredników, obsługa domen miejskich i portali samorządowych (`bcu.gov.pl`), automatyczny wybór profilu ucznia.
+- **Pełna synchronizacja danych:** pobieranie ocen cząstkowych z wagami, sprawdzianów, prac klasowych, kartkówek, prac domowych oraz statystyk obecności.
+- **Zintegrowany terminarz:** sprawdziany i kartkówki są automatycznie dopasowywane do konkretnych godzin lekcji w widoku dnia, w siatce tygodnia oraz na widżetach.
+- **Alternatywne źródła:** wbudowany mostek powiadomień z aplikacji eduVULCAN oraz obsługa subskrypcji kalendarza iCal (`.ics` / `webcal://`).
+- *Szczegółowy przewodnik:* [**PORADNIK_VULCAN.md**](PORADNIK_VULCAN.md).
 
----
+### 🔮 Symulator Ocen „Co jeśli” (Grade Simulator)
+- **Natychmiastowa symulacja:** sprawdzaj wpływ przewidywanych ocen na średnią ważoną danego przedmiotu oraz ogólną średnią ocen ucznia.
+- **Wirtualne oceny cząstkowe:** szybkie dodawanie ocen jednym dotknięciem (`+6`, `+5`, `+4`, `+3`, `+2`, `+1`) z możliwością wyboru wagi (1–4).
+- **Interaktywny podgląd na żywo:** dynamiczne porównanie średnich (np. `Śr: 3.40 ➔ 3.65`), wyróżnione etykiety symulowanych ocen oraz możliwość cofnięcia lub zresetowania symulacji jednym kliknięciem.
 
-## Główne Funkcje
+### 🛡️ Strażnik Frekwencji & Kalkulator Bilansu (`AttendanceBalance`)
+- **Konfigurowalny próg docelowy:** ustawienie własnego, bezpiecznego celu obecności (od 50% do 95%, domyślnie rekomendowane 75%) w Ustawieniach i bezpośrednio w oknie Strażnika (szybkie kafelki).
+- **Dwupoziomowa ochrona matematyczna:**
+  - **Bezpieczny cel ucznia:** wylicza bezpieczny zapas godzin do opuszczenia przed spadkiem poniżej celu (`maxMissableToTarget`) lub liczbę godzin obecności z rzędu potrzebnych do jego odrobienia (`recoveryNeededToTarget`).
+  - **Ustawowy próg krytyczny (50%):** równoległe monitorowanie dystansu od zagrożenia nieklasyfikowaniem (`maxMissableTo50` i `recoveryNeededTo50`).
+- **Widoczność na pulpicie i przedmiotach:** wskaźnik bilansu godzin bezpośrednio na karcie głównej Dashboardu oraz przy każdym przedmiocie (oznaczenia kolorystyczne: zielony, pomarańczowy, czerwony).
+- **Interaktywny symulator opuszczeń:** symulacja opuszczenia kolejnych godzin (`+1h`, `+2h`, `+4h`, `+8h`) z pełnym przewijaniem horyzontalnym.
 
-### 🎓 Terminarz, oceny i konto eduVULCAN
-- Obsługa bezpośredniego logowania do konta eduVULCAN (eduvulcan.pl) w bezpiecznym oknie logowania.
-- Automatyczne wykrywanie konta i wybór profilu ucznia.
-- Import sprawdzianów, prac klasowych, kartkówek, prac domowych oraz ocen cząstkowych.
-- Opcjonalny mostek powiadomień z oficjalnej aplikacji eduVULCAN na telefonie.
-- Obsługa zewnętrznych subskrypcji kalendarza iCal (`.ics` / `webcal://`).
-- Zobacz przewodnik konfiguracji: [**PORADNIK_VULCAN.md**](PORADNIK_VULCAN.md).
+### 🔔 Ciągłe Powiadomienie na żywo „Kiedy dzwonek?” (Live Bell)
+- **Status na ekranie blokady i AOD:** licznik czasu do najbliższego dzwonka na żywo, sala lekcyjna, nazwa trwającej lekcji oraz graficzny pasek postępu.
+- **Informacja o dyżurze:** wskaźnik obowiązków dyżurnego klasowego wprost w powiadomieniu.
+- **Optymalizacja energetyczna:** precyzyjny harmonogram alarmów bez drenowania baterii telefonu.
+
+### 🔔 Powiadomienia różnicowe Smart Diff
+- **Wykrywanie nowych ocen w tle:** okresowa synchronizacja przez `WorkManager` wykrywa nowe oceny wpisane przez nauczycieli i wysyła powiadomienia systemowe bez generowania fałszywego spamu.
 
 ### 🔕 Auto DND – Automatyczne wyciszanie na lekcjach
-- Telefon automatycznie przełącza się w tryb cichy / Nie Przeszkadzać wyłącznie w trakcie Twoich lekcji.
-- Natychmiastowe przywracanie profilu dźwięku (normalny, wibracje, cichy) na dzwonek oznaczający przerwę, w okienkach oraz po zakończeniu zajęć.
-- Działa całkowicie w tle – nawet przy zablokowanym telefonie w kieszeni.
+- **Inteligentne wyciszanie:** automatyczne włączanie trybu Nie Przeszkadzać (DND) wyłącznie podczas trwania realnych lekcji.
+- **Przywracanie dźwięku:** natychmiastowe przywracanie wyjściowego profilu dźwiękowego (normalny, wibracje, cichy) na dzwonek oznaczający przerwę, w okienkach oraz po zakończeniu zajęć.
+- **Niezawodność w tle:** obsługa przez `AlarmManager.setExactAndAllowWhileIdle` przy zablokowanym telefonie.
 
 ### ⏳ Odliczanie do wydarzeń (Countdown)
-- Karta na ekranie głównym oraz konfiguracja w Ustawieniach.
-- Predefiniowane szybkie presety: *Koniec roku szkolnego / Wakacje*, *Ferie zimowe*, *Egzamin zawodowy*, *100-dniówka*, *Rozpoczęcie roku*.
-- Wybór dowolnej własnej daty z kalendarza Material 3 `DatePickerDialog` oraz własnego tytułu.
-- Wyliczanie zarówno liczby wszystkich dni, jak i **dni szkolnych (poniedziałek–piątek)** z poprawną gramatyką języka polskiego.
-
-### 🛡️ Strażnik Frekwencji (Attendance Guardian)
-- Wyliczanie frekwencji ogółem oraz dla każdego przedmiotu z osobna.
-- Algorytm obliczający, ile lekcji uczeń może jeszcze opuścić przed spadkiem poniżej 50% lub progu ostrzegawczego.
-- Wskaźnik liczby kolejnych obecności potrzebnych do poprawy frekwencji.
-- Interaktywny symulator opuszczeń (+1h, +2h, +4h, +8h) z podglądem na żywo.
+- Dynamiczne odliczanie do wakacji, ferii zimowych, 100-dniówki, egzaminów zawodowych lub dowolnej własnej daty z kalendarza Material 3.
+- Niezależny licznik **dni szkolnych (poniedziałek–piątek)** oraz licznik dni kalendarzowych z poprawną polską odmianą.
 
 ### 🧹 Karta Dyżurnego Klasowego
-- Informacja na ekranie głównym o nadchodzącym dyżurze (dzisiaj, w tym tygodniu, za X dni).
-- Automatyczna rotacja par uczniów według numerka z dziennika lekcyjnego.
-- Lista codziennych zadań dyżurnego (tablica, wietrzenie sali, pomoc nauczycielowi).
+- Informacja na pulpicie o nadchodzącym dyżurze (dzisiaj, w tym tygodniu, za X dni).
+- Automatyczna rotacja par uczniów według numerka w dzienniku oraz zintegrowana lista obowiązków.
 
-### ✏️ Własne Plany i Aktywności
-- Możliwość wprowadzania własnych zadań (nauka, korepetycje, projekty, treningi) bezpośrednio do widoku dnia.
-- Obsługa godzin od-do, notatek, oznaczania zadań jako ukończone oraz usuwania.
+### 🎨 Personalizacja Pulpitu & Nowy Układ Ustawień
+- **Konfiguracja strony głównej:** możliwość włączania, wyłączania oraz zmiany kolejności kart pulpitu pod własne preferencje.
+- **4 przejrzyste kategorie Ustawień:** *Twoja Klasa i Dziennik*, *Dzwonki, Lekcje i Powiadomienia*, *Wygląd i Układ*, *Aplikacja i System*.
 
-### 📅 Plan lekcji i Zastępstwa
-- Widok pojedynczego dnia oraz pełnej siatki tygodnia zintegrowany z zastępstwami i etykietami sprawdzianów (`📝 Sprawdzian`, `📄 Kartkówka`, `📌 Wydarzenie`).
-- Filtrowanie grup zajęciowych (języki, informatyka, WF).
-- Natychmiastowy podgląd sal zastępczych i nauczycieli zastępujących.
+### 📅 Plan lekcji, Zastępstwa i Ogłoszenia
+- Pełna siatka planu lekcji zintegrowana z zastępstwami, podziałem na grupy (języki, informatyka, WF) oraz salami zastępczymi.
+- Ogłoszenia ze strony `zse.bydgoszcz.pl` z trybem offline i zapisywaniem artykułów do ulubionych.
+- Rozkłady odjazdów ZDMiKP Bydgoszcz z przystanków wokół szkoły z czasem dojścia pieszego.
 
-### 🚍 Odjazdy ze szkoły (ZDMiKP Bydgoszcz)
-- Rzeczywiste rozkłady jazdy i czas dojścia pieszego z ul. Karłowicza 20 na okoliczne przystanki (bez używania GPS).
+### 📱 Widżety Glance na Pulpit
+- Nowoczesne widżety Jetpack Glance: *Następna lekcja*, *Plan dnia* oraz *Zastępstwa* z etykietami sprawdzianów.
 
-### 📢 Ogłoszenia szkolne
-- Wiadomości ze strony zse.bydgoszcz.pl z trybem offline i zapisywaniem do ulubionych.
-
-### 📱 Widżety Glance na pulpit
-- Widżety *Następna lekcja*, *Plan dnia* oraz *Zastępstwa* ze wskaźnikami nadchodzących sprawdzianów.
-
-### ⚡ Wygodne aktualizacje
-- Powiadomienie o nowej wersji i instalacja 1 kliknięciem bezpośrednio w aplikacji – nowa wersja instaluje się na starą bez utraty konfiguracji i danych.
+### ⚡ Wbudowane aktualizacje 1 kliknięciem
+- Automatyczne powiadomienie o nowym wydaniu przy starcie aplikacji, pobieranie APK wewnątrz aplikacji i natychmiastowe uruchomienie instalatora Androida bez utraty danych.
 
 ---
 
-## Bezpieczeństwo i Prywatność
+## 📱 Zrzuty ekranu
 
-Aplikacja została zaprojektowana z najwyższą dbałością o bezpieczeństwo danych i prywatność użytkownika:
-1. **Bezpieczne logowanie eduVULCAN:** Logowanie do konta eduVULCAN odbywa się bezpośrednio w oficjalnym formularzu platformy (`eduvulcan.pl`) bez serwerów pośredniczących.
-2. **Poświadczenia:** Hasło, tokeny i ciasteczka sesji są szyfrowane AES-GCM kluczem Android Keystore. Oceny, frekwencja i wydarzenia są zapisane lokalnie w bazie Room, bez dodatkowego szyfrowania bazy.
-3. **Brak wycieków do chmury:** Baza danych oraz pliki autoryzacji są wykluczone z mechanizmu Google Cloud Backup.
-4. **Prywatność:** Brak trackerów, analityki, profilowania i reklam. Szczegóły: [PRYWATNOSC.md](PRYWATNOSC.md).
+<div align="center">
+
+| Strona główna | Plan lekcji | Zastępstwa | Odjazdy ZDMiKP |
+|:---:|:---:|:---:|:---:|
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="220" alt="Strona główna"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="220" alt="Plan lekcji"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="220" alt="Zastępstwa"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="220" alt="Odjazdy"> |
+
+| Ogłoszenia szkolne | Ustawienia | Widżety Glance | Powiadomienia |
+|:---:|:---:|:---:|:---:|
+| <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="220" alt="Ogłoszenia"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="220" alt="Ustawienia"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width="220" alt="Widżety"> | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" width="220" alt="Powiadomienia"> |
+
+</div>
 
 ---
 
-## Informacje dla programistów (Budowanie ze źródeł)
+## 🛠️ Architektura i Stos Technologiczny
 
-Projekt wykorzystuje nowoczesny stos technologiczny Androida:
-* **Język:** Kotlin 2.0+ (Coroutines, Flow)
-* **UI:** Jetpack Compose, Material 3
-* **Architektura:** Clean Architecture + MVI/MVVM, Dagger Hilt
-* **Baza Danych:** Room Database v6 (z atomowymi migracjami)
-* **Zadania w tle:** WorkManager, Glance Widgets, AlarmManager
-* **Sieć i Parsowanie:** OkHttp 4, Jsoup
+Projekt zrealizowany jest zgodnie z wytycznymi nowoczesnego developmentu Androida (**Modern Android Development - MAD**), Clean Architecture oraz wzorcem MVI/MVVM:
 
-Wymagania: JDK 17+ (zalecane JDK 21) oraz Android SDK (minSdk 26, targetSdk 35).
+| Warstwa / Komponent | Zastosowana Technologia |
+|:---|:---|
+| **Język programowania** | Kotlin 2.0.20 (Coroutines 1.8.1, StateFlow, Flow) |
+| **Interfejs użytkownika** | Jetpack Compose (BOM 2024.09.02), Material Design 3, Dynamic Color |
+| **Wstrzykiwanie zależności** | Dagger Hilt 2.52 (`@HiltViewModel`, Hilt Work) |
+| **Baza danych** | AndroidX Room 2.6.1 (Schemat v6 z atomowymi migracjami) |
+| **Pamięć klucz-wartość** | Jetpack DataStore Preferences 1.1.1 |
+| **Zadania w tle i powiadomienia** | WorkManager 2.9.1, AlarmManager, Foreground Service |
+| **Widżety pulpitu** | AndroidX Glance 1.1.0 |
+| **Sieć i parsowanie** | OkHttp 4.12.0, Jsoup 1.18.1, AndroidX WebKit 1.11.0 |
+| **Ładowanie obrazów** | Coil Compose 2.7.0 |
+| **Testy jednostkowe i UI** | JUnit 4, Robolectric 4.13, Coroutines Test, Compose UI Test |
+| **Optymalizacja i minifikacja** | R8 / ProGuard (zoptymalizowane reguły pod Compose i DTO) |
 
-Kompilacja APK dla GitHub Releases (bez Firebase):
+---
+
+## 🔒 Bezpieczeństwo i Android Keystore
+
+Bezpieczeństwo danych użytkownika jest priorytetem projektu:
+1. **Szyfrowanie sprzętowe Android Keystore:** Wrażliwe dane autoryzacyjne konta eduVULCAN (ciasteczka sesyjne, tokeny) są szyfrowane algorytmem **AES-GCM-256** przy użyciu kluczy generowanych i chronionych sprzętowo przez **Android Keystore**. Żadne hasła ani tokeny nie są zapisywane jawnym tekstem.
+2. **Brak serwerów pośredniczących:** Połączenie z dziennikiem eduVULCAN realizowane jest wyłącznie bezpośrednio pomiędzy urządzeniem użytkownika a domenami VULCAN (`eduvulcan.pl`, `uczen.eduvulcan.pl`, `bcu.gov.pl`). Twórcy aplikacji nie posiadają serwerów proxy i nie mają wglądu w dane użytkowników.
+3. **Wykluczenie z Google Cloud Backup:** Baza danych z ocenami i frekwencją oraz magazyn poświadczeń są wykluczone z systemowej kopii zapasowej w chmurze (`android:allowBackup="false"` dla wrażliwych reguł).
+4. **Izolacja WebView:** Komponenty webowe używane podczas logowania podlegają ścisłym regułom bezpieczeństwa, blokadzie obcych domen i czyszczeniu pamięci po zakończeniu sesji.
+5. **Czysta polityka prywatności:** Zero trackerów, zero zewnętrznej analityki, zero reklam.
+
+Szczegółowe wytyczne dotyczące bezpieczeństwa i zgłaszania podatności znajdują się w pliku [**SECURITY.md**](SECURITY.md).
+
+---
+
+## 📦 Warianty kompilacji (Build Variants)
+
+Aplikacja wspiera dwa warianty dystrybucyjne (`productFlavors`):
+
+| Wariant | Zastosowanie | Usługi Google / Firebase | Auto-Update |
+|:---:|:---|:---:|:---:|
+| **`github`** *(Domyślny)* | Oficjalne wydania instalacyjne APK publikowane na GitHub Releases. | ❌ Całkowity brak zależności od Google Services / Firebase. | ✅ Wbudowany sprawdzacz aktualizacji i natychmiastowy instalator APK. |
+| **`gms`** | Wariant opcjonalny dla urządzeń z Google Play Services. | ✅ Integracja z Firebase Cloud Messaging (FCM) dla powiadomień push. | ✅ Sprawdzanie wydań GitHub Releases. |
+
+*Uwaga:* Oba warianty posiadają ten sam `applicationId` (`pl.zse.bydgoszcz.elektron.vulcan`), co umożliwia płynną migrację pod warunkiem zachowania spójności klucza podpisu.
+
+---
+
+## 🚀 Instrukcja kompilacji i uruchomienia (Getting Started)
+
+### Wymagania wstępne
+- **JDK:** Wersja 17 lub nowsza (rekomendowany JDK 21 Temurin).
+- **Android SDK:** `compileSdk = 35`, `targetSdk = 35`, `minSdk = 26` (Android 8.0 Oreo+).
+- **Android Studio:** Ladybug / Meerkat lub nowsze z obsługą Kotlin 2.0+.
+
+### Klonowanie repozytorium
 ```sh
-./gradlew :app:assembleGithubRelease
+git clone https://github.com/Klap3K/Elektronv2.git
+cd Elektronv2
 ```
 
-Uruchomienie testów jednostkowych:
+### Kompilacja i budowanie paczek APK
+
+1. **Budowanie wariantu domyślnego (`github`):**
+   ```sh
+   # Wersja Debug (do testów na podłączonym telefonie / emulatorze)
+   ./gradlew :app:assembleGithubDebug
+
+   # Wersja Release (podpisana kluczem lub niepodpisana przy braku keystore.properties)
+   ./gradlew :app:assembleGithubRelease
+   ```
+
+2. **Budowanie wariantu z Google Services (`gms`):**
+   ```sh
+   # Bez lokalnego pliku google-services.json (tryb CI)
+   ./gradlew -Pelektron.gms=false :app:assembleGmsRelease
+
+   # Z własną konfiguracją Firebase (patrz PORADNIK_PUSH.md)
+   ./gradlew :app:assembleGmsRelease
+   ```
+
+3. **Uruchamianie testów jednostkowych i weryfikacja kodu:**
+   ```sh
+   # Testy jednostkowe (Robolectric + JUnit)
+   ./gradlew :app:testGithubDebugUnitTest :app:testGmsDebugUnitTest
+
+   # Analiza statyczna kodu (Android Lint)
+   ./gradlew :app:lintGithubRelease
+   ```
+
+### Konfiguracja podpisu wydań produkcyjnych
+Dla lokalnego budowania wydań produkcyjnych skopiuj plik szablonu:
 ```sh
-./gradlew :app:testGithubDebugUnitTest
+cp keystore.properties.example keystore.properties
 ```
+i uzupełnij go ścieżką do swojego pliku `.jks` oraz hasłami (plik `keystore.properties` jest chroniony przez `.gitignore`).
+
+W środowisku **GitHub Actions CI/CD** proces podpisywania konfiguruje się w środowisku `release` za pomocą sekretów:
+- `RELEASE_KEYSTORE_BASE64`: Magazyn kluczy zakodowany w Base64.
+- `RELEASE_STORE_PASSWORD`: Hasło magazynu kluczy.
+- `RELEASE_KEY_ALIAS`: Alias klucza podpisu.
+- `RELEASE_KEY_PASSWORD`: Hasło klucza podpisu.
 
 ---
 
-## Licencja
+## ⚖️ Licencja i Nota Prawna
 
-Projekt udostępniany jest na warunkach otwartoźródłowej licencji [GNU General Public License v3.0 lub nowszej](LICENSE).
-Inspiracją dla pierwotnego interfejsu był projekt Atom autorstwa Kacpra Górki.
+Projekt udostępniany jest na warunkach otwartoźródłowej licencji **GNU General Public License v3.0 lub nowszej** ([GPL-3.0-or-later](LICENSE)).
 
-Dystrybucja odbywa się tylko przez GitHub Releases. Wariant `github` nie ma Firebase i zawiera updater APK; opcjonalny `gms` dodaje powiadomienia Firebase i wymaga własnej konfiguracji. Warianty zachowują ten sam identyfikator aplikacji; aktualizacja wymaga zgodnego podpisu APK. Dawny wariant `foss` zastąpił `github`.
-
-Interfejs aplikacji jest dostępny wyłącznie po polsku. Instrukcje buildów, testów i hooków: [CONTRIBUTING.md](CONTRIBUTING.md). Zgłaszanie podatności i konfiguracja sekretów wydań: [SECURITY.md](SECURITY.md).
+### ⚠️ Zastrzeżenie prawne (Legal Disclaimer)
+*Aplikacja **Elektron-Vulcan** jest niezależnym, otwartoźródłowym projektem stworzonym pro bono przez społeczność uczniów na rzecz Zespołu Szkół Elektronicznych w Bydgoszczy. Aplikacja **nie jest** w żaden sposób powiązana, autoryzowana, sponsorowana ani wspierana przez firmę **VULCAN sp. z o.o.** Nazwy „VULCAN”, „eduVULCAN” oraz znaki towarowe i logo są wyłączną własnością ich prawnych właścicieli i zostały użyte wyłącznie w celach identyfikacyjnych i informacyjnych.*
