@@ -67,8 +67,9 @@ Po połączeniu dane pojawią się automatycznie w kluczowych miejscach aplikacj
    - Karta *Nadchodzące sprawdziany* z odliczaniem dni do najbliższych testów.
 4. **Widżety Glance na pulpicie:**
    - Widżety *Plan dnia* i *Następna lekcja* bezpośrednio pokazują oznaczenia sprawdzianów na ekranie głównym Twojego telefonu.
-5. **Strażnik Frekwencji & Import Ocen:**
-   - Dokładny podgląd obecności, wyliczenie dopuszczalnych opuszczeń przed 50% oraz zestawienie ocen cząstkowych.
+5. **Strażnik Frekwencji, Symulator Ocen i Bilans Godzin:**
+   - Wirtualny symulator ocen („Co jeśli”) z natychmiastowym przeliczaniem średniej ważonej przedmiotu oraz średniej ogólnej.
+   - Dokładny podgląd obecności z konfigurowalnym progiem docelowym (50% – 95%), wyliczeniem bezpiecznego zapasu godzin oraz godzin do odrobienia.
 
 ---
 

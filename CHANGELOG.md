@@ -4,6 +4,8 @@ Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
+**Aktualna wersja stabilna: [2.1.1] (build 48)** • [Pobierz Elektron-Vulcan.apk (v2.1.1)](https://github.com/Klap3K/Elektronv2/releases/download/v2.1.1/Elektron-Vulcan.apk)
+
 ## [2.1.1] - 2026-10-13 (48)
 
 Szczegóły: [release-notes/2.1.1.md](release-notes/2.1.1.md).
@@ -532,6 +534,11 @@ Pierwsza wersja beta: zestaw funkcji zamrożony do wydania 1.0, dalsze wersje 0.
 
 Starsze wersje (0.1.0 - 0.3.1-alpha) nie są opisane w tym pliku.
 
+[2.1.1]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.1.1
+[2.1.0]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.1.0
+[2.0.9]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.9
+[2.0.8]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.8
+[2.0.7]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.7
 [2.0.6]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.6
 [2.0.0]: https://github.com/Klap3K/Elektronv2/releases/tag/v2.0.0
 [1.0.1-beta1]: https://github.com/Klap3K/Elektronv2/releases/tag/v1.0.1-beta1

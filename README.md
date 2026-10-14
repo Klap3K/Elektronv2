@@ -7,15 +7,32 @@
 **Nowoczesna, otwartoźródłowa aplikacja na Androida dla uczniów ZSE w Bydgoszczy – plan lekcji, zastępstwa, ogłoszenia szkolne, oceny i terminarz z konta eduVULCAN, Symulator Ocen, Strażnik Frekwencji oraz powiadomienia na żywo „Kiedy dzwonek?”.**
 
 [![Build i testy](https://github.com/Klap3K/Elektronv2/actions/workflows/ci.yml/badge.svg)](https://github.com/Klap3K/Elektronv2/actions/workflows/ci.yml)
-[![Wydanie v2.1.1](https://img.shields.io/badge/Wydanie-v2.1.1-success?logo=android&logoColor=white)](https://github.com/Klap3K/Elektronv2/releases/latest)
+[![Wydanie v2.1.1](https://img.shields.io/badge/Wydanie-v2.1.1%20%2848%29-blue.svg)](https://github.com/Klap3K/Elektronv2/releases/tag/v2.1.1)
+[![Pobierz APK v2.1.1](https://img.shields.io/badge/Pobierz%20APK-v2.1.1-2ea44f?logo=android&logoColor=white)](https://github.com/Klap3K/Elektronv2/releases/download/v2.1.1/Elektron-Vulcan.apk)
 [![Licencja: GPL v3+](https://img.shields.io/badge/Licencja-GPL--3.0--or--later-blue.svg)](LICENSE)
 ![Kotlin 2.0.20](https://img.shields.io/badge/Kotlin-2.0.20-7F52FF?logo=kotlin&logoColor=white)
 ![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B%20(API%2026%2B)-3DDC84?logo=android&logoColor=white)
 ![Target SDK 35](https://img.shields.io/badge/Target%20SDK-35-00599C)
 
-[**Pobierz najnowsze wydanie (v2.1.1 APK)**](https://github.com/Klap3K/Elektronv2/releases/latest) • [**Poradnik eduVULCAN**](PORADNIK_VULCAN.md) • [**Polityka Prywatności**](PRYWATNOSC.md) • [**Bezpieczeństwo**](SECURITY.md) • [**Zgłoś błąd / Sugestie**](https://github.com/Klap3K/Elektronv2/issues/new)
+[**🚀 Pobierz najnowszą wersję (v2.1.1 APK)**](https://github.com/Klap3K/Elektronv2/releases/download/v2.1.1/Elektron-Vulcan.apk) • [**📦 Wydanie v2.1.1**](https://github.com/Klap3K/Elektronv2/releases/tag/v2.1.1) • [**Wszystkie wydania**](https://github.com/Klap3K/Elektronv2/releases) • [**Poradnik eduVULCAN**](PORADNIK_VULCAN.md) • [**Polityka Prywatności**](PRYWATNOSC.md) • [**Bezpieczeństwo**](SECURITY.md) • [**Zgłoś błąd / Sugestie**](https://github.com/Klap3K/Elektronv2/issues/new)
 
 </div>
+
+---
+
+## 📥 Pobieranie najnowszej wersji (v2.1.1)
+
+Oficjalny, podpisany instalator APK dla Androida (wersja **2.1.1**, kod **48**):
+
+<p align="center">
+  <a href="https://github.com/Klap3K/Elektronv2/releases/download/v2.1.1/Elektron-Vulcan.apk">
+    <img src="https://img.shields.io/badge/POBIERZ%20APK-Elektron--Vulcan%20v2.1.1-2ea44f?style=for-the-badge&logo=android&logoColor=white" alt="Pobierz APK v2.1.1">
+  </a>
+</p>
+
+- 🚀 **[Bezpośrednie pobranie Elektron-Vulcan.apk (v2.1.1)](https://github.com/Klap3K/Elektronv2/releases/download/v2.1.1/Elektron-Vulcan.apk)** — instalacja wprost na telefonie (instaluje się jako aktualizacja na poprzednią wersję bez utraty danych).
+- 📋 **[Notatki i opis wydania v2.1.1 na GitHubie](https://github.com/Klap3K/Elektronv2/releases/tag/v2.1.1)**.
+- 📦 **[Wszystkie dotychczasowe wydania aplikacji (GitHub Releases)](https://github.com/Klap3K/Elektronv2/releases)**.
 
 ---
 

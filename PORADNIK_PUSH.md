@@ -26,7 +26,7 @@ dostępu do projektu Firebase albo we własnym forku.
 1. Wejdź na **console.firebase.google.com** i zaloguj się kontem Google.
 2. **Dodaj projekt**, np. `elektron-zse`. Google Analytics nie jest potrzebne.
 3. W projekcie kliknij ikonę **Androida** („Dodaj aplikację”).
-4. **Nazwa pakietu:** `pl.zse.bydgoszcz.elektron`. Musi się zgadzać z `applicationId` w `app/build.gradle.kts`.
+4. **Nazwa pakietu:** `pl.zse.bydgoszcz.elektron.vulcan`. Musi się zgadzać z `applicationId` w `app/build.gradle.kts`.
 5. Pobierz **`google-services.json`** i wrzuć go do `app/` w repozytorium aplikacji (obok
    `app/build.gradle.kts`, **nie** do katalogu głównego).
 6. Cloud Messaging jest włączony domyślnie.

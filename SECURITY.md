@@ -8,6 +8,15 @@ prywatnego zgłaszania podatności, bez ujawniania szczegółów błędu.
 
 Poprawki bezpieczeństwa są przygotowywane dla bieżącej wersji aplikacji.
 
+## Obsługiwane wersje
+
+| Wersja | Status wsparcia |
+| :--- | :--- |
+| **2.1.1 (build 48)** | ✅ Aktywnie wspierana (najnowsza stabilna) |
+| < 2.1.1 | ❌ Niewspierana (zalecana natychmiastowa aktualizacja) |
+
+Oficjalne wydanie: [v2.1.1](https://github.com/Klap3K/Elektronv2/releases/tag/v2.1.1) • Bezpośredni instalator: [Elektron-Vulcan.apk (v2.1.1)](https://github.com/Klap3K/Elektronv2/releases/download/v2.1.1/Elektron-Vulcan.apk)
+
 ## Podpis wydań
 
 Klucz znajdujący się wcześniej w `.github/signing/release.pfx.b64` został ujawniony wraz
