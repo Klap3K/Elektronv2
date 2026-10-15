@@ -4,7 +4,22 @@ Wszystkie istotne zmiany w Elektron-Vulcan. Format oparty na
 [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), numeracja wersji zgodna z
 [SemVer](https://semver.org/lang/pl/). W nawiasie `versionCode` z Androida.
 
-**Aktualna wersja stabilna: [2.1.1] (build 48)** • [Pobierz Elektron-Vulcan.apk (v2.1.1)](https://github.com/Klap3K/Elektronv2/releases/download/v2.1.1/Elektron-Vulcan.apk)
+**Aktualna wersja stabilna: [2.1.2] (build 49)** • [Pobierz Elektron-Vulcan.apk (v2.1.2)](https://github.com/Klap3K/Elektronv2/releases/download/v2.1.2/Elektron-Vulcan.apk)
+
+## [2.1.2] - 2026-10-15 (49)
+
+Szczegóły: [release-notes/2.1.2.md](release-notes/2.1.2.md).
+
+- **Ukrywanie Religii w Strażniku Frekwencji:**
+  - Po wyłączeniu Religii w Ustawieniach grup lekcyjnych (`Nie chodzę`) przedmiot ten jest automatycznie wykluczany ze Strażnika Frekwencji.
+  - Wyłączona Religia nie zaniża ogólnej frekwencji ucznia i nie wywołuje fałszywych alarmów o nieklasyfikowaniu.
+  - Elastyczne dopasowywanie wariantów nazewnictwa z planu lekcji i dziennika (`rel`, `religia`, `rel.`, `rel-1/1`).
+- **Wiarygodne ostrzeżenie przed nieklasyfikowaniem:**
+  - Karta główna Strażnika i karta na pulpicie (Dashboard) natychmiast przełączają się w stan ostrzegawczy przy jakimkolwiek przedmiocie < 50%, prezentując listę przedmiotów zagrożonych zamiast mylącego zielonego bilansu ogólnego.
+- **Ulepszona lista przedmiotów i symulator:**
+  - Wyniesienie przedmiotów zagrożonych na początek listy z wyróżnieniem graficznym.
+  - Możliwość ukierunkowania symulatora opuszczeń na konkretny wybrany przedmiot.
+  - Eliminacja kolizji UI i nieestetycznego zawijania tekstu bilansu godzin w wierszach przedmiotów.
 
 ## [2.1.1] - 2026-10-13 (48)
 

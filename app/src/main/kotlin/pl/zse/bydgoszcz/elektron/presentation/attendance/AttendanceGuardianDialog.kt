@@ -1,6 +1,8 @@
 package pl.zse.bydgoszcz.elektron.presentation.attendance
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -121,15 +123,36 @@ fun AttendanceGuardianDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Lista przedmiotów
+                    // Lista przedmiotów z priorytetyzacją zagrożeń na górze
+                    val sortedSubjects = remember(data.subjects, targetThreshold, simulation.simulatedMissedHours, simulation.simulatedSubject) {
+                        data.subjects.sortedWith(
+                            compareBy<SubjectAttendance> {
+                                when {
+                                    it.isCritical -> 0
+                                    it.percentage < targetThreshold -> 1
+                                    else -> 2
+                                }
+                            }.thenBy { it.percentage }
+                        )
+                    }
+
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f, fill = false),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        items(data.subjects, key = { it.subject }) { subj ->
-                            SubjectRow(subj, simulation.simulatedMissedHours, targetThreshold)
+                        items(sortedSubjects, key = { it.subject }) { subj ->
+                            SubjectRow(
+                                subj = subj,
+                                simulation = simulation,
+                                targetThreshold = targetThreshold,
+                                onSelectForSimulation = {
+                                    viewModel.selectSubjectForSimulation(
+                                        if (simulation.simulatedSubject == subj.subject) null else subj.subject
+                                    )
+                                }
+                            )
                         }
                     }
                 }
@@ -218,19 +241,31 @@ private fun OverallCard(
 
     val balance = AttendanceThresholdCalculator.calculateBalance(
         presentHours = data.presentCount,
-        absentHours = data.absentCount + simulation.simulatedMissedHours,
+        absentHours = data.absentCount + (if (simulation.simulatedSubject == null) simulation.simulatedMissedHours else 0),
         targetThresholdPercent = targetThreshold
     )
 
+    val atRiskCount = data.criticalSubjectsCount
+    val isAnyCritical = atRiskCount > 0 || balance.isCritical
+
     val color = when {
-        balance.isCritical -> MaterialTheme.colorScheme.error
+        isAnyCritical -> MaterialTheme.colorScheme.error
         balance.isBelowTarget -> Color(0xFFF57C00) // Poniżej celu
         else -> Color(0xFF2E7D32) // Bezpieczny zielony
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isAnyCritical) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            }
+        ),
+        border = if (isAnyCritical) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.6f))
+        } else null,
         shape = MaterialTheme.shapes.large
     ) {
         Column(Modifier.padding(14.dp)) {
@@ -242,7 +277,7 @@ private fun OverallCard(
                 Text(
                     "Ogólna frekwencja",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = if (isAnyCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
                     String.format(Locale.US, "%.1f%%", displayPct),
@@ -264,14 +299,14 @@ private fun OverallCard(
             )
 
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.Top) {
                 val icon = when {
-                    balance.isCritical -> Icons.Filled.Warning
+                    isAnyCritical -> Icons.Filled.Warning
                     balance.isBelowTarget -> Icons.Filled.Info
                     else -> Icons.Filled.CheckCircle
                 }
                 val iconTint = when {
-                    balance.isCritical -> MaterialTheme.colorScheme.error
+                    isAnyCritical -> MaterialTheme.colorScheme.error
                     balance.isBelowTarget -> Color(0xFFF57C00)
                     else -> Color(0xFF2E7D32)
                 }
@@ -279,21 +314,42 @@ private fun OverallCard(
                     icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier
+                        .size(18.dp)
+                        .padding(top = 2.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(
-                    balance.fullSummary,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (balance.isCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSecondaryContainer,
-                    fontWeight = if (balance.isCritical) FontWeight.Bold else FontWeight.Medium
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    val summaryMessage = when {
+                        atRiskCount > 0 -> {
+                            val subjPlural = if (atRiskCount == 1) "przedmiot poniżej" else if (atRiskCount in 2..4) "przedmioty poniżej" else "przedmiotów poniżej"
+                            val names = data.subjects.filter { it.isCritical }.joinToString { it.subject }
+                            "Zagrożenie nieklasyfikowaniem! Masz $atRiskCount $subjPlural progu 50% ($names). Pilnie odrób obecności!"
+                        }
+                        else -> balance.fullSummary
+                    }
+                    Text(
+                        summaryMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isAnyCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontWeight = if (isAnyCritical) FontWeight.Bold else FontWeight.Medium
+                    )
+                    if (atRiskCount > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Ogólny bilans: " + balance.fullSummary,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                }
             }
 
             if (simulated) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
+                val simSubjectText = if (simulation.simulatedSubject != null) " (dla przedmiotu: ${simulation.simulatedSubject})" else " (ogólna)"
                 Text(
-                    "Symulacja: +${simulation.simulatedMissedHours} opuszczonych godzin (spadek o ${String.format(Locale.US, "%.1f%%", data.percentage - displayPct.toFloat())})",
+                    "Symulacja$simSubjectText: +${simulation.simulatedMissedHours} opuszczonych godzin (spadek o ${String.format(Locale.US, "%.1f%%", data.percentage - displayPct.toFloat())})",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -337,81 +393,121 @@ private fun SimulatorSection(
 @Composable
 private fun SubjectRow(
     subj: SubjectAttendance,
-    simulatedMissedHours: Int,
-    targetThreshold: Int
+    simulation: AttendanceViewModel.SimulationState,
+    targetThreshold: Int,
+    onSelectForSimulation: () -> Unit
 ) {
-    val simulatedAbsent = subj.absentCount + simulatedMissedHours
+    val isSelectedForSim = simulation.simulatedSubject == subj.subject
+    val additionalAbsent = if (isSelectedForSim) simulation.simulatedMissedHours else 0
+    val totalAbsent = subj.absentCount + additionalAbsent
+
     val balance = AttendanceThresholdCalculator.calculateBalance(
         presentHours = subj.presentCount,
-        absentHours = simulatedAbsent,
+        absentHours = totalAbsent,
         targetThresholdPercent = targetThreshold
     )
     val displayPct = balance.currentPercentage
+    val isCritical = balance.isCritical
     val color = when {
-        balance.isCritical -> MaterialTheme.colorScheme.error
+        isCritical -> MaterialTheme.colorScheme.error
         balance.isBelowTarget -> Color(0xFFF57C00)
         else -> Color(0xFF2E7D32)
     }
 
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
+        color = when {
+            isCritical -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+            isSelectedForSim -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        },
+        border = when {
+            isCritical -> BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+            isSelectedForSim -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+            else -> null
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelectForSimulation() }
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            // Wiersz 1: Nazwa przedmiotu (z ikoną błędu jeśli krytyczny) + Procent
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    subj.subject,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isCritical) {
+                        Icon(
+                            Icons.Filled.Warning,
+                            contentDescription = "Zagrożenie nieklasyfikowaniem",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Text(
+                        text = subj.subject,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (isCritical) FontWeight.Bold else FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    String.format(Locale.US, "%.1f%%", displayPct),
+                    text = String.format(Locale.US, "%.1f%%", displayPct),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = color
                 )
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             LinearProgressIndicator(
                 progress = { (displayPct / 100.0).toFloat().coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(5.dp),
+                    .height(6.dp),
                 color = color,
                 trackColor = color.copy(alpha = 0.2f),
                 drawStopIndicator = {}
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
+            // Wiersz 2: Obecności (po lewej) + Zwięzły bilans (po prawej)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Obecności: ${subj.presentCount} / ${subj.presentCount + simulatedAbsent} h",
+                    text = "Obecności: ${subj.presentCount} / ${subj.presentCount + totalAbsent} h",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                val shortText = when {
+                    isCritical -> "⚠️ Zagrożenie: +${balance.recoveryNeededTo50} h do 50%"
+                    balance.isBelowTarget -> "+${balance.recoveryNeededToTarget} h do ${targetThreshold}% (zapas: ${balance.maxMissableTo50} h)"
+                    else -> "Zapas: ${balance.maxMissableToTarget} h (do ${targetThreshold}%)"
+                }
+
                 Text(
-                    balance.shortSummary,
+                    text = shortText,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = when {
-                        balance.isCritical -> MaterialTheme.colorScheme.error
+                        isCritical -> MaterialTheme.colorScheme.error
                         balance.isBelowTarget -> Color(0xFFF57C00)
                         else -> MaterialTheme.colorScheme.primary
-                    }
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

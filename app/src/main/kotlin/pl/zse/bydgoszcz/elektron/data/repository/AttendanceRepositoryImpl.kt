@@ -2,28 +2,51 @@ package pl.zse.bydgoszcz.elektron.data.repository
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import pl.zse.bydgoszcz.elektron.data.local.AttendanceDao
 import pl.zse.bydgoszcz.elektron.data.local.AttendanceEntity
 import pl.zse.bydgoszcz.elektron.data.remote.vulcan.VulcanApiClient
+import pl.zse.bydgoszcz.elektron.domain.model.LessonGroups
 import pl.zse.bydgoszcz.elektron.domain.model.OverallAttendance
 import pl.zse.bydgoszcz.elektron.domain.model.SubjectAttendance
 import pl.zse.bydgoszcz.elektron.domain.repository.AttendanceRepository
 import pl.zse.bydgoszcz.elektron.domain.repository.CalendarRepository
+import pl.zse.bydgoszcz.elektron.domain.repository.SettingsRepository
 import javax.inject.Inject
 import javax.inject.Singleton
+
+import kotlinx.coroutines.flow.distinctUntilChanged
+import pl.zse.bydgoszcz.elektron.domain.model.SchoolEvent
 
 @Singleton
 class AttendanceRepositoryImpl @Inject constructor(
     private val dao: AttendanceDao,
     private val calendarRepository: CalendarRepository,
-    private val vulcanApiClient: VulcanApiClient
+    private val vulcanApiClient: VulcanApiClient,
+    private val settingsRepository: SettingsRepository
 ) : AttendanceRepository {
 
     override fun observeAll(): Flow<List<SubjectAttendance>> =
-        dao.getAll().map { list -> list.map { it.toDomain() } }
+        combine(
+            dao.getAll().map { list -> list.map { it.toDomain() } },
+            settingsRepository.activeGroupSelections
+        ) { list, groups ->
+            val isReligionDisabled = groups.any { (base, choice) ->
+                LessonGroups.isReligion(base) && choice == LessonGroups.NONE
+            }
+            list.filterNot { item ->
+                (isReligionDisabled && LessonGroups.isReligion(item.subject)) ||
+                    groups.any { (base, choice) ->
+                        choice == LessonGroups.NONE && (
+                            base.equals(item.subject, ignoreCase = true) ||
+                            SchoolEvent.subjectsMatch(item.subject, base)
+                        )
+                    }
+            }
+        }.distinctUntilChanged()
 
     override fun observeOverall(): Flow<OverallAttendance> =
         observeAll().map { OverallAttendance.fromSubjects(it) }

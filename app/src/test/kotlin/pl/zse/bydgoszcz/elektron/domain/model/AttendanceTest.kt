@@ -78,4 +78,28 @@ class AttendanceTest {
         assertFalse(balance.isCritical)
         assertEquals(0, balance.maxMissableToTarget) // exact 75%
     }
+
+    @Test
+    fun religionExclusion_removesZeroAttendanceReligionFromOverall() {
+        val s1 = SubjectAttendance("Religia", presentHours = 0, absentHours = 2, excusedHours = 0, lateHours = 0, schoolObligationHours = 0)
+        val s2 = SubjectAttendance("Matematyka", presentHours = 14, absentHours = 5, excusedHours = 0, lateHours = 0, schoolObligationHours = 0)
+        val list = listOf(s1, s2)
+
+        val groups = mapOf("rel" to LessonGroups.NONE)
+        val isReligionDisabled = groups.any { (base, choice) ->
+            LessonGroups.isReligion(base) && choice == LessonGroups.NONE
+        }
+        assertTrue(isReligionDisabled)
+
+        val filtered = list.filterNot { item ->
+            isReligionDisabled && LessonGroups.isReligion(item.subject)
+        }
+        assertEquals(1, filtered.size)
+        assertEquals("Matematyka", filtered[0].subject)
+
+        val overall = OverallAttendance.fromSubjects(filtered)
+        assertEquals(0, overall.criticalSubjectsCount)
+        assertEquals(14, overall.presentHours)
+        assertEquals(5, overall.absentHours)
+    }
 }

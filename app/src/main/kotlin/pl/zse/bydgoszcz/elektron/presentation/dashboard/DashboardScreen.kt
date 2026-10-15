@@ -870,14 +870,19 @@ private fun AttendanceGuardianCard(
 ) {
     val pct = attendance.percentage
     val bal = attendance.balance(targetPercent)
+    val isAnyCritical = atRiskCount > 0 || bal.isCritical
     val color = when {
-        bal.isCritical -> MaterialTheme.colorScheme.error
+        isAnyCritical -> MaterialTheme.colorScheme.error
         bal.isBelowTarget -> Color(0xFFF57C00)
         else -> Color(0xFF2E7D32)
     }
 
     ElektronCard(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        containerColor = if (isAnyCritical) {
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
         onClick = onClick
     ) {
         Column(Modifier.padding(14.dp)) {

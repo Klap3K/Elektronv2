@@ -68,13 +68,16 @@ object LessonGroups {
     fun orderForCustomizing(subjects: List<DividedSubject>): List<DividedSubject> =
         subjects.sortedWith(compareBy({ customizePriority(it.base) }, { it.base.lowercase() }))
 
-    /** Religia (także "religia", "relig.") - w szybkim wyborze jako "chodzę / nie chodzę". */
-    fun isReligion(base: String): Boolean = customizePriority(base) == 0
+    /** Religia (także "religia", "relig.", "rel", "rel-1/1") - w szybkim wyborze jako "chodzę / nie chodzę". */
+    fun isReligion(base: String): Boolean {
+        val b = base.lowercase().replace(" ", "")
+        return b.startsWith("relig") || b == "rel" || b.startsWith("rel.") || b.startsWith("rel-")
+    }
 
     private fun customizePriority(base: String): Int {
         val b = base.lowercase().replace(" ", "")
         return when {
-            b.startsWith("relig") -> 0
+            isReligion(b) -> 0
             b == "wf" || b == "w-f" || b == "w.f." || b == "w.f" || b.startsWith("wf.") ||
                 b.startsWith("wych.fiz") || b.startsWith("wychowaniefiz") -> 1
             else -> 2
